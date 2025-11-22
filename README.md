@@ -1,20 +1,20 @@
 # Lightning Goats Solar Power System
 
-This repository contains configuration documentation, health analysis, and upgrade strategies for the Schneider Electric solar energy system powering the residence and the "Lightning Goats" infrastructure.
+This repository serves as the central knowledge base for the Schneider Electric solar energy system powering the residence and the **Lightning Goats** infrastructure. It contains configuration history, health analysis, and strategic planning documents.
 
-## 📂 Document Index
+## 📂 Documentation Index
 
-### 1. Current System Health
-*   **File:** `Fullriver_Battery_Lifecycle_Analysis.md`
-*   **Description:** A detailed assessment of the existing Fullriver DC400-6 AGM battery bank (installed Aug 2022). Includes specific charging parameters to extend life through 2029 and a quarterly maintenance schedule.
+### 1. Health & Maintenance (Current AGM Bank)
+*   **📄 [Fullriver Battery Lifecycle Analysis](Fullriver_Battery_Lifecycle_Analysis.md)**
+    *   *Content:* Detailed assessment of the current DC400-6 AGM bank (installed Aug 2022). Includes the "Square Wave" health indicators and expected voltage behaviors for 2025–2029.
+*   **🔧 [Quarterly Battery Balance Procedure](Battery_Balance_Check.md)**
+    *   *Content:* Safety instructions and log sheet for checking individual 6V battery balance. **Critical maintenance** to prevent sudden bank failure.
 
-### 2. Economic Analysis
-*   **File:** `Lightning_Goats_Battery_ROI.md`
-*   **Description:** Financial breakdown of the proposed Lithium upgrade. Analyzes how the $1,000/year revenue from the Goat Feeder offsets the hardware cost, resulting in a net-positive asset rather than a backup expense.
-
-### 3. Upgrade Strategy
-*   **File:** `Battery_Replacement_Strategy_2025.md`
-*   **Description:** Technical recommendations for replacing the AGM bank with Schneider-integrated Lithium Iron Phosphate (LiFePO4) batteries. Focuses on the **Discover AES** system with Closed-Loop communication.
+### 2. Upgrade Strategy & Financials
+*   **💰 [Economic ROI Analysis](Lightning_Goats_Battery_ROI.md)**
+    *   *Content:* Breakdown of how the $1,000/year revenue from the Lightning Goats Feeder offsets the cost of a Lithium upgrade, turning the battery bank into a profit-generating asset.
+*   **🔋 [2025+ Battery Replacement Strategy](Battery_Replacement_Strategy_2025.md)**
+    *   *Content:* Technical specifications for the recommended **Discover AES (LiFePO4)** upgrade, including integration notes for the Schneider XW inverter and closed-loop communication.
 
 ---
 
@@ -24,27 +24,27 @@ This repository contains configuration documentation, health analysis, and upgra
 *   **Charge Controller:** Schneider MPPT 60 150
 *   **Solar Array:** 4.2 kW
 *   **Current Storage:** 48V Fullriver DC400-6 AGM (830Ah)
-*   **Load Profile:** ~4.4 kWh/day (House + Lightning Goats Feeder)
+*   **Load Profile:** ~4.4 kWh/day (House + Goat Feeder)
 
 ---
 
-## ⚙️ Critical Configuration (Current AGM Bank)
+## ⚙️ Critical Configuration Settings (Active)
 
-*Settings updated Nov 21, 2025, to correct chronic undercharging.*
+*Updated Nov 21, 2025. Do not revert these without reviewing the Lifecycle Analysis.*
 
-| Parameter | Value | Notes |
+| Parameter | Setting | Reason |
 | :--- | :--- | :--- |
-| **Battery Type** | AGM | Fullriver DC400-6 |
-| **Bulk / Boost** | **58.8 V** | Increased from 57.6V to remove sulfation. |
-| **Absorption** | **58.8 V** | |
-| **Float** | **54.6 V** | |
-| **High Battery Cut Out** | **64.0 V** | Set on Inverter to prevent cold-weather tripping. |
-| **Temp Setting** | **Cold** | Matches cellar temp (64°F - 70°F). |
+| **Battery Type** | **AGM** | |
+| **Bulk / Absorption** | **58.8 V** | Increased from 57.6V to remove sulfation. |
+| **Float Voltage** | **54.6 V** | Manufacturer spec for Fullriver. |
+| **High Battery Cut Out** | **64.0 V** | **Critical:** Prevents inverter tripping in cold temps. |
+| **Temp Compensation** | **Cold** | Adjusted for cellar temps (64°F - 70°F). |
+| **Max Charge Rate** | **15%** | ~60A-80A (Current limit of MPPT). |
 
 ---
 
-## 📅 Maintenance Schedule
+## 📅 Recurring Tasks
 
-*   **Daily:** Monitor for "Square Wave" absorption voltage (~60V) on sunny mornings.
-*   **Quarterly (Jan/Apr/Jul/Oct):** Check individual 6V battery balance with multimeter while in Float.
-*   **Target Upgrade Date:** 2028-2030 (Or sooner if revenue allows).
+*   **Daily:** Verify morning absorption reaches ~60V (due to temp comp).
+*   **Quarterly:** Perform [Balance Check](Battery_Balance_Check.md).
+*   **Annually:** Review "Lightning Goats" revenue vs. Battery ROI.
