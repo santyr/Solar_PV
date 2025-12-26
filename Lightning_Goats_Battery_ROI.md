@@ -33,7 +33,7 @@ $$ \$13,500 - \$15,000 = \mathbf{-\$1,500} $$
 ### 4. The "Grid Connection" Comparison
 *Alternative Scenario: Connecting to Sangre Electric Cooperative.*
 
-If you were to abandon the off-grid lifestyle and connect to the grid, here is the cost breakdown based on 2025 rates (~$0.18/kWh avg) and our specific infrastructure needs.
+If you were to abandon the off-grid lifestyle and connect to the grid, the "Lightning Goats" revenue would still exist, but it would be consumed by the cost of the grid connection.
 
 **A. Upfront Infrastructure**
 *   **Line Extension / Hookup:** **$16,000** (Conservative Estimate).
@@ -45,8 +45,11 @@ If you were to abandon the off-grid lifestyle and connect to the grid, here is t
 *   **Annual Grid Bill:** ~$612.00 per year.
 *   **15-Year Energy Cost:** **$9,180** (assuming no rate increases).
 
-**C. Total 15-Year Grid Cost**
-$$ \$16,000 \text{ (Hookup)} + \$9,180 \text{ (Bills)} = \mathbf{\$25,180} $$
+**C. Net Grid Cost Calculation**
+$$ (\text{Hookup} + \text{Energy Bills}) - \text{Goat Revenue} = \text{Net Cost} $$
+$$ (\$16,000 + \$9,180) - \$15,000 = \mathbf{\$10,180} $$
+
+**Result:** Even with the goat revenue, connecting to the grid results in a **$10,180 loss** over 15 years.
 
 ---
 
@@ -56,16 +59,16 @@ $$ \$16,000 \text{ (Hookup)} + \$9,180 \text{ (Bills)} = \mathbf{\$25,180} $$
 | :--- | :--- | :--- |
 | **Upfront Cost** | $13,500 | $16,000+ |
 | **15-Year Operating Cost** | $0 (Sun is free) | $9,180 |
-| **15-Year Revenue** | +$15,000 | $0 |
-| **NET 15-YEAR COST** | **(+$1,500 Profit)** | **-$25,180 Cost** |
+| **15-Year Revenue** | +$15,000 | +$15,000 |
+| **NET 15-YEAR POSITION** | **+$1,500 (Profit)** | **-$10,180 (Cost)** |
 
 **The "Opportunity Cost" of Switching:**
-By staying off-grid and upgrading our batteries, we are **$26,680 wealthier** over the next 15 years compared to connecting to the grid.
+By staying off-grid and upgrading our batteries, we are **$11,680 wealthier** over the next 15 years compared to connecting to the grid.
 
 ### 6. Strategic Conclusion
 
 **Proceed with the upgrade in August 2027.**
 
-*   **ROI:** The solar upgrade pays for itself. The grid connection is a sunk cost that never pays back.
+*   **Financial Logic:** The Solar option ends in the green (profit), while the Grid option ends in the red (cost).
 *   **Resilience:** You maintain immunity from grid outages/blackouts.
-*   **Value:** The "Lightning Goats" revenue stream effectively subsidizes our entire home energy infrastructure.
+*   **Value:** Even though the Grid option also benefits from the revenue, the high upfront hookup fees and monthly bills consume all the profit and then some.
