@@ -33,7 +33,7 @@ $$ \$13,500 - \$15,000 = \mathbf{-\$1,500} $$
 ### 4. The "Grid Connection" Comparison
 *Alternative Scenario: Connecting to Sangre Electric Cooperative.*
 
-If you were to abandon the off-grid lifestyle and connect to the grid, here is the cost breakdown based on 2025 rates (~$0.18/kWh avg) and your specific infrastructure needs.
+If you were to abandon the off-grid lifestyle and connect to the grid, here is the cost breakdown based on 2025 rates (~$0.18/kWh avg) and our specific infrastructure needs.
 
 **A. Upfront Infrastructure**
 *   **Line Extension / Hookup:** **$16,000** (Conservative Estimate).
@@ -60,7 +60,7 @@ $$ \$16,000 \text{ (Hookup)} + \$9,180 \text{ (Bills)} = \mathbf{\$25,180} $$
 | **NET 15-YEAR COST** | **(+$1,500 Profit)** | **-$25,180 Cost** |
 
 **The "Opportunity Cost" of Switching:**
-By staying off-grid and upgrading your batteries, you are **$26,680 wealthier** over the next 15 years compared to connecting to the grid.
+By staying off-grid and upgrading our batteries, we are **$26,680 wealthier** over the next 15 years compared to connecting to the grid.
 
 ### 6. Strategic Conclusion
 
@@ -68,4 +68,4 @@ By staying off-grid and upgrading your batteries, you are **$26,680 wealthier** 
 
 *   **ROI:** The solar upgrade pays for itself. The grid connection is a sunk cost that never pays back.
 *   **Resilience:** You maintain immunity from grid outages/blackouts.
-*   **Value:** The "Lightning Goats" revenue stream effectively subsidizes your entire home energy infrastructure.
+*   **Value:** The "Lightning Goats" revenue stream effectively subsidizes our entire home energy infrastructure.
