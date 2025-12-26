@@ -24,7 +24,7 @@ This repository serves as the central knowledge base for the Schneider Electric 
 *   **Charge Controller:** Schneider MPPT 60 150
 *   **Solar Array:** 4.2 kW
 *   **Current Storage:** 48V Fullriver DC400-6 AGM (830Ah)
-*   **Load Profile:** ~5.3 kWh/day (House + Goats + Laptop + Fridge)
+*   **Load Profile:** ~5.3 kWh/day
 
 ---
 
