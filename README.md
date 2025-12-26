@@ -11,8 +11,8 @@ This repository serves as the central knowledge base for the Schneider Electric 
     *   *Content:* Safety instructions for Quarterly checks and **Manual Balancing** using the NOCO charger.
 
 ### 2. Upgrade Strategy & Financials
-*   **🔋 [Battery Replacement Strategy](Battery_Replacement_Strategy_2025.md)**
-    *   *Content:* Technical specs for the **5-Unit Discover AES Rackmount** upgrade (Split-Stack configuration).
+*   **🔋 [Lightning Goats Lithium Upgrade](Lightning-Goats-Lithium-Upgrade.md)**
+    *   *Content:* Technical specifications for the **5-Unit Discover AES Rackmount** upgrade, split-stack configuration, and installation logistics.
 *   **💰 [Economic ROI Analysis](Lightning_Goats_Battery_ROI.md)**
     *   *Content:* Financial breakdown of the upgrade, showing a 13.5-year payback via Goat Revenue.
 
@@ -24,7 +24,7 @@ This repository serves as the central knowledge base for the Schneider Electric 
 *   **Charge Controller:** Schneider MPPT 60 150
 *   **Solar Array:** 4.2 kW
 *   **Current Storage:** 48V Fullriver DC400-6 AGM (830Ah)
-*   **Load Profile:** ~5.3 kWh/day
+*   **Load Profile:** ~5.3 kWh/day (House + Goats + Laptop + Fridge)
 
 ---
 
