@@ -1,16 +1,17 @@
 # Economic Analysis: "Lightning Goats" Revenue Impact
-## Project: Discover AES Battery Upgrade (~22 kWh)
+## Project: Discover AES Rackmount Upgrade (25.6 kWh)
 
 The addition of the "Lightning Goats" revenue stream fundamentally changes the financial nature of this upgrade. By generating **$1,000 per year**, the battery bank transitions from a "Backup Power Expense" to a **"Profit-Generating Asset."**
 
-Below is the 15-year projection, matching the expected calendar lifespan of the Lithium batteries.
+Below is the 15-year projection, based on the **5-Unit Rackmount Configuration**.
 
 ---
 
 ### 1. The Financial Baseline
 
-*   **Estimated Hardware Cost:** **$13,000**
-    *   *Includes:* 3x Discover AES 7.4 batteries, LYNK II Gateway, Cables, Busbars.
+*   **Estimated Project Cost:** **~$13,500**
+    *   *Hardware:* ~$9,500 (5x Batteries, Combiner, Gateway, Racks, Cables).
+    *   *Labor/Misc:* ~$4,000 (Removal of old lead-acid, installation, custom cabling).
 *   **Projected Lifespan:** **15 Years**
     *   *Limited by:* Calendar aging of electronics/chemistry (not cycle life).
 
@@ -21,36 +22,24 @@ Below is the 15-year projection, matching the expected calendar lifespan of the 
 
 ### 3. Net Cost Calculation
 
-$$ \text{Hardware Cost} - \text{Total Revenue} = \text{Net Cost} $$
+$$ \text{Total Project Cost} - \text{Total Revenue} = \text{Net Cost} $$
 
-$$ \$13,000 - \$15,000 = \mathbf{-\$2,000} $$
+$$ \$13,500 - \$15,000 = \mathbf{-\$1,500} $$
 
-**Result:** The "Lightning Goats" completely pay for the new battery bank, plus they generate a **$2,000 surplus** over the life of the system.
+**Result:** The "Lightning Goats" completely pay for the new battery bank, plus they generate a **$1,500 surplus** over the life of the system.
 
 ---
 
-### 4. Impact on "Cost per kWh"
+### 4. Return on Investment (ROI)
 
-In a traditional off-grid analysis, we calculate how much it costs to store energy for your home.
-
-*   **Previous Estimate (No Goats):** ~$0.54 per kWh.
-*   **New Estimate (With Goats):** **PROFITABLE**
-
-Because the system generates more cash than it costs to build, your Cost per kWh for household electricity effectively becomes **$0.00**. The batteries keeping your lights on during a blizzard are effectively "free," paid for by the excess solar capacity consumed by the feeder.
-
-### 5. Return on Investment (ROI)
-
-*   **Payback Period:** 13 Years.
-    *   It will take 13 years for the goats to fully pay off the initial $13,000 investment.
+*   **Payback Period:** **13.5 Years**.
+    *   It will take ~13.5 years for the goats to fully pay off the initial investment.
     *   Years 14 and 15 are pure profit.
-*   **Internal Rate of Return (IRR):** Positive.
-    *   Instead of money sitting in a bank account losing value to inflation, it is sitting in a lithium bank securing your home power *and* paying itself off.
+*   **Operational Security:**
+    *   Upgrading to Lithium in 2027 ensures the "Goat Feeder" never shuts down due to voltage sag or sulfated batteries, securing that income stream.
 
-### 6. Strategic Conclusion
+### 5. Strategic Conclusion
 
-**Proceed with the upgrade immediately.**
+**Proceed with the upgrade in August 2027.**
 
-If you were only using the batteries for house backup, the $13,000 price tag is a "premium" for security. However, with a $1,000/year revenue stream, the purchase is mathematically justified as a business investment.
-
-*   **Risk Mitigation:** The long lifespan of the Discover AES (15-20 years) perfectly aligns with this long-term revenue model.
-*   **Reliability:** Upgrading to Lithium ensures the "Goat Feeder" never shuts down due to voltage sag or sulfated batteries, securing that income stream.
+The move to **Rackmount** batteries (vs. the older Wall-mount style) significantly improved the ROI of this project. We are now getting **25.6 kWh** of capacity for roughly the same price as the original 22 kWh plan, further lowering the cost per kWh stored.
