@@ -11,7 +11,7 @@ This repository serves as the central knowledge base for the Schneider Electric 
     *   *Content:* Safety instructions for Quarterly checks and **Manual Balancing** using the NOCO charger.
 
 ### 2. Upgrade Strategy & Financials
-*   **🔋 [Battery Replacement Strategy](Battery_Replacement_Strategy.md)**
+*   **🔋 [Battery Replacement Strategy](Battery_Replacement_Strategy_2025.md)**
     *   *Content:* Technical specs for the **5-Unit Discover AES Rackmount** upgrade (Split-Stack configuration).
 *   **💰 [Economic ROI Analysis](Lightning_Goats_Battery_ROI.md)**
     *   *Content:* Financial breakdown of the upgrade, showing a 13.5-year payback via Goat Revenue.
