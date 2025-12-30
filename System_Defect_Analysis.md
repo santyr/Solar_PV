@@ -13,7 +13,7 @@ The failure is directly attributable to the installation defects documented in *
 ## Exhibit A: Main Conductor Defects
 **Source Files:**
 *   [PXL_20220809_132948559.jpg](photos/PXL_20220809_132948559.jpg) (Exposed Splice - Reported 2022)
-*   [PXL_20251227_151536430.jpg](photos/PXL_20251227_151536430.jpg) 
+*   [PXL_20251227_151536430.jpg](photos/PXL_20251227_151536430.jpg) (Junction Box Splice)
 
 **Defect Identified:** Multiple mechanical splices on main 4/0 AWG battery cables.
 
