@@ -12,7 +12,7 @@ The failure is directly attributable to the installation defects documented in *
 ## Exhibit A: Main Conductor Defects
 **Source Files:**
 *   [PXL_20220809_132948559.jpg](photos/PXL_20220809_132948559.jpg) (Exposed Splice - Reported 2022)
-*   [PXL_20251227_151536430.jpg](photos/PXL_20251227_151536430.jpg) (Junction Box Splice)
+*   [PXL_20251227_151536430.jpg](photos/PXL_20251227_151536430.jpg) (Junction Box Splice - Found 2025)
 
 **Defect Identified:** Multiple mechanical splices on main 4/0 AWG battery cables.
 
@@ -65,6 +65,22 @@ For the majority of the system's life, the batteries have been sitting in "Float
 
 **Conclusion:**
 The system is "Energy Positive." The batteries were not undercharged due to lack of sunlight; energy supply was abundant.
+
+---
+
+## Exhibit E: Current Battery Response (Safety Mode)
+**Source File:** [Safety_Mode_Response.png](photos/Safety_Mode_Response.png)
+**Data Point:** Daily Charge Cycle (Dec 28, 2025)
+
+### Analysis
+Following the discovery of the spliced cables and voltage imbalance, the system charging parameters were temporarily lowered to a "Safety Mode" (57.6V Limit) to prevent the high-voltage batteries from venting while awaiting repair.
+
+**Observations:**
+*   **Voltage Cap (Blue Line):** The system successfully limits voltage to the safe threshold (~57.6V), preventing immediate thermal runaway in the imbalanced cells.
+*   **Current Taper (Green Line):** During the absorption phase (10:00 AM - 11:30 AM), the battery bank accepts charge with a smooth, declining current taper.
+
+**Conclusion:**
+This charge curve indicates that the battery chemistry remains active and responsive. The lead plates are capable of absorbing energy and do not exhibit the "cliff-edge" drop-off associated with end-of-life batteries. The batteries are not chemically "dead" from old age; they are simply unable to remain balanced due to the high resistance introduced by the wiring defects (Exhibit A).
 
 ---
 
