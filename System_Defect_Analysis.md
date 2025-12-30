@@ -12,8 +12,8 @@ The failure is directly attributable to the installation defects documented in *
 
 ## Exhibit A: Main Conductor Defects
 **Source Files:**
-*   `photos/PXL_20220809_132948559.jpg` (Exposed Splice - Reported 2022)
-*   `photos/PXL_20251227_151536430.jpg` (Junction Box Splice - Found 2025)
+*   [PXL_20220809_132948559.jpg](photos/PXL_20220809_132948559.jpg) (Exposed Splice - Reported 2022)
+*   [PXL_20251227_151536430.jpg](photos/PXL_20251227_151536430.jpg) 
 
 **Defect Identified:** Multiple mechanical splices on main 4/0 AWG battery cables.
 
@@ -31,7 +31,7 @@ Standard electrical theory dictates that mechanical splices on high-amperage cir
 ---
 
 ## Exhibit B: Lifetime Battery Discharge
-**Source File:** `photos/Lifetime_Energy_Use.png`
+**Source File:** [Lifetime_Energy_Use.png](photos/Lifetime_Energy_Use.png)
 **Data Point:** **3.2 MWh (3,200 kWh)** Lifetime Discharge
 
 ### Analysis
@@ -45,7 +45,7 @@ Over 4.5 years, the system has cycled the equivalent of only **80 times** (6.4% 
 ---
 
 ## Exhibit C: Inverter Performance & Pass-Through
-**Source File:** `photos/Inverter_Performance_History.png`
+**Source File:** [Inverter_Performance_History.png](photos/Inverter_Performance_History.png)
 **Data Point:** **~7.2 MWh** Lifetime DC Energy Out
 
 ### Analysis
@@ -58,7 +58,7 @@ For the majority of the system's life, the batteries have been sitting in "Float
 ---
 
 ## Exhibit D: Solar Production History
-**Source File:** `photos/Solar_Production_History.png`
+**Source File:** [Solar_Production_History.png](photos/Solar_Production_History.png)
 **Data Point:** **~8.8 MWh** Lifetime DC Energy Produced
 
 ### Analysis
