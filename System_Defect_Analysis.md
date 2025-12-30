@@ -73,7 +73,7 @@ The system is "Energy Positive." The batteries were not undercharged due to lack
 **Data Point:** Daily Charge Cycle (Dec 28, 2025)
 
 ### Analysis
-Following the discovery of the spliced cables and voltage imbalance, the system charging parameters were temporarily lowered to a "Safety Mode" (57.6V Limit) to prevent the high-voltage batteries from venting while awaiting repair.
+Following the being remended of the spliced cables and subsequent voltage imbalance discovery, the system charging parameters were temporarily lowered to a "Safety Mode" (57.6V Limit) to prevent the high-voltage batteries from venting while awaiting repair.
 
 **Observations:**
 *   **Voltage Cap (Blue Line):** The system successfully limits voltage to the safe threshold (~57.6V), preventing immediate thermal runaway in the imbalanced cells.
