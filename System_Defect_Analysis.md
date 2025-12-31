@@ -17,7 +17,7 @@ The failure is directly attributable to the installation defects documented in *
 **Defect Identified:** Multiple mechanical splices on main 4/0 AWG battery cables.
 
 ### Analysis
-The main DC path between the battery bank and the inverter contains unauthorized mechanical splices:
+The main DC path between the battery bank and the inverter contains mechanical splices:
 1.  **Exposed Splice:** A single conductor splice located outside of a junction box/enclosure (Code Violation).
 2.  **Junction Box Splice:** A secondary mechanical connection inside the pull box.
 
