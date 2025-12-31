@@ -87,13 +87,14 @@ Visual inspection reveals dark brown/black residue accumulating on the battery t
 
 ## Exhibit G: Safety & Workmanship Violations
 **Source File:** [Terminal_Detail_Defects.jpg](photos/Terminal_Detail_Defects.jpg)
-**Defect Identified:** Missing terminal guards and lack of corrosion protection.
+**Defect Identified:** Omission of safety hardware and lack of corrosion protection.
 
 ### Analysis
-1.  **Missing Terminal Covers:** The red/black safety caps provided by the manufacturer were not installed on the battery terminals.
-    *   **Code Violation:** **NEC 110.27(A)** requires that live parts operating at 50 volts or more be guarded against accidental contact. (System charging voltage is ~59V).
+1.  **Omission of Manufacturer-Required Safety Covers:** The red/black safety caps provided by the manufacturer were not installed on the battery terminals.
+    *   **Code Violation:** **NEC 110.3(B)** requires that listed equipment be installed in accordance with the manufacturer's instructions.
+    *   **Impact:** Failure to install the provided terminal covers leaves the high-amperage connection points fully exposed, violating the manufacturer's safety design and increasing the risk of accidental short circuits during maintenance.
 2.  **Lack of Corrosion Protection:** No anti-oxidant grease or spray is visible on the lead terminals.
-    *   **Workmanship Issue:** **NEC 110.12** requires electrical equipment to be installed in a neat and workmanlike manner. Failure to apply corrosion inhibitors to lead-acid terminals accelerates resistance buildup, contributing to the voltage drop issues cited in Exhibit A.
+    *   **Workmanship Issue:** **NEC 110.12** requires electrical equipment to be installed in a neat and workmanlike manner. Failure to apply corrosion inhibitors to lead-acid terminals accelerates resistance buildup, directly contributing to the voltage drop issues cited in Exhibit A.
 
 ## Final Determination
 The telemetry data refutes any claim that the battery bank has been "worn out." Usage is negligible (<6% DoD daily).
