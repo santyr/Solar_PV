@@ -3,105 +3,83 @@
 **System Age:** 4 Years, 4 Months (Installed Aug 2021)
 
 ## Executive Summary
-Telemetry data exported from the Schneider InsightLocal gateway confirms that the Fullriver DC400-6 battery bank has experienced negligible wear and tear over its service life (<7% cycle usage). The current battery failure is not due to consumption.
+This engineering report documents the premature failure of the Fullriver DC400-6 battery bank. The data conclusively proves that the failure is not due to normal wear and tear, as the system has utilized less than **7%** of its rated cycle life.
 
-The failure is directly attributable to **Installation Defects** and **Code Violations** (Exhibits A & G) which introduced high resistance into the charging circuit. This resistance confused the charging logic, causing severe voltage imbalances that physically damaged the battery bank via chronic undercharging of some units and acute overcharging/venting of others (Exhibit F).
+The root cause is identified as **Installation Negligence**. Multiple NEC Code Violations (Exhibits A & B) introduced high resistance into the charging circuit. This resistance prevented proper voltage regulation, resulting in severe imbalance and physical damage to the battery bank (Exhibit C).
 
 ---
 
-## Exhibit A: Main Conductor Defects
+## SECTION 1: INSTALLATION DEFECTS & CODE VIOLATIONS
+
+### Exhibit A: Main Conductor Splices
 **Source Files:**
 *   [PXL_20220809_132948559.jpg](photos/PXL_20220809_132948559.jpg) (Exposed Splice - Reported 2022)
 *   [PXL_20251227_151536430.jpg](photos/PXL_20251227_151536430.jpg) (Junction Box Splice)
 
-**Defect Identified:** Multiple mechanical splices on main 4/0 AWG battery cables.
+**Defect:** Multiple mechanical splices on main 4/0 AWG battery cables.
+**Analysis:**
+1.  **Exposed Splice:** A single conductor splice located outside of a junction box.
+    *   **Violation:** **NEC 300.15** requires a box or conduit body at each conductor splice point.
+2.  **Impact:** Mechanical splices on high-amperage charging circuits introduce electrical resistance. This causes a voltage drop, creating a "blind spot" where the Inverter reads "Full" (e.g., 58.8V) while the batteries physically receive a lower voltage, leading to chronic undercharging.
 
-### Analysis
-The main DC path between the battery bank and the inverter contains unauthorized mechanical splices:
-1.  **Exposed Splice:** A single conductor splice located outside of a junction box/enclosure.
-    *   **Code Violation:** **NEC 300.15** requires a box or conduit body at each conductor splice point. Exposed single conductors are subject to physical damage and environmental stress.
-2.  **Junction Box Splice:** A secondary mechanical connection inside the pull box.
+### Exhibit B: Safety & Workmanship Violations
+**Source File:** [Terminal_Detail_Defects.jpg](photos/Terminal_Detail_Defects.jpg)
 
-**Failure Mechanism (Voltage Drop):**
-Standard electrical theory dictates that mechanical splices on high-amperage circuits introduce electrical resistance. This resistance causes a voltage drop, creating a discrepancy between the voltage measured by the Inverter and the actual voltage at the battery terminals. This "Blind Spot" prevents the system from properly saturating the battery bank.
+**Defect:** Systematic omission of safety guarding and corrosion protection.
+**Analysis:**
+1.  **Unguarded Live Parts:** Every battery terminal is fully exposed. The manufacturer-supplied safety caps were omitted, and no industry-standard rubber boots were provided for the 4/0 lugs.
+    *   **Violation:** **NEC 110.27(A)** requires guarding of live parts >50V. **NEC 110.3(B)** requires installation per manufacturer instructions.
+2.  **Lack of Corrosion Protection:** No anti-oxidant grease is visible.
+    *   **Violation:** **NEC 110.12** (Workmanship). Failure to inhibit corrosion accelerates resistance buildup, exacerbating the voltage drop issues cited in Exhibit A.
 
 ---
 
-## Exhibit B: Lifetime Battery Discharge
+## SECTION 2: PHYSICAL DAMAGE
+
+### Exhibit C: Evidence of Venting
+**Source File:** [Battery_Venting_Evidence.jpg](photos/Battery_Venting_Evidence.jpg)
+
+**Defect:** Acid residue and discoloration on battery casings.
+**Analysis:**
+Visual inspection reveals dark residue accumulating on battery tops. This is consistent with **Electrolyte Venting**.
+*   **Mechanism:** The resistance from Exhibit A caused the charger to misread the bank voltage. While trying to overcome this resistance, the charger over-drove specific "High" batteries past their gassing threshold (7.35V), causing them to vent sulfuric acid mist.
+*   **Conclusion:** The installation defects directly caused physical loss of electrolyte, permanently damaging the battery chemistry.
+
+---
+
+## SECTION 3: USAGE TELEMETRY (DEFENSE)
+
+### Exhibit D: Lifetime Battery Discharge
 **Source File:** [Lifetime_Energy_Use.png](photos/Lifetime_Energy_Use.png)
 **Data Point:** **3.2 MWh (3,200 kWh)** Lifetime Discharge
 
-### Analysis
+**Analysis:**
 *   **Rated Cycle Life (Fullriver Spec):** ~1,250 Cycles @ 50% Depth of Discharge.
 *   **Usage Math:** $3,200 \text{ kWh} \div 40 \text{ kWh (Capacity)} = \mathbf{80 \text{ Equivalent Full Cycles}}$.
+*   **Verdict:** The system has utilized only **6.4%** of its rated mechanical life. The batteries are not "worn out."
 
-**Conclusion:**
-Over 4.5 years, the system has cycled the equivalent of only **80 times** (6.4% of rated life). The failure is not caused by cycle wear.
+### Exhibit E: Solar Production & Pass-Through
+**Source Files:** [Inverter_Performance_History.png](photos/Inverter_Performance_History.png), [Solar_Production_History.png](photos/Solar_Production_History.png)
 
----
+**Analysis:**
+*   **Total Solar Harvest:** ~8.8 MWh.
+*   **Total Home Consumption:** ~7.2 MWh.
+*   **Net Surplus:** **+1.6 MWh**.
+*   **Pass-Through:** Over 55% of home loads were powered directly by solar, bypassing the batteries entirely.
+*   **Verdict:** The system is Energy Positive. The batteries were not undercharged due to lack of sun or heavy usage; they were undercharged because the wiring defects (Exhibit A) restricted the flow of this abundant energy.
 
-## Exhibit C: Inverter Performance & Pass-Through
-**Source File:** [Inverter_Performance_History.png](photos/Inverter_Performance_History.png)
-**Data Point:** **~7.2 MWh** Lifetime DC Energy Out
-
-### Analysis
-*   **Total Energy Delivered to Home:** ~7.2 MWh
-*   **Difference (Solar Pass-Through):** **4.0 MWh** (55% of total).
-
-**Conclusion:**
-For the majority of the system's life, the batteries have been sitting in "Float" (Idle) mode. They are not being stressed by heavy daily loads.
-
----
-
-## Exhibit D: Solar Production History
-**Source File:** [Solar_Production_History.png](photos/Solar_Production_History.png)
-**Data Point:** **~8.8 MWh** Lifetime DC Energy Produced
-
-### Analysis
-*   **Net Surplus:** **+1.6 MWh** (Production > Consumption).
-
-**Conclusion:**
-The system is "Energy Positive." The batteries were not undercharged due to lack of sunlight; energy supply was abundant.
-
----
-
-## Exhibit E: Current Battery Response (Safety Mode)
+### Exhibit F: Current Chemical Response
 **Source File:** [Safety_Mode_Response.png](photos/Safety_Mode_Response.png)
-**Data Point:** Daily Charge Cycle (Dec 28, 2025)
+**Data Point:** Dec 28, 2025 (Safety Mode)
 
-### Analysis
-Following the discovery of the spliced cables, the system charging parameters were temporarily lowered to a "Safety Mode" (57.6V Limit). The charge curve shows a smooth current taper, indicating that the battery chemistry remains active and responsive. The batteries are not chemically "dead" from old age; they are simply unable to remain balanced due to the resistance from the wiring defects.
-
----
-
-## Exhibit F: Physical Evidence of Venting
-**Source File:** [Battery_Venting_Evidence.jpg](photos/Battery_Venting_Evidence.jpg)
-**Defect Identified:** Acid residue and discoloration on battery casings.
-
-### Analysis
-Visual inspection reveals dark brown/black residue accumulating on the battery tops and between the casings.
-*   **Mechanism:** This residue is consistent with **Electrolyte Venting** (Acid Mist). When a VRLA (Sealed) battery is forced to an over-voltage state, the internal pressure valves release gas containing sulfuric acid.
-*   **Correlation:** This aligns with voltage measurements where specific "High" batteries reached **7.42V** (exceeding the 7.35V max spec) due to the resistance-induced imbalance.
+**Analysis:**
+Following the discovery of the defects, charging voltage was lowered to 57.6V to stop the venting seen in Exhibit C. The resulting charge curve shows a smooth current taper.
+*   **Verdict:** The battery chemistry is active and responsive. The batteries are not "dead" from old age; they are simply imbalanced and damaged by the resistance in the circuit.
 
 ---
-
-## Exhibit G: Safety & Workmanship Violations
-**Source File:** [Terminal_Detail_Defects.jpg](photos/Terminal_Detail_Defects.jpg)
-**Defect Identified:** Systematic omission of safety guarding on live electrical parts.
-
-### Analysis
-1.  **Unguarded Live Parts:** Every battery terminal connection, including the main high-amperage cables running to the inverter, has been left fully exposed.
-    *   **Missing Hardware:** The manufacturer-supplied safety caps were omitted. Furthermore, because the installer chose to use 4/0 cabling, standard industry practice dictates the use of rubber terminal boots (e.g., VTE insulators) to cover the oversized lugs. Neither was provided.
-    *   **Code Violation:** **NEC 110.27(A)** requires that live parts operating at 50 volts or more be guarded against accidental contact.
-    *   **Risk:** The lack of guarding creates an immediate arc-flash and fire hazard should a tool be dropped into the battery box during maintenance.
-2.  **Lack of Corrosion Protection:** No anti-oxidant grease or spray is visible on the lead terminals.
-    *   **Workmanship Issue:** **NEC 110.12** requires electrical equipment to be installed in a neat and workmanlike manner. Failure to apply corrosion inhibitors to lead-acid terminals accelerates resistance buildup, directly contributing to the voltage drop issues cited in Exhibit A.
 
 ## Final Determination
-The telemetry data refutes any claim that the battery bank has been "worn out." Usage is negligible (<6% DoD daily).
-
-**Root Cause Attribution:**
-The failure is attributed to **Installation Defects**.
-1.  **High-Resistance Splices (NEC 300.15 Violation):** Prevented accurate voltage sensing and proper charging.
-2.  **Systematic Lack of Guarding (NEC 110.27 Violation):** Exacerbated safety risks and demonstrated a failure to follow industry standard practices for 48V battery installations.
-3.  **Resulting Imbalance:** Caused the system to chronically undercharge some units (sulfation) while simultaneously overcharging others (venting/drying out), destroying the bank despite light usage.
+The data is conclusive:
+1.  **Usage:** Negligible (80 Cycles).
+2.  **Supply:** Abundant (+1.6 MWh Surplus).
+3.  **Root Cause:** **Installation Defects.** The combination of illegal splices (Exhibit A) and poor workmanship (Exhibit B) created high resistance. This resistance unbalanced the bank, causing some batteries to sulfate and others to vent (Exhibit C), resulting in premature failure of a barely-used system.
