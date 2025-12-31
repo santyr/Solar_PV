@@ -12,7 +12,7 @@ The failure is directly attributable to **Installation Defects** and **Code Viol
 ## Exhibit A: Main Conductor Defects
 **Source Files:**
 *   [PXL_20220809_132948559.jpg](photos/PXL_20220809_132948559.jpg) (Exposed Splice - Reported 2022)
-*   [PXL_20251227_151536430.jpg](photos/PXL_20251227_151536430.jpg) (Junction Box Splice - Found 2025)
+*   [PXL_20251227_151536430.jpg](photos/PXL_20251227_151536430.jpg) (Junction Box Splice)
 
 **Defect Identified:** Multiple mechanical splices on main 4/0 AWG battery cables.
 
@@ -87,12 +87,13 @@ Visual inspection reveals dark brown/black residue accumulating on the battery t
 
 ## Exhibit G: Safety & Workmanship Violations
 **Source File:** [Terminal_Detail_Defects.jpg](photos/Terminal_Detail_Defects.jpg)
-**Defect Identified:** Omission of safety hardware and lack of corrosion protection.
+**Defect Identified:** Systematic omission of safety guarding on live electrical parts.
 
 ### Analysis
-1.  **Omission of Manufacturer-Required Safety Covers:** The red/black safety caps provided by the manufacturer were not installed on the battery terminals.
-    *   **Code Violation:** **NEC 110.3(B)** requires that listed equipment be installed in accordance with the manufacturer's instructions.
-    *   **Impact:** Failure to install the provided terminal covers leaves the high-amperage connection points fully exposed, violating the manufacturer's safety design and increasing the risk of accidental short circuits during maintenance.
+1.  **Unguarded Live Parts:** Every battery terminal connection, including the main high-amperage cables running to the inverter, has been left fully exposed.
+    *   **Missing Hardware:** The manufacturer-supplied safety caps were omitted. Furthermore, because the installer chose to use 4/0 cabling, standard industry practice dictates the use of rubber terminal boots (e.g., VTE insulators) to cover the oversized lugs. Neither was provided.
+    *   **Code Violation:** **NEC 110.27(A)** requires that live parts operating at 50 volts or more be guarded against accidental contact.
+    *   **Risk:** The lack of guarding creates an immediate arc-flash and fire hazard should a tool be dropped into the battery box during maintenance.
 2.  **Lack of Corrosion Protection:** No anti-oxidant grease or spray is visible on the lead terminals.
     *   **Workmanship Issue:** **NEC 110.12** requires electrical equipment to be installed in a neat and workmanlike manner. Failure to apply corrosion inhibitors to lead-acid terminals accelerates resistance buildup, directly contributing to the voltage drop issues cited in Exhibit A.
 
@@ -102,5 +103,5 @@ The telemetry data refutes any claim that the battery bank has been "worn out." 
 **Root Cause Attribution:**
 The failure is attributed to **Installation Defects**.
 1.  **High-Resistance Splices (NEC 300.15 Violation):** Prevented accurate voltage sensing and proper charging.
-2.  **Lack of Guarding/Protection (NEC 110.27 Violation):** Exacerbated terminal corrosion and safety risks.
+2.  **Systematic Lack of Guarding (NEC 110.27 Violation):** Exacerbated safety risks and demonstrated a failure to follow industry standard practices for 48V battery installations.
 3.  **Resulting Imbalance:** Caused the system to chronically undercharge some units (sulfation) while simultaneously overcharging others (venting/drying out), destroying the bank despite light usage.
