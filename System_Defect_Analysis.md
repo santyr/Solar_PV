@@ -17,6 +17,7 @@ The root cause is identified as **Installation & Commissioning Negligence**. Mul
 *   [PXL_20251227_151536430.jpg](photos/PXL_20251227_151536430.jpg) (Junction Box Splice)
 
 **Defect:** Multiple mechanical splices on main 4/0 AWG battery cables.
+
 **Analysis:**
 1.  **Exposed Splice:** A single conductor splice located outside of a junction box.
     *   **Violation:** **NEC 300.15** requires a box or conduit body at each conductor splice point.
@@ -26,6 +27,7 @@ The root cause is identified as **Installation & Commissioning Negligence**. Mul
 **Source File:** [Terminal_Detail_Defects.jpg](photos/Terminal_Detail_Defects.jpg)
 
 **Defect:** Systematic omission of safety guarding and corrosion protection.
+
 **Analysis:**
 1.  **Unguarded Live Parts:** Every battery terminal is fully exposed. The manufacturer-supplied safety caps were omitted, and no industry-standard rubber boots were provided for the 4/0 lugs.
     *   **Violation:** **NEC 110.27(A)** requires guarding of live parts >50V. **NEC 110.3(B)** requires installation per manufacturer instructions.
@@ -66,6 +68,7 @@ The resistance from the wiring defects (Exhibit A) prevented the charger from eq
 **Source File:** [Battery_Venting_Evidence.jpg](photos/Battery_Venting_Evidence.jpg)
 
 **Defect:** Acid residue and discoloration on battery casings.
+
 **Analysis:**
 Visual inspection reveals dark residue accumulating on battery tops. This is consistent with **Electrolyte Venting**.
 *   **Correlation:** This physical evidence aligns perfectly with the voltage data in Exhibit D. The batteries reading **7.42V** were forced to vent sulfuric acid mist due to the charger over-driving them against the resistance of the circuit.
