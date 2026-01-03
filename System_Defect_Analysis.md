@@ -1,5 +1,4 @@
 # System Usage & Battery Health Analysis
-**Site:** 283 High Peaks Ranch Road
 **Date:** January 3, 2026
 **System Age:** 4 Years, 4 Months (Installed Aug 2021)
 
