@@ -1,4 +1,5 @@
 # System Usage & Battery Health Analysis
+**Site:** 283 High Peaks Ranch Road
 **Date:** January 3, 2026
 **System Age:** 4 Years, 4 Months (Installed Aug 2021)
 
@@ -51,9 +52,6 @@ The telemetry reveals that the system was commissioned using "Factory Default" s
     *   **2025 Audit:** The configuration screen confirmed the temperature setting was still left on **"Warm"** (Factory Default), despite the batteries being located in an unheated battery box.
     *   **Impact:** This prevented the necessary voltage boost during winter charging, exacerbating sulfation.
 
-**Conclusion:**
-The battery bank has been chronically undercharged every single day of its life due to installer negligence. This is not a "drift" or "maintenance" issue; it is a **Commissioning Defect**.
-
 ---
 
 ## SECTION 2: PHYSICAL DAMAGE
@@ -105,7 +103,7 @@ The data is conclusive:
 1.  **Usage:** Negligible (80 Cycles).
 2.  **Root Cause:** **Installation & Commissioning Defects.**
     *   **Exhibit A (Wiring):** Illegal splices introduced resistance.
-    *   **Exhibit C (Settings):** Factory defaults (57.6V) chemically starved the batteries.
-    *   **Exhibit B (Workmanship):** Lack of torque checks (no service) allowed resistance to drift.
+    *   **Exhibit B (Workmanship):** Lack of corrosion protection and proper guarding (Code Violations).
+    *   **Exhibit C (Configuration):** Factory default settings (57.6V) chemically starved the batteries from Day 1.
 
 These factors combined to unbalance the bank, causing some batteries to sulfate and others to vent (Exhibit D), resulting in premature failure of a barely-used system.
