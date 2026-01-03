@@ -52,6 +52,7 @@ The telemetry reveals that the system was commissioned using "Factory Default" s
 
 ### Exhibit D: Critical Voltage Imbalance
 **Source:** Manual Multimeter Readings (Dec 2025)
+
 **Defect:** Severe divergence in individual battery voltages during Charge cycle.
 
 **Analysis:**
@@ -79,6 +80,7 @@ Visual inspection reveals dark residue accumulating on battery tops. This is con
 
 ### Exhibit F: Lifetime Battery Discharge
 **Source File:** [Lifetime_Energy_Use.png](photos/Lifetime_Energy_Use.png)
+
 **Data Point:** **3.2 MWh (3,200 kWh)** Lifetime Discharge
 
 **Analysis:**
@@ -96,6 +98,7 @@ Visual inspection reveals dark residue accumulating on battery tops. This is con
 
 ### Exhibit H: Diagnostic Intervention (Safety Mode)
 **Source File:** [Safety_Mode_Response.png](photos/Safety_Mode_Response.png)
+
 **Data Point:** Dec 28, 2025 (Safety Mode)
 
 **Analysis:**
