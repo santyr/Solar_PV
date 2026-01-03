@@ -6,7 +6,7 @@
 ## Executive Summary
 This engineering report documents the premature failure of the Fullriver DC400-6 battery bank. The data conclusively proves that the failure is not due to normal wear and tear, as the system has utilized less than **7%** of its rated cycle life.
 
-The root cause is identified as **Installation & Commissioning Negligence**. Multiple NEC Code Violations (Exhibits A & B) introduced high resistance into the charging circuit, while failure to program the inverter settings (Exhibit C) caused chronic undercharging. This combination resulted in severe imbalance and physical damage to the battery bank (Exhibit D).
+The root cause is identified as **Installation & Commissioning Negligence**. Multiple NEC Code Violations (Exhibits A & B) introduced high resistance into the charging circuit, while failure to program the inverter settings (Exhibit C) caused chronic undercharging. This combination resulted in severe **Voltage Imbalance** (Exhibit D) and physical damage to the battery bank (Exhibit E).
 
 ---
 
@@ -42,34 +42,40 @@ The root cause is identified as **Installation & Commissioning Negligence**. Mul
 
 **Analysis:**
 The telemetry reveals that the system was commissioned using "Factory Default" settings rather than the specific charge profile required by the battery warranty.
-
-1.  **Day 1 Failure (Aug 22, 2021):**
-    *   **Evidence:** The telemetry from the first full day of operation shows the charge cycle peaking at **~57.6V** and immediately dropping to Float.
-    *   **Fullriver Spec:** Requires **58.8V** held for saturation.
-    *   **Verdict:** The system was never commissioned correctly. The installer failed to input the required voltage targets, dooming the battery bank to be chemically starved by 1.2V daily from the moment the system was powered on.
-
-2.  **Missing Temperature Compensation (4-Year Duration):**
-    *   **2025 Audit:** The configuration screen confirmed the temperature setting was still left on **"Warm"** (Factory Default), despite the batteries being located in an unheated battery box.
-    *   **Impact:** This prevented the necessary voltage boost during winter charging, exacerbating sulfation.
+*   **Day 1 Failure (Aug 22, 2021):** The charge cycle peaked at **~57.6V** (Generic AGM Default) instead of the required **58.8V**.
+*   **Missing Temp Compensation:** The temperature setting was left on **"Warm"** despite the unheated battery box location, preventing the necessary voltage boost during winter charging.
 
 ---
 
-## SECTION 2: PHYSICAL DAMAGE
+## SECTION 2: PHYSICAL DAMAGE & SYMPTOMS
 
-### Exhibit D: Evidence of Venting
+### Exhibit D: Critical Voltage Imbalance
+**Source:** Manual Multimeter Readings (Dec 2025)
+**Defect:** Severe divergence in individual battery voltages during Charge cycle.
+
+**Analysis:**
+Direct measurement of the 16 individual battery units revealed a catastrophic voltage spread:
+*   **Highest Battery:** **7.42 V** (Over-Voltage)
+*   **Lowest Battery:** **6.48 V** (Under-Voltage)
+*   **Total Spread:** **0.94 Volts**
+
+**Conclusion:**
+A healthy series bank should have a spread of **<0.20V**.
+The resistance from the wiring defects (Exhibit A) prevented the charger from equalizing the bank. The charger pushed current to satisfy the "Low" batteries, forcing the "High" batteries dangerously past their 7.35V maximum limit, directly causing the venting documented in Exhibit E.
+
+### Exhibit E: Evidence of Venting
 **Source File:** [Battery_Venting_Evidence.jpg](photos/Battery_Venting_Evidence.jpg)
 
 **Defect:** Acid residue and discoloration on battery casings.
 **Analysis:**
 Visual inspection reveals dark residue accumulating on battery tops. This is consistent with **Electrolyte Venting**.
-*   **Mechanism:** The resistance from Exhibit A caused the charger to misread the bank voltage. While trying to overcome this resistance, the charger over-drove specific "High" batteries past their gassing threshold (7.35V), causing them to vent sulfuric acid mist.
-*   **Conclusion:** The installation defects directly caused physical loss of electrolyte, permanently damaging the battery chemistry.
+*   **Correlation:** This physical evidence aligns perfectly with the voltage data in Exhibit D. The batteries reading **7.42V** were forced to vent sulfuric acid mist due to the charger over-driving them against the resistance of the circuit.
 
 ---
 
 ## SECTION 3: USAGE TELEMETRY (DEFENSE)
 
-### Exhibit E: Lifetime Battery Discharge
+### Exhibit F: Lifetime Battery Discharge
 **Source File:** [Lifetime_Energy_Use.png](photos/Lifetime_Energy_Use.png)
 **Data Point:** **3.2 MWh (3,200 kWh)** Lifetime Discharge
 
@@ -78,32 +84,31 @@ Visual inspection reveals dark residue accumulating on battery tops. This is con
 *   **Usage Math:** $3,200 \text{ kWh} \div 40 \text{ kWh (Capacity)} = \mathbf{80 \text{ Equivalent Full Cycles}}$.
 *   **Verdict:** The system has utilized only **6.4%** of its rated mechanical life. The batteries are not "worn out."
 
-### Exhibit F: Solar Production & Pass-Through
+### Exhibit G: Solar Production & Pass-Through
 **Source Files:** [Inverter_Performance_History.png](photos/Inverter_Performance_History.png), [Solar_Production_History.png](photos/Solar_Production_History.png)
 
 **Analysis:**
 *   **Total Solar Harvest:** ~8.8 MWh.
-*   **Total Home Consumption:** ~7.2 MWh.
-*   **Net Surplus:** **+1.6 MWh**.
-*   **Pass-Through:** Over 55% of home loads were powered directly by solar, bypassing the batteries entirely.
-*   **Verdict:** The system is Energy Positive. The batteries were not undercharged due to lack of sun or heavy usage; they were undercharged because the wiring defects (Exhibit A) and bad settings (Exhibit C) restricted the flow of this abundant energy.
+*   **Net Surplus:** **+1.6 MWh** (Production > Consumption).
+*   **Verdict:** The system is Energy Positive. The failure was not caused by lack of solar supply or heavy usage.
 
-### Exhibit G: Current Chemical Response
+### Exhibit H: Diagnostic Intervention (Safety Mode)
 **Source File:** [Safety_Mode_Response.png](photos/Safety_Mode_Response.png)
 **Data Point:** Dec 28, 2025 (Safety Mode)
 
 **Analysis:**
-Following the discovery of the defects, charging voltage was lowered to 57.6V to stop the venting seen in Exhibit D. The resulting charge curve shows a smooth current taper.
-*   **Verdict:** The battery chemistry is active and responsive. The batteries are not "dead" from old age; they are simply imbalanced and damaged by the resistance in the circuit.
+Upon discovery of the imbalance (Exhibit D), the Owner attempted to apply the correct 58.8V Fullriver profile. This immediately triggered "High Voltage" alarms because the imbalance is now structurally severe.
+*   **Mitigation:** The system was reverted to a "Safety Mode" (57.6V) to stop the venting.
+*   **Current State:** The attached chart shows the batteries accepting charge with a smooth current taper. This proves the **chemistry is still active** and not "dead" from old age or overuse. However, the bank is **structurally failed** because it cannot be safely charged to full voltage without venting the high cells.
 
 ---
 
 ## Final Determination
-The data is conclusive:
-1.  **Usage:** Negligible (80 Cycles).
-2.  **Root Cause:** **Installation & Commissioning Defects.**
-    *   **Exhibit A (Wiring):** Illegal splices introduced resistance.
-    *   **Exhibit B (Workmanship):** Lack of corrosion protection and proper guarding (Code Violations).
-    *   **Exhibit C (Configuration):** Factory default settings (57.6V) chemically starved the batteries from Day 1.
 
-These factors combined to unbalance the bank, causing some batteries to sulfate and others to vent (Exhibit D), resulting in premature failure of a barely-used system.
+### Root Cause Attribution
+The failure is definitively attributed to **Installation & Commissioning Defects**.
+1.  **Exhibit A (Wiring):** Illegal splices introduced resistance.
+2.  **Exhibit B (Workmanship):** Lack of corrosion protection/guarding.
+3.  **Exhibit C (Configuration):** Factory default settings chemically starved the batteries.
+
+These factors combined to create the **Critical Voltage Imbalance (Exhibit D)**, which caused specific batteries to vent (Exhibit E) while others sulfated, resulting in the premature failure of a system that is mechanically young (Exhibit F).
