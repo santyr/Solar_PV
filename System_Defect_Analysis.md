@@ -1,11 +1,11 @@
 # System Usage & Battery Health Analysis
-**Date:** December 31, 2025
+**Date:** January 3, 2026
 **System Age:** 4 Years, 4 Months (Installed Aug 2021)
 
 ## Executive Summary
 This engineering report documents the premature failure of the Fullriver DC400-6 battery bank. The data conclusively proves that the failure is not due to normal wear and tear, as the system has utilized less than **7%** of its rated cycle life.
 
-The root cause is identified as **Installation Negligence**. Multiple NEC Code Violations (Exhibits A & B) introduced high resistance into the charging circuit. This resistance prevented proper voltage regulation, resulting in severe imbalance and physical damage to the battery bank (Exhibit C).
+The root cause is identified as **Installation & Commissioning Negligence**. Multiple NEC Code Violations (Exhibits A & B) introduced high resistance into the charging circuit, while failure to program the inverter settings (Exhibit C) caused chronic undercharging. This combination resulted in severe imbalance and physical damage to the battery bank (Exhibit D).
 
 ---
 
@@ -32,11 +32,33 @@ The root cause is identified as **Installation Negligence**. Multiple NEC Code V
 2.  **Lack of Corrosion Protection:** No anti-oxidant grease is visible.
     *   **Violation:** **NEC 110.12** (Workmanship). Failure to inhibit corrosion accelerates resistance buildup, exacerbating the voltage drop issues cited in Exhibit A.
 
+### Exhibit C: Improper Commissioning (Configuration)
+**Source Files:**
+1. [Commissioning_Day_Zero.png](photos/Commissioning_Day_Zero.png) (Aug 22, 2021 - **Installation Day**)
+2. [Configuration_Audit_Nov2025.png](photos/Configuration_Audit_Nov2025.png) (Nov 2025 - Discovery)
+
+**Defect:** Failure to program Inverter/Charger with manufacturer-required parameters. This incorrect configuration persisted from the very first hour of operation (Day 1) through Year 4.
+
+**Analysis:**
+The telemetry reveals that the system was commissioned using "Factory Default" settings rather than the specific charge profile required by the battery warranty.
+
+1.  **Day 1 Failure (Aug 22, 2021):**
+    *   **Evidence:** The telemetry from the first full day of operation shows the charge cycle peaking at **~57.6V** and immediately dropping to Float.
+    *   **Fullriver Spec:** Requires **58.8V** held for saturation.
+    *   **Verdict:** The system was never commissioned correctly. The installer failed to input the required voltage targets, dooming the battery bank to be chemically starved by 1.2V daily from the moment the system was powered on.
+
+2.  **Missing Temperature Compensation (4-Year Duration):**
+    *   **2025 Audit:** The configuration screen confirmed the temperature setting was still left on **"Warm"** (Factory Default), despite the batteries being located in an unheated battery box.
+    *   **Impact:** This prevented the necessary voltage boost during winter charging, exacerbating sulfation.
+
+**Conclusion:**
+The battery bank has been chronically undercharged every single day of its life due to installer negligence. This is not a "drift" or "maintenance" issue; it is a **Commissioning Defect**.
+
 ---
 
 ## SECTION 2: PHYSICAL DAMAGE
 
-### Exhibit C: Evidence of Venting
+### Exhibit D: Evidence of Venting
 **Source File:** [Battery_Venting_Evidence.jpg](photos/Battery_Venting_Evidence.jpg)
 
 **Defect:** Acid residue and discoloration on battery casings.
@@ -49,7 +71,7 @@ Visual inspection reveals dark residue accumulating on battery tops. This is con
 
 ## SECTION 3: USAGE TELEMETRY (DEFENSE)
 
-### Exhibit D: Lifetime Battery Discharge
+### Exhibit E: Lifetime Battery Discharge
 **Source File:** [Lifetime_Energy_Use.png](photos/Lifetime_Energy_Use.png)
 **Data Point:** **3.2 MWh (3,200 kWh)** Lifetime Discharge
 
@@ -58,7 +80,7 @@ Visual inspection reveals dark residue accumulating on battery tops. This is con
 *   **Usage Math:** $3,200 \text{ kWh} \div 40 \text{ kWh (Capacity)} = \mathbf{80 \text{ Equivalent Full Cycles}}$.
 *   **Verdict:** The system has utilized only **6.4%** of its rated mechanical life. The batteries are not "worn out."
 
-### Exhibit E: Solar Production & Pass-Through
+### Exhibit F: Solar Production & Pass-Through
 **Source Files:** [Inverter_Performance_History.png](photos/Inverter_Performance_History.png), [Solar_Production_History.png](photos/Solar_Production_History.png)
 
 **Analysis:**
@@ -66,14 +88,14 @@ Visual inspection reveals dark residue accumulating on battery tops. This is con
 *   **Total Home Consumption:** ~7.2 MWh.
 *   **Net Surplus:** **+1.6 MWh**.
 *   **Pass-Through:** Over 55% of home loads were powered directly by solar, bypassing the batteries entirely.
-*   **Verdict:** The system is Energy Positive. The batteries were not undercharged due to lack of sun or heavy usage; they were undercharged because the wiring defects (Exhibit A) restricted the flow of this abundant energy.
+*   **Verdict:** The system is Energy Positive. The batteries were not undercharged due to lack of sun or heavy usage; they were undercharged because the wiring defects (Exhibit A) and bad settings (Exhibit C) restricted the flow of this abundant energy.
 
-### Exhibit F: Current Chemical Response
+### Exhibit G: Current Chemical Response
 **Source File:** [Safety_Mode_Response.png](photos/Safety_Mode_Response.png)
 **Data Point:** Dec 28, 2025 (Safety Mode)
 
 **Analysis:**
-Following the discovery of the defects, charging voltage was lowered to 57.6V to stop the venting seen in Exhibit C. The resulting charge curve shows a smooth current taper.
+Following the discovery of the defects, charging voltage was lowered to 57.6V to stop the venting seen in Exhibit D. The resulting charge curve shows a smooth current taper.
 *   **Verdict:** The battery chemistry is active and responsive. The batteries are not "dead" from old age; they are simply imbalanced and damaged by the resistance in the circuit.
 
 ---
@@ -81,5 +103,9 @@ Following the discovery of the defects, charging voltage was lowered to 57.6V to
 ## Final Determination
 The data is conclusive:
 1.  **Usage:** Negligible (80 Cycles).
-2.  **Supply:** Abundant (+1.6 MWh Surplus).
-3.  **Root Cause:** **Installation Defects.** The combination of illegal splices (Exhibit A) and poor workmanship (Exhibit B) created high resistance. This resistance unbalanced the bank, causing some batteries to sulfate and others to vent (Exhibit C), resulting in premature failure of a barely-used system.
+2.  **Root Cause:** **Installation & Commissioning Defects.**
+    *   **Exhibit A (Wiring):** Illegal splices introduced resistance.
+    *   **Exhibit C (Settings):** Factory defaults (57.6V) chemically starved the batteries.
+    *   **Exhibit B (Workmanship):** Lack of torque checks (no service) allowed resistance to drift.
+
+These factors combined to unbalance the bank, causing some batteries to sulfate and others to vent (Exhibit D), resulting in premature failure of a barely-used system.
