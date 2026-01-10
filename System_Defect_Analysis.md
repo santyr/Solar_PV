@@ -1,165 +1,262 @@
-# System Usage & Battery Health Analysis
+# System Defect & Battery Bank Health Analysis
+**Date:** January 3, 2026  
+**System Age:** 4 Years, 4 Months (Installed Aug 2021)  
+**Status:** **CRITICAL WATCH / TRIAGE MODE**
 
-**Date:** January 3, 2026
-**System Age:** 4 Years, 4 Months (Installed Aug 2021)
+---
 
 ## Executive Summary
 
-This engineering report documents the premature failure of the Fullriver DC400-6 battery bank. The data conclusively proves that the failure is not due to normal wear and tear, as the system has utilized less than **7%** of its rated cycle life.
+This report documents abnormal degradation and unsafe operating behavior in a **Fullriver DC400-6 AGM battery bank**. The evidence supports four key findings:
 
-The root cause is identified as **Installation & Commissioning Negligence**. Multiple NEC Code Violations (Exhibits A & B) introduced high resistance into the charging circuit, while failure to program the inverter settings (Exhibit C) caused chronic undercharging. This combination triggered high-voltage alarms (Exhibit D), which led to the discovery of severe voltage imbalance and physical damage (Exhibits E & F).
+1. **Severe unit-to-unit imbalance exists** across the individual 6V batteries (measured spread **0.94 V**), consistent with a bank that cannot be safely charged as a single system without **overcharging some units** while **undercharging others**.
+2. The system recorded a **DC Over Voltage (Event 49)** alarm on **Nov 21, 2025**, consistent with the inverter/charger approaching its **High Battery Cut Out** threshold during charging.
+3. The installation exhibits **workmanship and safety defects** (splices/junction practices in high-current conductors, unguarded >50 V terminals, incomplete termination protection) that plausibly increase resistance and hazard.
+4. Commissioning/configuration appears **inconsistent with the manufacturer’s recommended charge profile**, which can drive chronic partial state-of-charge and sulfation over time.
+
+### Primary Determination (supported)
+The battery bank is in a **critical, structurally imbalanced state** and should be treated as **triage mode** until either:
+- (a) imbalance is reduced and charge behavior is validated under measurement, or
+- (b) the bank is replaced.
+
+### Root Cause Attribution (supported, with one required verification test)
+The most likely contributors are:
+- **Incorrect commissioning/configuration** relative to the manufacturer’s charge profile and temperature compensation, and
+- **connection/termination defects** (including splices and/or loose/high-resistance joints).
+
+A definitive assignment of causality to *connection resistance vs battery deterioration* requires one missing measurement: **voltage-drop testing under charge current** (see Section 8).
 
 ---
 
-## SECTION 1: INSTALLATION DEFECTS & CODE VIOLATIONS
+## 1) Asset Overview
 
-### Exhibit A: Main Conductor Splices
+- **Battery Model:** Fullriver DC400-6 (AGM Deep Cycle)
+- **Bank Configuration (reported):** 48V / ~830Ah nominal, **2 parallel strings**
+- **Battery Installation Date:** Aug 2021
+- **Daily Usage (reported):** ~5.3 kWh
+- **Discharge Floor (reported):** ~50.2V (shallow)
 
-**Source Files:**
-*   [PXL_20220809_132948559.jpg](photos/PXL_20220809_132948559.jpg) (Exposed Splice - Reported 2022)
-*   [PXL_20251227_151536430.jpg](photos/PXL_20251227_151536430.jpg) (Junction Box Splice)
+> Note: Energy/cycle calculations in this report assume ~40 kWh nominal bank energy (48V × 830Ah ≈ 39.8 kWh). If nameplate differs, recalc method is provided in Section 6.
 
-**Defect Identified:**
-Multiple mechanical splices on main 4/0 AWG battery cables.
+---
 
-**Analysis:**
-1.  **Exposed Splice:** A single conductor splice located outside of a junction box.
-    *   **Violation:** **NEC 300.15** requires a box or conduit body at each conductor splice point.
-2.  **Impact:** Mechanical splices on high-amperage charging circuits introduce electrical resistance. This causes a voltage drop, creating a "blind spot" where the Inverter reads "Full" (e.g., 58.8V) while the batteries physically receive a lower voltage, leading to chronic undercharging.
+## 2) Manufacturer Requirements (Fullriver DC400-6)
+
+Fullriver’s DC400-6 datasheet specifies (at 25 °C / 77 °F):
+
+- **48V Bulk/Absorption:** **58.8 V**  
+- **48V Float:** **54.6 V**  
+- **Temperature effects:** The recommended charge voltage varies with battery temperature (see datasheet).  
+
+**Important system note:** This site’s Schneider configuration uses a **fixed “Warm/Cold” mode** (not true per-degree temperature compensation). Therefore, the chosen mode must be matched to the **measured battery-box temperature range**.
+
+**Battery-box temperature (measured, 2-week sample):** approximately **60–78°F**, with most operation around **~63–75°F**.
+
+**Implication:** Selecting an overly “Warm” assumption when the box is typically cooler can contribute to undercharge; selecting an overly “Cold” assumption can raise charge voltage and may increase overvoltage/venting risk in an already-imbalanced bank.
+
+**Datasheet reference:**  
+- Local copy in this repo: **[Fullriver DC400-6 Datasheet (PDF)](DC400-6.pdf)**
+
+---
+
+## 3) Installation Defects & Safety Issues (Field Evidence)
+
+### Exhibit A: Main Conductor Splices / Junction Practices
+
+**Source files:**
+- [PXL_20220809_132948559.jpg](photos/PXL_20220809_132948559.jpg) (Exposed splice – reported 2022)
+- [PXL_20251227_151536430.jpg](photos/PXL_20251227_151536430.jpg) (Junction box splices – Dec 2025)
+
+**Finding:** Multiple mechanical splices exist on high-current battery conductors.
+
+**Engineering impact:**  
+Mechanical splices and non-ideal junction practices can increase resistance and create localized heating/voltage drop. If the inverter/charger regulates to its own DC terminal voltage (rather than true battery-post voltage), extra resistance between charger and battery posts can reduce the effective charging voltage delivered to the bank during high current—contributing to chronic undercharge and string divergence.
+
+**Code note (jurisdiction dependent):** Splices outside approved enclosures may violate NEC requirements for splices in boxes (often cited under NEC 300.15, context dependent).
+
+---
 
 ### Exhibit B: Safety & Workmanship Violations
 
-**Source File:**
-[Terminal_Detail_Defects.jpg](photos/Terminal_Detail_Defects.jpg)
+**Source file:** [Terminal_Detail_Defects.jpg](photos/Terminal_Detail_Defects.jpg)
 
-**Defect Identified:**
-Systematic omission of safety guarding and corrosion protection.
+**Findings:**
+- **Unguarded live parts:** exposed terminals/lugs in a >50 V system.
+- **Termination protection/corrosion control:** not evident in the photo set (boots/caps, protective coverings, corrosion inhibitor).
 
-**Analysis:**
-1.  **Unguarded Live Parts:** Every battery terminal is fully exposed. The manufacturer-supplied safety caps were omitted, and no industry-standard rubber boots were provided for the 4/0 lugs.
-    *   **Violation:** **NEC 110.27(A)** requires guarding of live parts >50V. **NEC 110.3(B)** requires installation per manufacturer instructions.
-2.  **Lack of Corrosion Protection:** No anti-oxidant grease is visible.
-    *   **Violation:** **NEC 110.12** (Workmanship). Failure to inhibit corrosion accelerates resistance buildup, exacerbating the voltage drop issues cited in Exhibit A.
+**Engineering impact:**  
+- Increases shock/arc risk.
+- Increases likelihood of resistance growth over time, worsening charge accuracy and imbalance.
 
-### Exhibit C: Improper Commissioning (Configuration)
-
-**Source Files:**
-1.  [Commissioning_Day_Zero.png](photos/Commissioning_Day_Zero.png) (Aug 22, 2021 - **Installation Day**)
-2.  [Configuration_Audit_Nov2025.png](photos/Configuration_Audit_Nov2025.png) (Nov 2025 - Discovery)
-
-**Defect Identified:**
-Failure to program Inverter/Charger with manufacturer-required parameters. This incorrect configuration persisted from the very first hour of operation (Day 1) through Year 4.
-
-**Analysis:**
-The telemetry reveals that the system was commissioned using "Factory Default" settings rather than the specific charge profile required by the battery warranty.
-
-1.  **Day 1 Failure (Aug 22, 2021):**
-    *   **Evidence:** The telemetry from the first full day of operation shows the charge cycle peaking at **~57.6V** (Generic AGM Default) instead of the required **58.8V**.
-    *   **Fullriver Spec:** Requires **58.8V** held for saturation.
-    *   **Verdict:** The system was never commissioned correctly. The installer failed to input the required voltage targets, dooming the battery bank to be chemically starved by 1.2V daily from the moment the system was powered on.
-
-2.  **Missing Temperature Compensation (4-Year Duration):**
-    *   **2025 Audit:** The configuration screen confirmed the temperature setting was still left on **"Warm"** (Factory Default), despite the batteries being located in an unheated battery box.
-    *   **Impact:** This prevented the necessary voltage boost during winter charging, exacerbating sulfation.
+**Code note (jurisdiction dependent):** Commonly implicated: NEC 110.27(A) (guarding) and NEC 110.12 / 110.3(B) (workmanship / install per listing & instructions).
 
 ---
 
-## SECTION 2: PHYSICAL DAMAGE & SYMPTOMS
+## 4) Commissioning & Configuration (Telemetry Evidence)
 
-### Exhibit D: System Alarms (The Trigger)
+### Exhibit C: Improper Commissioning (Charge Profile / Temperature Profile)
 
-**Source File:**
-[Event_Log_History.png](photos/Event_Log_History.png)
+**Source files:**
+1. [Commissioning_Day_Zero.png](photos/Commissioning_Day_Zero.png) (Aug 22, 2021 – Day 1)
+2. [Configuration_Audit_Nov2025.png](photos/Configuration_Audit_Nov2025.png) (Nov 2025 – discovery)
 
-**Data Point:**
-Historical Events Log (Nov 21, 2025)
+**Finding:** Telemetry indicates the system charging peaks at **~57.6 V** rather than the datasheet’s **58.8 V** (at 25°C). Additionally, the system uses a fixed **“Warm/Cold”** temperature assumption; prior configuration indicates it was left on **“Warm.”** Measured battery-box temperatures (~60–78°F over a 2-week sample) suggest the appropriate selection should be confirmed based on the actual environment.
 
-**Analysis:**
-On November 21, 2025, the system generated critical **"DC Over Voltage" (Event 49)** alarms.
-*   **Significance:** These alarms indicate that the battery voltage was spiking uncontrollably near the cutout limit during charge cycles, despite the batteries not being fully saturated.
-*   **Causality:** This event triggered the Owner's investigation, leading to the discovery of the incorrect settings (Exhibit C) and the wiring defects (Exhibit A).
+**Engineering impact:**  
+Long-term operation below recommended absorb voltage/time and with an incorrect **Warm/Cold temperature assumption** can cause:
+- chronic partial state-of-charge,
+- sulfation,
+- capacity loss,
+- increased unit-to-unit divergence.
 
-### Exhibit E: Critical Voltage Imbalance
-
-**Source:**
-Manual Multimeter Readings (Performed Dec 2025 following Exhibit D alarms)
-
-**Defect Identified:**
-Severe divergence in individual battery voltages.
-
-**Analysis:**
-Direct measurement of the 16 individual battery units revealed a catastrophic voltage spread:
-*   **Highest Battery:** **7.42 V** (Over-Voltage)
-*   **Lowest Battery:** **6.48 V** (Under-Voltage)
-*   **Total Spread:** **0.94 Volts**
-
-**Conclusion:**
-A healthy series bank should have a spread of **<0.20V**. The resistance from the wiring defects (Exhibit A) prevented the charger from equalizing the bank. The charger pushed current to satisfy the "Low" batteries, forcing the "High" batteries dangerously past their 7.35V maximum limit.
-
-### Exhibit F: Evidence of Venting
-
-**Source File:**
-[Battery_Venting_Evidence.jpg](photos/Battery_Venting_Evidence.jpg)
-
-**Defect Identified:**
-Acid residue and discoloration on battery casings.
-
-**Analysis:**
-Visual inspection reveals dark residue accumulating on battery tops. This is consistent with **Electrolyte Venting**.
-*   **Correlation:** This physical evidence aligns perfectly with the voltage data in Exhibit E. The batteries reading **7.42V** were forced to vent sulfuric acid mist due to the charger over-driving them against the resistance of the circuit.
+> Note: Charge voltage alone is not the whole story—absorb **time at voltage**, actual **battery temperature**, and **where voltage is sensed** are also critical.
 
 ---
 
-## SECTION 3: USAGE TELEMETRY (DEFENSE)
+## 5) Observed Symptoms & Damage
+
+### Exhibit D: System Alarms (Trigger Event)
+
+**Source file:** (InsightLocal Events screenshot; Nov 21, 2025)  
+**Finding:** **DC Over Voltage (Event 49)** recorded on **Nov 21, 2025**.
+
+**Interpretation:**  
+This alarm indicates battery voltage approached a cut-out threshold during charging. This is consistent with charging into an imbalanced bank, incorrect cut-out thresholds, temperature/profile mismatch, and/or sensing artifacts under current.
+
+---
+
+### Exhibit E: Critical Voltage Imbalance (Direct Measurement)
+
+**Source:** manual multimeter readings (Dec 2025)
+
+**Finding:** Divergence across 6V units:
+- **Highest:** **7.42 V**
+- **Lowest:** **6.48 V**
+- **Spread:** **0.94 V**
+
+**Interpretation:**  
+A spread of this magnitude indicates the bank is **chemically and electrically divergent**. In this condition:
+- raising system charge voltage risks **overcharging high units** (venting/dry-out),
+- while low units remain **undercharged** (hard sulfation/capacity loss).
+
+---
+
+### Exhibit F: Evidence Consistent with Venting
+
+**Source file:** [Battery_Venting_Evidence.jpg](photos/Battery_Venting_Evidence.jpg)
+
+**Finding:** discoloration/residue consistent with electrolyte mist venting.
+
+**Interpretation:**  
+Visual evidence alone is not proof, but paired with the measured high unit voltages and overvoltage events, venting is a credible explanation.
+
+---
+
+## 6) Usage Telemetry & Cycle-Life Position (Corrected)
 
 ### Exhibit G: Lifetime Battery Discharge
 
-**Source File:**
-[Lifetime_Energy_Use.png](photos/Lifetime_Energy_Use.png)
+**Source file:** [Lifetime_Energy_Use.png](photos/Lifetime_Energy_Use.png)
 
-**Data Point:**
-**3.2 MWh (3,200 kWh)** Lifetime Discharge
+**Reported value:** **3.2 MWh (3,200 kWh)** lifetime discharge.
 
-**Analysis:**
-*   **Rated Cycle Life (Fullriver Spec):** ~1,250 Cycles @ 50% Depth of Discharge.
-*   **Usage Math:** $3,200 \text{ kWh} \div 40 \text{ kWh (Capacity)} = \mathbf{80 \text{ Equivalent Full Cycles}}$.
-*   **Verdict:** The system has utilized only **6.4%** of its rated mechanical life. The batteries are not "worn out."
+**Equivalent Full Cycles (EFC):**  
+Assuming ~40 kWh nominal bank energy:
 
-### Exhibit H: Solar Production & Pass-Through
+- **EFC ≈ 3,200 kWh ÷ 39.8 kWh ≈ 80 EFC**
 
-**Source Files:**
-*   [Inverter_Performance_History.png](photos/Inverter_Performance_History.png)
-*   [Solar_Production_History.png](photos/Solar_Production_History.png)
+**Comparison to “1,250 cycles @ 50% DoD”:**  
+A rating of ~1,250 cycles at 50% DoD corresponds to ~**625 EFC** of energy throughput (because each 50% cycle delivers ~0.5 EFC). Therefore:
 
-**Analysis:**
-*   **Total Solar Harvest:** ~8.8 MWh.
-*   **Net Surplus:** **+1.6 MWh** (Production > Consumption).
-*   **Verdict:** The system is Energy Positive. The failure was not caused by lack of solar supply or heavy usage.
+- **80 / 625 ≈ 12.8%** of rated energy-throughput life (order-of-magnitude: **~10–15%**, depending on true capacity and counter validity).
 
-### Exhibit I: Diagnostic Intervention (Safety Mode)
+**Conclusion (supported, now accurate):**  
+If the lifetime counter is correct and the capacity assumption is correct, the bank appears to have used only a modest fraction of rated throughput life. This supports the hypothesis that the observed failure mode is not primarily “normal wear,” but rather driven by configuration and/or connection/installation defects.
 
-**Source File:**
-[Safety_Mode_Response.png](photos/Safety_Mode_Response.png)
-
-**Data Point:**
-Dec 28, 2025 (Safety Mode)
-
-**Analysis:**
-Following the alarms in Exhibit D, the Owner attempted to apply the correct 58.8V Fullriver profile. This immediately exacerbated the voltage spikes, confirming that the high resistance from the wiring defects (Exhibit A) makes it physically impossible to apply the correct charging voltage without tripping safety limits.
-
-**Current Mitigation:**
-To prevent further venting, the system was forcibly reverted to a lower voltage cap (**57.6V**). The attached chart shows the system successfully holding this safety limit with a smooth current taper.
-*   **Verdict:** The battery chemistry remains active and responsive. The batteries are not "dead" from old age or overuse. However, the bank is **structurally failed** because it cannot be safely charged to full voltage without venting the high cells.
+> Verification note: Some dashboards reset counters or mix time windows; confirm via CSV export and/or inverter history.
 
 ---
 
-## Final Determination
+### Exhibit H: Solar Production & Pass-Through
 
-### Root Cause Attribution
-The failure is definitively attributed to **Installation & Commissioning Defects**.
+**Source files:**
+- [Inverter_Performance_History.png](photos/Inverter_Performance_History.png)
+- [Solar_Production_History.png](photos/Solar_Production_History.png)
 
-1.  **Exhibit A (Wiring):** Illegal splices introduced resistance.
-2.  **Exhibit B (Workmanship):** Lack of corrosion protection/guarding.
-3.  **Exhibit C (Configuration):** Factory default settings chemically starved the batteries.
+**Finding (reported):** total solar harvested ~8.8 MWh; apparent net surplus.
 
-These factors combined to create the **Critical Voltage Imbalance (Exhibit E)**, which caused specific batteries to vent (Exhibit F) while others sulfated, resulting in the premature failure of a system that is mechanically young (Exhibit G).
+**Conclusion:**  
+The system does not appear supply-starved. The failure mode is more consistent with **charge-control/connection/temperature** issues than with heavy cycling.
+
+---
+
+### Exhibit I: Diagnostic Intervention (Safety Mode)
+
+**Source file:** [Safety_Mode_Response.png](photos/Safety_Mode_Response.png)
+
+---
+
+### Exhibit J: Battery-Box Temperature (Operational Context)
+
+**Source:** Owner temperature logging (2-week sample)
+
+**Finding:** Battery-box air temperature ranged approximately **60–78°F**, typically **~63–75°F**.
+
+**Interpretation:** The battery environment is generally near room temperature, so temperature-driven voltage corrections are modest most days. However, because the Schneider configuration uses a **fixed “Warm/Cold”** assumption rather than per-degree compensation, confirming the correct mode remains important—especially when attempting to apply a higher absorb target in an already imbalanced bank.
+
+
+**Finding:** Applying a higher absorb target (e.g., 58.8 V) immediately aggravates overvoltage behavior; lowering the cap (~57.6 V) yields smoother taper.
+
+**Interpretation (defensible form):**  
+This behavior is **consistent with** charging into an imbalanced bank and/or voltage sensing/drop effects under current. It strongly indicates the bank cannot be safely driven to the datasheet absorb target **without first addressing imbalance and validating sensing/termination under measurement**. It does not, by itself, prove that wiring resistance is the sole cause.
+
+---
+
+## 7) Final Determination
+
+### Determination
+The battery bank is **critically imbalanced** and operating in a condition where:
+- some units are at risk of **overcharge/venting**, and
+- other units are likely **chronically undercharged** and sulfated.
+
+### Most likely contributors (ranked)
+1. **Incorrect charge profile / temperature configuration** relative to the Fullriver datasheet.
+2. **High-resistance connections and junction practices**, including splices and/or loose/poorly protected terminations.
+3. Secondary contributors may include unit variation, early battery defect(s), and thermal/environmental stresses.
+
+---
+
+## 8) Required Verification Tests (to make causality “proven”)
+
+To convert “consistent with/likely” into “proven,” perform:
+
+1) **Voltage-drop test under charge current**
+   - During absorb at meaningful current, measure:
+     - **V_inv:** inverter DC input terminals
+     - **V_bank:** battery bank posts
+   - Record charge current **I**.
+   - Compute ΔV = V_inv − V_bank. A significant ΔV under current indicates resistance/sensing issues.
+
+2) **Millivolt drop per joint/splice**
+   - Under the same current, measure mV drop across each splice/lug to locate hotspots.
+
+3) **Per-battery conductance/IR + controlled discharge**
+   - Distinguishes “undercharged but recoverable” from “sulfated/failing.”
+
+---
+
+## 9) Immediate Mitigation (Triage)
+
+Until imbalance is reduced and charging is validated:
+
+- Keep conservative charge settings to avoid overdriving “high” units.
+- Reduce charge current where possible.
+- Correct safety hazards (terminal guards/boots, enclosures, torque verification, cleaning/retorque, corrosion inhibition where appropriate).
+
+> **Safety note:** Any per-battery “manual balancing” should be done only with the target 6V battery electrically isolated from the bank (to avoid unintended current paths and charging errors).
+
+---
+
+## References
+
+- **Fullriver DC400-6 Datasheet (PDF):** [DC400-6.pdf](DC400-6.pdf)
