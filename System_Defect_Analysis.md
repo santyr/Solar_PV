@@ -3,6 +3,8 @@
 **System Age:** 4 Years, 4 Months (Installed Aug 2021)  
 **Status:** **CRITICAL WATCH / TRIAGE MODE**
 
+**Canonical repo version:** https://github.com/santyr/Solar_PV/blob/main/System_Defect_Analysis.md
+
 ---
 
 ## Executive Summary
@@ -46,13 +48,7 @@ Fullriver’s DC400-6 datasheet specifies (at 25 °C / 77 °F):
 
 - **48V Bulk/Absorption:** **58.8 V**  
 - **48V Float:** **54.6 V**  
-- **Temperature effects:** The recommended charge voltage varies with battery temperature (see datasheet).  
-
-**Important system note:** This site’s Schneider configuration uses a **fixed “Warm/Cold” mode** (not true per-degree temperature compensation). Therefore, the chosen mode must be matched to the **measured battery-box temperature range**.
-
-**Battery-box temperature (measured, 2-week sample):** approximately **60–78°F**, with most operation around **~63–75°F**.
-
-**Implication:** Selecting an overly “Warm” assumption when the box is typically cooler can contribute to undercharge; selecting an overly “Cold” assumption can raise charge voltage and may increase overvoltage/venting risk in an already-imbalanced bank.
+- **Temperature compensation:** charge voltage should be adjusted with temperature (see datasheet for factor and basis).
 
 **Datasheet reference:**  
 - Local copy in this repo: **[Fullriver DC400-6 Datasheet (PDF)](DC400-6.pdf)**
@@ -100,10 +96,10 @@ Mechanical splices and non-ideal junction practices can increase resistance and 
 1. [Commissioning_Day_Zero.png](photos/Commissioning_Day_Zero.png) (Aug 22, 2021 – Day 1)
 2. [Configuration_Audit_Nov2025.png](photos/Configuration_Audit_Nov2025.png) (Nov 2025 – discovery)
 
-**Finding:** Telemetry indicates the system charging peaks at **~57.6 V** rather than the datasheet’s **58.8 V** (at 25°C). Additionally, the system uses a fixed **“Warm/Cold”** temperature assumption; prior configuration indicates it was left on **“Warm.”** Measured battery-box temperatures (~60–78°F over a 2-week sample) suggest the appropriate selection should be confirmed based on the actual environment.
+**Finding:** Telemetry indicates the system charging peaks at **~57.6 V** rather than the datasheet’s **58.8 V** (at 25°C). Additionally, audit evidence suggests the system temperature profile was left on a “Warm” mode despite a cooler battery environment (reported).
 
 **Engineering impact:**  
-Long-term operation below recommended absorb voltage/time and with an incorrect **Warm/Cold temperature assumption** can cause:
+Long-term operation below recommended absorb voltage/time and with incorrect temperature compensation can cause:
 - chronic partial state-of-charge,
 - sulfation,
 - capacity loss,
@@ -119,6 +115,14 @@ Long-term operation below recommended absorb voltage/time and with an incorrect 
 
 **Source file:** (InsightLocal Events screenshot; Nov 21, 2025)  
 **Finding:** **DC Over Voltage (Event 49)** recorded on **Nov 21, 2025**.
+
+**Additional Finding:** The historical log also shows three more DC Over Voltage (Event 49) alarms in December 2025:
+
+- 2025-12-02 12:25:46 -0700
+- 2025-12-06 14:42:52 -0700
+- 2025-12-06 15:23:35 -0700
+
+
 
 **Interpretation:**  
 This alarm indicates battery voltage approached a cut-out threshold during charging. This is consistent with charging into an imbalanced bank, incorrect cut-out thresholds, temperature/profile mismatch, and/or sensing artifacts under current.
@@ -194,23 +198,35 @@ The system does not appear supply-starved. The failure mode is more consistent w
 
 **Source file:** [Safety_Mode_Response.png](photos/Safety_Mode_Response.png)
 
----
-
-### Exhibit J: Battery-Box Temperature (Operational Context)
-
-**Source:** Owner temperature logging (2-week sample)
-
-**Finding:** Battery-box air temperature ranged approximately **60–78°F**, typically **~63–75°F**.
-
-**Interpretation:** The battery environment is generally near room temperature, so temperature-driven voltage corrections are modest most days. However, because the Schneider configuration uses a **fixed “Warm/Cold”** assumption rather than per-degree compensation, confirming the correct mode remains important—especially when attempting to apply a higher absorb target in an already imbalanced bank.
-
-
 **Finding:** Applying a higher absorb target (e.g., 58.8 V) immediately aggravates overvoltage behavior; lowering the cap (~57.6 V) yields smoother taper.
 
 **Interpretation (defensible form):**  
 This behavior is **consistent with** charging into an imbalanced bank and/or voltage sensing/drop effects under current. It strongly indicates the bank cannot be safely driven to the datasheet absorb target **without first addressing imbalance and validating sensing/termination under measurement**. It does not, by itself, prove that wiring resistance is the sole cause.
 
 ---
+
+---
+
+### Exhibit K: Torque Correction — Measured Improvement in Voltage Spread
+
+**Source:** Owner manual multimeter readings (handwritten log; transcribed)
+
+**Files:**
+- Transcription (CSV): [handwritten_voltage_readings_transcribed.csv](handwritten_voltage_readings_transcribed.csv)
+- Summary stats (CSV): [handwritten_voltage_readings_stats.csv](handwritten_voltage_readings_stats.csv)
+
+**Context:** In Dec 2025 the owner found multiple battery lugs noticeably loose and re-torqued the battery connections. The final column in the log reflects readings **after torquing**.
+
+**Summary (16 batteries):**
+
+| Measurement set | Min (V) | Max (V) | Spread (V) |
+|---|---:|---:|---:|
+| 2025-12-24 (set A) | 6.48 | 7.42 | 0.94 |
+| 2025-12-24 (set B) | 6.47 | 7.33 | 0.86 |
+| 2025-12-26 (after torque) | 6.47 | 7.22 | 0.75 |
+
+**Interpretation:** After torque correction, the bank’s measured voltage spread tightened by approximately **0.19 V** (0.94 → 0.75, ~20% reduction) and the highest observed unit voltage decreased (7.42 → 7.22). This is consistent with connection integrity (loose/high-resistance joints) materially affecting observed charging/imbalance behavior. It does not by itself prove the spliced run is the sole root cause, but it strongly supports performing and documenting a full termination audit and voltage-drop testing under charge current.
+
 
 ## 7) Final Determination
 
