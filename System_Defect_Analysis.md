@@ -11,7 +11,7 @@
 
 This report documents abnormal degradation and unsafe operating behavior in a **Fullriver DC400-6 AGM battery bank**. The evidence supports four key findings:
 
-1. **Severe unit-to-unit imbalance exists** across the individual 6V batteries (measured spread **0.94 V**), consistent with a bank that cannot be safely charged as a single system without **overcharging some units** while **undercharging others**.
+1. **Unit-to-unit imbalance exists** across the individual 6V batteries (measured spread **0.94 V**), consistent with a bank that cannot be safely charged as a single system without **overcharging some units** while **undercharging others**.
 2. The system recorded a **DC Over Voltage (Event 49)** alarm on **Nov 21, 2025**, consistent with the inverter/charger approaching its **High Battery Cut Out** threshold during charging.
 3. The installation exhibits **workmanship and safety defects** (splices/junction practices in high-current conductors, unguarded >50 V terminals, incomplete termination protection) that plausibly increase resistance and hazard.
 4. Commissioning/configuration appears **inconsistent with the manufacturer’s recommended charge profile**, which can drive chronic partial state-of-charge and sulfation over time.
@@ -66,7 +66,7 @@ Fullriver’s DC400-6 datasheet specifies (at 25 °C / 77 °F):
 **Finding:** Multiple mechanical splices exist on high-current battery conductors.
 
 **Engineering impact:**  
-Mechanical splices and non-ideal junction practices can increase resistance and create localized heating/voltage drop. If the inverter/charger regulates to its own DC terminal voltage (rather than true battery-post voltage), extra resistance between charger and battery posts can reduce the effective charging voltage delivered to the bank during high current—contributing to chronic undercharge and string divergence.
+Mechanical splices and non-ideal junction practices may increase resistance and create localized heating/voltage drop. If the inverter/charger regulates to its own DC terminal voltage (rather than true battery-post voltage), extra resistance between charger and battery posts can reduce the effective charging voltage delivered to the bank during high current—contributing to chronic undercharge and string divergence.
 
 **Code note (jurisdiction dependent):** Splices outside approved enclosures may violate NEC requirements for splices in boxes (often cited under NEC 300.15, context dependent).
 
