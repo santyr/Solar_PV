@@ -231,7 +231,7 @@ This behavior is **consistent with** charging into an imbalanced bank and/or vol
 ## 7) Final Determination
 
 ### Determination
-The battery bank is **critically imbalanced** and operating in a condition where:
+The battery bank is **imbalanced** and operating in a condition where:
 - some units are at risk of **overcharge/venting**, and
 - other units are likely **chronically undercharged** and sulfated.
 
