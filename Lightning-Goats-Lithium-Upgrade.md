@@ -226,8 +226,7 @@ To fit within the **24-inch height limit**, the system must be installed as two 
 | 5× Discover AES Rackmount | **~$11,053** |
 | **Difference** | **Lithium is $150 - $1,750 LESS** |
 
-**The Discover lithium solution costs the same or less than AGM replacement** while providing superior capacity, longevity, and automatic charge management. If for any reason there is a cost difference, the homeowner is willing to cover it—but this should not be necessary.
-
+**The Discover lithium solution costs the same or less than AGM replacement** while providing superior capacity, longevity, and automatic charge management.
 ---
 
 ## 8. Comparison: AGM Replacement vs. Lithium Upgrade
