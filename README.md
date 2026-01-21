@@ -44,6 +44,5 @@ This repository serves as the central knowledge base for the Schneider Electric 
 
 ## 📅 Action Plan Timeline
 
-*   **Jan 2026:** Perform Manual Balancing on low batteries (#10, #4, #16, #5)?
 *   **Quarterly:** Check voltage spread.
 *   **2026-2027:** Possible Early End-of-Life / Lithium Upgrade?
