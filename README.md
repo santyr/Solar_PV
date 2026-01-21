@@ -10,7 +10,7 @@ This repository serves as the central knowledge base for the Schneider Electric 
 
 
 ### 2. Upgrade Strategy
-*   **🔋 [Lightning Goats Lithium Upgrade](Lightning-Goats-Lithium-Upgrade.md)**
+*   **🔋 [Lithium Upgrade](Lightning-Goats-Lithium-Upgrade.md)**
     *   *Content:* Technical specifications for the **5-Unit Discover AES Rackmount** upgrade, split-stack configuration, and installation logistics.
 
 ---
