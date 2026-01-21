@@ -1,4 +1,4 @@
-# Lightning Goats Solar Power System
+# Solar Power System
 
 This repository serves as the central knowledge base for the Schneider Electric solar energy system powering the residence.
 
