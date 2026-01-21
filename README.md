@@ -7,8 +7,6 @@ This repository serves as the central knowledge base for the Schneider Electric 
 ### 1. Health & Maintenance (Current AGM Bank)
 *   **📄 [System Usage & Defect Analysis](System_Defect_Analysis.md)**
     *   *Content:* **Engineering Report.** Telemetry data and photographic evidence linking installation defects (splices/resistance) to battery capacity loss. Includes Exhibits A-D.
-*   **📄 [Fullriver Battery Lifecycle Analysis](Fullriver_Battery_Lifecycle_Analysis.md)**
-    *   *Content:* Analysis of the current imbalance and the "Triage" plan to extend life to replacement.
 
 
 ### 2. Upgrade Strategy
