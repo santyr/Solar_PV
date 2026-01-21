@@ -34,11 +34,11 @@ This repository serves as the central knowledge base for the Schneider Electric 
 | Parameter | Value | Reason |
 | :--- | :--- | :--- |
 | **Battery Type** | **AGM** | |
-| **Bulk / Absorption** | **57.6 V** | Lowered from 58.8V to stop "High" batteries from venting. |
+| **Bulk / Absorption** | **57.6 V** | LHistorical install setting. |
 | **Absorb Time** | **60 min** | Reduced to limit stress. |
 | **Float Voltage** | **54.6 V** | Standard maintenance. |
 | **High Battery Cut Out** | **64.0 V** | **Critical:** Prevents inverter tripping in cold temps. |
-| **Temp Compensation** | **Cold** | Adjusted for cellar temps (60°F - 70°F). |
+| **Temp Compensation** | **Warm** |  |
 
 ---
 
