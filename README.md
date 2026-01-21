@@ -8,10 +8,10 @@ This repository serves as the central knowledge base for the Schneider Electric 
 *   **📄 [System Usage & Defect Analysis](System_Defect_Analysis.md)**
     *   *Content:* **Engineering Report.** Telemetry data and photographic evidence linking installation defects (splices/resistance) to battery capacity loss. Includes Exhibits A-D.
 *   **📄 [Fullriver Battery Lifecycle Analysis](Fullriver_Battery_Lifecycle_Analysis.md)**
-    *   *Content:* Analysis of the current imbalance and the "Triage" plan to extend life to 2027.
+    *   *Content:* Analysis of the current imbalance and the "Triage" plan to extend life to replacement.
 
 
-### 2. Upgrade Strategy & Financials
+### 2. Upgrade Strategy
 *   **🔋 [Lightning Goats Lithium Upgrade](Lightning-Goats-Lithium-Upgrade.md)**
     *   *Content:* Technical specifications for the **5-Unit Discover AES Rackmount** upgrade, split-stack configuration, and installation logistics.
 
@@ -23,7 +23,7 @@ This repository serves as the central knowledge base for the Schneider Electric 
 *   **Charge Controller:** Schneider MPPT 60 150
 *   **Solar Array:** 4.2 kW
 *   **Current Storage:** 48V Fullriver DC400-6 AGM (830Ah)
-*   **Load Profile:** ~5.3 kWh/day (House + Goats + Laptop + Fridge)
+*   **Load Profile:** ~5.3 kWh/day
 
 ---
 
