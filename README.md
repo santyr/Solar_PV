@@ -9,14 +9,11 @@ This repository serves as the central knowledge base for the Schneider Electric 
     *   *Content:* **Engineering Report.** Telemetry data and photographic evidence linking installation defects (splices/resistance) to battery capacity loss. Includes Exhibits A-D.
 *   **📄 [Fullriver Battery Lifecycle Analysis](Fullriver_Battery_Lifecycle_Analysis.md)**
     *   *Content:* Analysis of the current imbalance and the "Triage" plan to extend life to 2027.
-*   **🔧 [Battery Balance & Triage Procedure](Battery_Balance_Check.md)**
-    *   *Content:* Safety instructions for Quarterly checks and **Manual Balancing** using the NOCO charger.
+
 
 ### 2. Upgrade Strategy & Financials
 *   **🔋 [Lightning Goats Lithium Upgrade](Lightning-Goats-Lithium-Upgrade.md)**
     *   *Content:* Technical specifications for the **5-Unit Discover AES Rackmount** upgrade, split-stack configuration, and installation logistics.
-*   **💰 [Economic ROI Analysis](Lightning_Goats_Battery_ROI.md)**
-    *   *Content:* Financial breakdown of the upgrade, showing a 13.5-year payback via Goat Revenue.
 
 ---
 
@@ -49,4 +46,4 @@ This repository serves as the central knowledge base for the Schneider Electric 
 
 *   **Jan 2026:** Perform Manual Balancing on low batteries (#10, #4, #16, #5)?
 *   **Quarterly:** Check voltage spread.
-*   **Aug 2027:** Possible Early End-of-Life / Lithium Upgrade.
+*   **2026-2027:** Possible Early End-of-Life / Lithium Upgrade?
