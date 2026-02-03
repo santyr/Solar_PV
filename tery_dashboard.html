@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Battery Bank Health Monitor — Fullriver DC400-6</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #1a1a1a; color: #e0e0e0; font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', 'Consolas', monospace; }
+  #root { min-height: 100vh; }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prop-types/15.8.1/prop-types.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/recharts/2.12.7/Recharts.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState } = React;
+const { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, ResponsiveContainer, ComposedChart, Bar } = window.Recharts;
+
+const FLOAT_TARGET = 6.825;
+const DANGER_LOW = 6.3;
+const WEAK_THRESHOLD = 6.525;
+
+const readings = {
+  "Dec 24 A": [6.89,7.22,6.91,6.53,7.09,7.42,7.31,7.25,7.12,6.48,7.26,7.40,7.21,7.29,6.80,6.49],
+  "Dec 24 B": [6.91,7.21,6.92,6.52,6.55,7.33,7.23,7.25,7.11,6.47,7.27,7.22,7.21,7.30,6.82,6.49],
+  "Dec 26":   [6.66,6.87,6.81,6.50,6.60,7.12,7.16,7.06,6.95,6.47,7.02,7.22,6.95,7.00,6.77,6.52],
+  "Feb 3":    [6.57,6.73,6.70,6.47,6.47,6.89,6.86,6.85,6.85,6.49,6.86,6.91,6.84,6.87,6.65,6.49],
+};
+
+const summaryData = Object.entries(readings).map(function(entry) {
+  var name = entry[0], vals = entry[1];
+  var valid = vals.filter(function(v) { return v !== null; });
+  var min = Math.min.apply(null, valid);
+  var max = Math.max.apply(null, valid);
+  return { name: name, min: +min.toFixed(2), max: +max.toFixed(2), spread: +(max - min).toFixed(2), mean: +(valid.reduce(function(a,b){ return a+b; }, 0) / valid.length).toFixed(2), count: valid.length };
+});
+
+const batteryTrend = Array.from({length: 16}, function(_, i) {
+  var obj = { battery: "#" + (i+1) };
+  Object.entries(readings).forEach(function(entry) { obj[entry[0]] = entry[1][i]; });
+  return obj;
+});
+
+const trendOverTime = [
+  Object.assign({ label: "Dec 24 A" }, summaryData[0]),
+  Object.assign({ label: "Dec 24 B" }, summaryData[1]),
+  Object.assign({ label: "Dec 26 (torqued)" }, summaryData[2]),
+  Object.assign({ label: "Feb 3, 2026" }, summaryData[3]),
+];
+
+const COLORS = {
+  bg: "#1a1a1a", card: "#242424", cardBorder: "#333", text: "#e0e0e0", textMuted: "#888",
+  accent: "#f59e0b", danger: "#ef4444", warning: "#f97316", ok: "#22c55e", blue: "#3b82f6",
+  grid: "#333", float: "#6366f1",
+};
+
+const batteryColors = [
+  "#8b5cf6","#6366f1","#3b82f6","#ef4444","#06b6d4","#f97316","#ec4899","#10b981",
+  "#f59e0b","#14b8a6","#a855f7","#f43f5e","#84cc16","#0ea5e9","#ef4444","#ef4444"
+];
+
+function getBatteryStatus(voltage) {
+  if (voltage === null) return { label: "N/A", color: "#555" };
+  if (voltage < DANGER_LOW) return { label: "CRITICAL", color: COLORS.danger };
+  if (voltage < WEAK_THRESHOLD) return { label: "FAILED", color: COLORS.danger };
+  if (voltage < FLOAT_TARGET - 0.15) return { label: "WEAK", color: COLORS.warning };
+  if (voltage > 7.1) return { label: "HIGH R", color: COLORS.warning };
+  return { label: "OK", color: COLORS.ok };
+}
+
+function CustomTooltip(props) {
+  if (!props.active || !props.payload || !props.payload.length) return null;
+  return (
+    <div style={{ background: "#2a2a2a", border: "1px solid #444", borderRadius: 6, padding: "10px 14px", fontSize: 13 }}>
+      <div style={{ fontWeight: 600, marginBottom: 6, color: COLORS.text }}>{props.label}</div>
+      {props.payload.map(function(p, i) {
+        return (
+          <div key={i} style={{ color: p.color, marginBottom: 2 }}>
+            {p.name}: <strong>{p.value !== null ? p.value + "V" : "\u2014"}</strong>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function BatteryDashboard() {
+  const [view, setView] = useState("overview");
+  const [highlightBatteries, setHighlightBatteries] = useState(new Set([4, 5, 10, 16]));
+
+  function toggleBattery(idx) {
+    setHighlightBatteries(function(prev) {
+      var next = new Set(prev);
+      if (next.has(idx)) next.delete(idx); else next.add(idx);
+      return next;
+    });
+  }
+
+  var febReadings = readings["Feb 3"];
+  var dec26Readings = readings["Dec 26"];
+  var tabs = [["overview","Overview"],["individual","Per-Battery Trends"],["spread","Spread & Decay"]];
+  var setColors = ["#555", "#666", "#3b82f6", COLORS.accent];
+  var setWidths = [1, 1, 1.5, 2.5];
+  var setKeys = Object.keys(readings);
+
+  return (
+    <div style={{ background: COLORS.bg, minHeight: "100vh", color: COLORS.text, fontFamily: "'JetBrains Mono', 'SF Mono', 'Fira Code', monospace", padding: "24px 20px" }}>
+
+      <div style={{ marginBottom: 28 }}>
+        <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 3, color: COLORS.accent, marginBottom: 4 }}>
+          {"Fullriver DC400-6 \u00b7 16\u00d7 6V AGM \u00b7 48V/830Ah"}
+        </div>
+        <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0, letterSpacing: -0.5 }}>Battery Bank Health Monitor</h1>
+        <div style={{ fontSize: 12, color: COLORS.textMuted, marginTop: 4 }}>
+          {"All readings at float (~54.6V bank) after \u22652 hr idle \u00b7 Expected per-cell float: " + FLOAT_TARGET + "V"}
+        </div>
+      </div>
+
+      <div style={{ display: "flex", gap: 2, marginBottom: 24 }}>
+        {tabs.map(function(t) {
+          return (
+            <button key={t[0]} onClick={function() { setView(t[0]); }} style={{
+              background: view === t[0] ? COLORS.accent : COLORS.card,
+              color: view === t[0] ? "#000" : COLORS.textMuted,
+              border: "1px solid " + (view === t[0] ? COLORS.accent : COLORS.cardBorder),
+              padding: "8px 16px", borderRadius: 4, cursor: "pointer", fontSize: 12,
+              fontWeight: view === t[0] ? 700 : 400, fontFamily: "inherit",
+            }}>{t[1]}</button>
+          );
+        })}
+      </div>
+
+      {/* ===== OVERVIEW ===== */}
+      {view === "overview" && (
+        <div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 24 }}>
+            {summaryData.map(function(s, i) {
+              return (
+                <div key={i} style={{ background: COLORS.card, border: "1px solid " + COLORS.cardBorder, borderRadius: 6, padding: 16 }}>
+                  <div style={{ fontSize: 11, color: COLORS.textMuted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>{s.name}</div>
+                  <div style={{ fontSize: 24, fontWeight: 700, color: s.spread > 0.5 ? COLORS.danger : COLORS.ok }}>{s.spread}V</div>
+                  <div style={{ fontSize: 11, color: COLORS.textMuted }}>spread</div>
+                  <div style={{ fontSize: 12, marginTop: 8, color: COLORS.textMuted }}>{s.min + "V \u2013 " + s.max + "V \u00b7 \u03bc " + s.mean + "V"}</div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div style={{ background: COLORS.card, border: "1px solid " + COLORS.cardBorder, borderRadius: 6, padding: 20, marginBottom: 24 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 16 }}>Current Status (Feb 3, 2026) vs Dec 26 Post-Torque</div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(8, 1fr)", gap: 8 }}>
+              {Array.from({length: 16}, function(_, i) {
+                var febV = febReadings[i];
+                var decV = dec26Readings[i];
+                var status = getBatteryStatus(febV);
+                var delta = (febV !== null && decV !== null) ? (febV - decV) : null;
+                return (
+                  <div key={i} style={{ background: "#1a1a1a", border: "2px solid " + status.color + "40", borderRadius: 6, padding: "12px 8px", textAlign: "center" }}>
+                    <div style={{ fontSize: 10, color: COLORS.textMuted, marginBottom: 4 }}>{"#" + (i+1)}</div>
+                    <div style={{ fontSize: 18, fontWeight: 700, color: status.color }}>{febV !== null ? febV.toFixed(2) : "\u2014"}</div>
+                    <div style={{ fontSize: 10, color: status.color, fontWeight: 600, marginTop: 2 }}>{status.label}</div>
+                    {delta !== null && (
+                      <div style={{ fontSize: 10, color: delta < -0.05 ? COLORS.danger : delta > 0.05 ? COLORS.ok : COLORS.textMuted, marginTop: 4 }}>
+                        {(delta > 0 ? "+" : "") + delta.toFixed(2) + "V"}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{ display: "flex", gap: 16, marginTop: 16, fontSize: 11, color: COLORS.textMuted }}>
+              <span><span style={{ color: COLORS.ok }}>{"\u25cf"}</span> OK</span>
+              <span><span style={{ color: COLORS.warning }}>{"\u25cf"}</span> Weak / High R</span>
+              <span><span style={{ color: COLORS.danger }}>{"\u25cf"}</span> Failed</span>
+              <span style={{ marginLeft: "auto" }}>Delta = change from Dec 26</span>
+            </div>
+          </div>
+
+          <div style={{ background: "#2a1a0a", border: "1px solid " + COLORS.warning + "40", borderRadius: 6, padding: 20 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.warning, marginBottom: 8 }}>{"\u26a1 PROGNOSIS"}</div>
+            <div style={{ fontSize: 13, lineHeight: 1.7 }}>
+              <strong>4 batteries effectively dead</strong> (#4, #5, #10, #16 — all ≤6.49V at float).
+              Battery #5 newly fell from 6.60V (Dec) to 6.47V — degradation is accelerating.
+              Bank spread improved from 0.94V to 0.44V after torque correction and settling, but the
+              weak units are not recovering and a fourth has now joined them.
+              <br/><br/>
+              <strong>Estimated remaining service:</strong> 2–4 months before overnight capacity becomes unreliable.
+              Risk of sudden string failure increases weekly.
+              <strong style={{ color: COLORS.accent }}> Execute lithium replacement within 3 months.</strong>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===== PER-BATTERY TRENDS ===== */}
+      {view === "individual" && (
+        <div>
+          <div style={{ background: COLORS.card, border: "1px solid " + COLORS.cardBorder, borderRadius: 6, padding: 20, marginBottom: 16 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Per-Battery Voltage Across All Readings</div>
+            <div style={{ fontSize: 11, color: COLORS.textMuted, marginBottom: 16 }}>Click batteries to toggle. Problem units pre-selected.</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 16 }}>
+              {Array.from({length: 16}, function(_, i) {
+                var idx = i + 1;
+                var active = highlightBatteries.has(idx);
+                return (
+                  <button key={i} onClick={function() { toggleBattery(idx); }} style={{
+                    background: active ? batteryColors[i] + "30" : "transparent",
+                    border: "1px solid " + (active ? batteryColors[i] : "#444"),
+                    color: active ? batteryColors[i] : "#666",
+                    borderRadius: 4, padding: "4px 10px", fontSize: 11, cursor: "pointer",
+                    fontFamily: "inherit", fontWeight: active ? 700 : 400,
+                  }}>{"#" + idx}</button>
+                );
+              })}
+            </div>
+            <ResponsiveContainer width="100%" height={400}>
+              <LineChart data={batteryTrend} margin={{ top: 10, right: 20, bottom: 10, left: 10 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke={COLORS.grid} />
+                <XAxis dataKey="battery" tick={{ fill: COLORS.textMuted, fontSize: 11 }} />
+                <YAxis domain={[6.2, 7.5]} tick={{ fill: COLORS.textMuted, fontSize: 11 }} />
+                <Tooltip content={CustomTooltip} />
+                <ReferenceLine y={FLOAT_TARGET} stroke={COLORS.float} strokeDasharray="8 4" />
+                <ReferenceLine y={DANGER_LOW} stroke={COLORS.danger} strokeDasharray="4 4" />
+                {setKeys.map(function(setName, si) {
+                  return <Line key={setName} dataKey={setName} stroke={setColors[si]} strokeWidth={setWidths[si]} dot={{ r: si === 3 ? 4 : 2, fill: setColors[si] }} connectNulls={false} />;
+                })}
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div style={{ background: COLORS.card, border: "1px solid " + COLORS.cardBorder, borderRadius: 6, padding: 20, overflowX: "auto" }}>
+            <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 12 }}>Raw Data</div>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+              <thead>
+                <tr style={{ borderBottom: "1px solid " + COLORS.cardBorder }}>
+                  <th style={{ textAlign: "left", padding: "8px 6px", color: COLORS.textMuted }}>Batt</th>
+                  {setKeys.map(function(k) { return <th key={k} style={{ textAlign: "right", padding: "8px 6px", color: COLORS.textMuted }}>{k}</th>; })}
+                  <th style={{ textAlign: "right", padding: "8px 6px", color: COLORS.textMuted }}>{"\u0394 Total"}</th>
+                  <th style={{ textAlign: "center", padding: "8px 6px", color: COLORS.textMuted }}>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {batteryTrend.map(function(row, i) {
+                  var first = readings["Dec 24 A"][i];
+                  var last = readings["Feb 3"][i];
+                  var delta = last !== null ? (last - first) : null;
+                  var status = getBatteryStatus(last);
+                  return (
+                    <tr key={i} style={{ borderBottom: "1px solid " + COLORS.bg }}>
+                      <td style={{ padding: "6px", fontWeight: 600 }}>{"#" + (i+1)}</td>
+                      {setKeys.map(function(k) {
+                        return (
+                          <td key={k} style={{ textAlign: "right", padding: "6px", color: readings[k][i] !== null ? (readings[k][i] < WEAK_THRESHOLD ? COLORS.danger : COLORS.text) : "#555" }}>
+                            {readings[k][i] !== null ? readings[k][i].toFixed(2) : "\u2014"}
+                          </td>
+                        );
+                      })}
+                      <td style={{ textAlign: "right", padding: "6px", color: delta !== null ? (delta < -0.1 ? COLORS.ok : delta > 0.1 ? COLORS.danger : COLORS.textMuted) : "#555" }}>
+                        {delta !== null ? (delta > 0 ? "+" : "") + delta.toFixed(2) : "\u2014"}
+                      </td>
+                      <td style={{ textAlign: "center", padding: "6px" }}>
+                        <span style={{ color: status.color, fontWeight: 600, fontSize: 11 }}>{status.label}</span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* ===== SPREAD & DECAY ===== */}
+      {view === "spread" && (
+        <div>
+          <div style={{ background: COLORS.card, border: "1px solid " + COLORS.cardBorder, borderRadius: 6, padding: 20, marginBottom: 16 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Voltage Spread Over Time</div>
+            <div style={{ fontSize: 11, color: COLORS.textMuted, marginBottom: 16 }}>{"Healthy bank: <0.1V spread. Above 0.3V = serious divergence."}</div>
+            <ResponsiveContainer width="100%" height={300}>
+              <ComposedChart data={trendOverTime} margin={{ top: 10, right: 20, bottom: 10, left: 10 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke={COLORS.grid} />
+                <XAxis dataKey="label" tick={{ fill: COLORS.textMuted, fontSize: 10 }} />
+                <YAxis yAxisId="spread" domain={[0, 1.2]} tick={{ fill: COLORS.textMuted, fontSize: 11 }} />
+                <Tooltip content={CustomTooltip} />
+                <ReferenceLine yAxisId="spread" y={0.1} stroke={COLORS.ok} strokeDasharray="4 4" />
+                <ReferenceLine yAxisId="spread" y={0.3} stroke={COLORS.warning} strokeDasharray="4 4" />
+                <Bar yAxisId="spread" dataKey="spread" fill={COLORS.danger} radius={[4,4,0,0]} barSize={40} opacity={0.7} name="Spread" />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div style={{ background: COLORS.card, border: "1px solid " + COLORS.cardBorder, borderRadius: 6, padding: 20, marginBottom: 16 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Min / Max / Mean Envelope</div>
+            <div style={{ fontSize: 11, color: COLORS.textMuted, marginBottom: 16 }}>The gap between min and max should be narrowing. The weak batteries are stuck.</div>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={trendOverTime} margin={{ top: 10, right: 20, bottom: 10, left: 10 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke={COLORS.grid} />
+                <XAxis dataKey="label" tick={{ fill: COLORS.textMuted, fontSize: 10 }} />
+                <YAxis domain={[6.2, 7.5]} tick={{ fill: COLORS.textMuted, fontSize: 11 }} />
+                <Tooltip content={CustomTooltip} />
+                <ReferenceLine y={FLOAT_TARGET} stroke={COLORS.float} strokeDasharray="8 4" />
+                <Line dataKey="max" stroke={COLORS.danger} strokeWidth={2} dot={{ r: 4 }} name="Max" />
+                <Line dataKey="mean" stroke={COLORS.accent} strokeWidth={2} dot={{ r: 4 }} name="Mean" />
+                <Line dataKey="min" stroke={COLORS.danger} strokeWidth={2} strokeDasharray="4 4" dot={{ r: 4 }} name="Min" />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div style={{ background: "#0a1a2a", border: "1px solid " + COLORS.blue + "40", borderRadius: 6, padding: 20 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.blue, marginBottom: 8 }}>{"\ud83d\udcca TREND INTERPRETATION"}</div>
+            <div style={{ fontSize: 13, lineHeight: 1.7 }}>
+              The spread reduction from 0.94V to 0.44V is mostly due to the <strong>high-resistance batteries dropping</strong> (max: 7.42 to 6.91),
+              not the weak batteries recovering (min stuck at 6.47–6.49V across all four measurement sets).
+              <br/><br/>
+              The mean voltage is also declining (7.04 to 6.81), indicating the bank is losing capacity overall.
+              Battery #5 has newly crossed from "weak" to "failed" — the degradation front is widening.
+              The weak batteries are <strong>not recoverable</strong> — they are sulfated and their voltage floor has not moved in 6 weeks.
+              <br/><br/>
+              <strong>Next reading target:</strong> Early March 2026. Watch for min dropping below 6.3V (cell short) or spread widening again.
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(BatteryDashboard));
+</script>
+</body>
+</html>
