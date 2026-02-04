@@ -67,7 +67,7 @@ const batteryColors = [
 function getBatteryStatus(voltage) {
   if (voltage === null) return { label: "N/A", color: "#555" };
   if (voltage < DANGER_LOW) return { label: "CRITICAL", color: COLORS.danger };
-  if (voltage < WEAK_THRESHOLD) return { label: "FAILED", color: COLORS.danger };
+  if (voltage < WEAK_THRESHOLD) return { label: "FAILED?", color: COLORS.danger };
   if (voltage < FLOAT_TARGET - 0.15) return { label: "WEAK", color: COLORS.warning };
   if (voltage > 7.1) return { label: "HIGH R", color: COLORS.warning };
   return { label: "OK", color: COLORS.ok };
