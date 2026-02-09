@@ -15,7 +15,7 @@ This report documents abnormal degradation and unsafe operating behavior in a **
 1. **Unit-to-unit imbalance exists** across the individual 6V batteries (measured spread **0.94 V** in Dec 2025, now **0.44 V** in Feb 2026), consistent with a bank that cannot be safely charged as a single system without **overcharging some units** while **undercharging others**.
 2. The XW inverter event log recorded **three DC Over Voltage (Event 49) alarms** in December 2025 — on Dec 2 and twice on Dec 6 — after the owner raised the absorb voltage to the manufacturer-specified 58.8V. MPPT charger telemetry confirms sustained overvoltage events (60.2V on Nov 22, 60.6V on Dec 24) consistent with the inverter approaching its **High Battery Cut Out** threshold during charging.
 3. The installation exhibits **workmanship and safety defects** (splices/junction practices in high-current conductors, unguarded >50 V terminals, incomplete termination protection) that plausibly increase resistance and hazard.
-4. Commissioning/configuration was **inconsistent with the manufacturer's recommended charge profile** from installation through April 2025 — a period of 3 years and 8 months. Telemetry from **nine sample dates** confirms the system ran on Schneider factory-default settings (57.6V absorb vs. the required 58.8V) throughout this period, driving chronic partial state-of-charge and sulfation.
+4. Commissioning/configuration was **inconsistent with the manufacturer's recommended charge profile** from installation through April 2025 — a period of 3 years and 8 months. Telemetry from **nine sample dates** confirms the system ran on Schneider factory-default settings (57.6V absorb setpoint vs. the required 58.8V), with "Warm" temperature compensation further reducing the actual regulated voltage to ~57.0–57.1V — an effective gap of **1.7–1.8V below spec**. This drove chronic partial state-of-charge and sulfation.
 5. **As of February 2026, 4 of 16 batteries (25%) are effectively dead** (stuck at ≤6.49 V at float), up from 3 in December 2025. The degradation front is widening and the bank is not recoverable.
 
 ### Primary Determination (supported)
@@ -99,30 +99,42 @@ Mechanical splices and non-ideal junction practices may increase resistance and 
 
 **Finding:** The system was left on Schneider XW+ factory-default charge settings at installation. Telemetry from **nine sample dates spanning 3 years and 8 months** (Aug 7, 2021 through Apr 11, 2025) confirms the absorb voltage **never once reached even the 57.6V factory-default setpoint** — let alone the Fullriver-specified 58.8V:
 
-| Date | Float (V) | Absorb Peak (V) | Minutes ≥ 57.6V |
-|------|-----------|-----------------|-----------------|
-| Aug 7, 2021 | 53.3 | 57.25 | **0** |
-| Aug 9, 2021 | 53.4 | 57.01 | **0** |
-| Aug 10, 2021 | 53.4 | 57.17 | **0** |
-| Feb 1, 2022 | 53.5 | 57.22 | **0** |
-| Feb 1, 2023 | 53.5 | 57.16 | **0** |
-| Feb 1, 2024 | 53.5 | 57.16 | **0** |
-| Feb 1, 2025 | 53.8 | 57.50 | **0** |
-| **Apr 11, 2025** | **53.8** | **57.48** | **0** |
-| **Apr 12, 2025** | **54.8** | **59.19** | **18** |
+| Date | Float (V) | Absorb Peak (V) | Absorb Plateau (V) | Minutes ≥ 57.6V |
+|------|-----------|-----------------|--------------------|-----------------| 
+| Aug 7, 2021 | 53.3 | 57.25 | ~56.95 | **0** |
+| Aug 9, 2021 | 53.4 | 57.01 | ~57.01 | **0** |
+| Aug 10, 2021 | 53.4 | 57.17 | ~57.17 | **0** |
+| Feb 1, 2022 | 53.5 | 57.22 | ~57.12 | **0** |
+| Feb 1, 2023 | 53.5 | 57.16 | ~57.14 | **0** |
+| Feb 1, 2024 | 53.5 | 57.16 | ~57.14 | **0** |
+| Feb 1, 2025 | 53.8 | 57.50 | ~57.46 | **0** |
+| **Apr 11, 2025** | **53.8** | **57.48** | **~57.46** | **0** |
+| **Apr 12, 2025** | **54.8** | **59.19** | **—** | **18** |
+
+**Why the system never reached 57.6V:** The Schneider XW+ applies temperature compensation to the absorb setpoint, and the system was configured with a "Warm" temperature profile. This caused the charger to regulate at a voltage **below** the 57.6V setpoint. Telemetry confirms the charger plateaued at ~57.0V in summer (Aug 2021) and ~57.12V in winter (Feb 2022–2024), while still delivering 16–33A of charge current. The charger was actively voltage-regulating at a temperature-compensated target — it was not running out of power or being current-limited.
+
+The seasonal pattern (summer voltages ~0.1–0.2V lower than winter) is consistent with active temperature compensation reducing the target in warmer months. At the site's elevation (~7,000 ft) where battery temperatures routinely fall below the 25°C reference point, the batteries needed **higher** voltage than 58.8V — not the reduced voltage that "Warm" mode was delivering.
+
+The effective voltage gap was therefore worse than the 1.2V setpoint difference:
+
+| Condition | Fullriver Requirement | Actual Regulated | Effective Gap |
+|-----------|----------------------|-----------------|---------------|
+| Summer (Aug 2021) | 58.8V | ~57.0V | **−1.8V** |
+| Winter (Feb 2022–24) | 58.8V | ~57.12V | **−1.7V** |
+| Cold conditions (site at 7,000 ft) | >58.8V (needs upward comp) | ~57.0–57.1V | **>1.8V** |
 
 On April 12, 2025 — 3 years and 8 months after installation — the owner first adjusted charge settings while building OpenHAB monitoring software and reading the Fullriver spec sheet. The float was raised from ~53.8V to ~54.8V (closer to the Fullriver-specified 54.6V), and a brief absorb test reached 59.19V. The fact that the bank overshot to 59.19V when ~58.8V was targeted indicates battery imbalance was **already present** at this point — the same pattern that would later manifest more severely as 60.2V (Nov 22) and 60.6V (Dec 24).
 
-The float voltage was also below the Fullriver specification for the entire factory-default period: ~53.3–53.8V measured vs. the specified 54.6V. Additionally, audit evidence suggests the system temperature profile was left on a "Warm" mode despite a cooler battery environment (reported site elevation ~7,000 ft), meaning the batteries needed *even more* voltage than 58.8V.
+The float voltage was also below the Fullriver specification for the entire factory-default period: ~53.3–53.8V measured vs. the specified 54.6V.
 
 **Engineering impact:**  
-Long-term operation below recommended absorb voltage/time and with incorrect temperature compensation can cause:
+Long-term operation 1.7–1.8V below recommended absorb voltage, with incorrect temperature compensation pushing voltage in the wrong direction, can cause:
 - chronic partial state-of-charge,
 - sulfation,
 - capacity loss,
 - increased unit-to-unit divergence.
 
-> Note: Charge voltage alone is not the whole story—absorb **time at voltage**, actual **battery temperature**, and **where voltage is sensed** are also critical. However, the telemetry shows the system never reached even the *setpoint* voltage on any factory-default sample date, indicating the absorb phase was being terminated prematurely — likely due to low current triggers or timer limits combined with the sub-spec voltage target.
+> Note: Charge voltage alone is not the whole story—absorb **time at voltage**, actual **battery temperature**, and **where voltage is sensed** are also critical. However, the telemetry shows the system never reached even the *setpoint* voltage on any factory-default sample date, because the "Warm" temperature compensation actively reduced the regulated voltage below the setpoint. Additionally, the absorb phase duration was short (25–42 minutes above 55V per day vs. the 2–4 hours typically recommended for AGM batteries), compounding the voltage deficit.
 
 ---
 
@@ -323,7 +335,7 @@ The battery bank is **imbalanced** and operating in a condition where:
 As of February 2026, **4 of 16 batteries (25%) have reached irreversible failure**, and the degradation front is actively widening. The bank has reached end-of-life at only **~13% of rated cycle throughput**.
 
 ### Most likely contributors (ranked)
-1. **Incorrect charge profile / temperature configuration** relative to the Fullriver datasheet — maintained at Schneider factory defaults for 3 years and 8 months (Aug 2021 through Apr 2025), confirmed by telemetry from nine sample dates showing the absorb voltage never reached even the 57.6V setpoint.
+1. **Incorrect charge profile / temperature configuration** relative to the Fullriver datasheet — maintained at Schneider factory defaults for 3 years and 8 months (Aug 2021 through Apr 2025), with "Warm" temperature compensation further reducing the actual regulated voltage to 1.7–1.8V below the manufacturer's specification. Confirmed by telemetry from nine sample dates showing the absorb voltage never reached even the 57.6V setpoint.
 2. **High-resistance connections and junction practices**, including splices and/or loose/poorly protected terminations.
 3. Secondary contributors may include unit variation, early battery defect(s), and thermal/environmental stresses.
 
