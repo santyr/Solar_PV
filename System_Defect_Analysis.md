@@ -1,5 +1,5 @@
 # System Defect & Battery Bank Health Analysis
-**Date:** January 3, 2026 (updated February 3, 2026)  
+**Date:** January 3, 2026 (updated February 9, 2026)  
 **System Age:** 4 Years, 6 Months (Installed Aug 2021)  
 **Status:** **END-OF-LIFE / REPLACEMENT REQUIRED**
 
@@ -10,12 +10,12 @@
 
 ## Executive Summary
 
-This report documents abnormal degradation and unsafe operating behavior in a **Fullriver DC400-6 AGM battery bank**. The evidence supports four key findings:
+This report documents abnormal degradation and unsafe operating behavior in a **Fullriver DC400-6 AGM battery bank**. The evidence supports five key findings:
 
-1. **Unit-to-unit imbalance exists** across the individual 6V batteries (measured spread **0.94 V** in Dec 2024, now **0.44 V** in Feb 2026), consistent with a bank that cannot be safely charged as a single system without **overcharging some units** while **undercharging others**.
-2. The system recorded a **DC Over Voltage (Event 49)** alarm on **Nov 21, 2025**, consistent with the inverter/charger approaching its **High Battery Cut Out** threshold during charging.
+1. **Unit-to-unit imbalance exists** across the individual 6V batteries (measured spread **0.94 V** in Dec 2025, now **0.44 V** in Feb 2026), consistent with a bank that cannot be safely charged as a single system without **overcharging some units** while **undercharging others**.
+2. The XW inverter event log recorded **three DC Over Voltage (Event 49) alarms** in December 2025 — on Dec 2 and twice on Dec 6 — after the owner raised the absorb voltage to the manufacturer-specified 58.8V. MPPT charger telemetry confirms sustained overvoltage events (60.2V on Nov 22, 60.6V on Dec 24) consistent with the inverter approaching its **High Battery Cut Out** threshold during charging.
 3. The installation exhibits **workmanship and safety defects** (splices/junction practices in high-current conductors, unguarded >50 V terminals, incomplete termination protection) that plausibly increase resistance and hazard.
-4. Commissioning/configuration appears **inconsistent with the manufacturer's recommended charge profile**, which can drive chronic partial state-of-charge and sulfation over time.
+4. Commissioning/configuration was **inconsistent with the manufacturer's recommended charge profile** from installation through April 2025 — a period of 3 years and 8 months. Telemetry from **nine sample dates** confirms the system ran on Schneider factory-default settings (57.6V absorb vs. the required 58.8V) throughout this period, driving chronic partial state-of-charge and sulfation.
 5. **As of February 2026, 4 of 16 batteries (25%) are effectively dead** (stuck at ≤6.49 V at float), up from 3 in December 2025. The degradation front is widening and the bank is not recoverable.
 
 ### Primary Determination (supported)
@@ -23,7 +23,7 @@ The battery bank has reached **end-of-life** due to irreversible sulfation and c
 
 ### Root Cause Attribution (supported, with one required verification test)
 The most likely contributors are:
-- **Incorrect commissioning/configuration** relative to the manufacturer's charge profile and temperature compensation, and
+- **Incorrect commissioning/configuration** relative to the manufacturer's charge profile and temperature compensation, maintained at factory defaults for 3 years 8 months, and
 - **connection/termination defects** (including splices and/or loose/high-resistance joints).
 
 A definitive assignment of causality to *connection resistance vs battery deterioration* requires one missing measurement: **voltage-drop testing under charge current** (see Section 8).
@@ -93,10 +93,27 @@ Mechanical splices and non-ideal junction practices may increase resistance and 
 ### Exhibit C: Improper Commissioning (Charge Profile / Temperature Profile)
 
 **Source files:**
-1. [Commissioning_Day_Zero.png](photos/Commissioning_Day_Zero.png) (Aug 22, 2021 – Day 1)
+1. [Commissioning_Day_One.png](photos/Commissioning_Day_One.png) (Aug 7, 2021 – first full day of operation)
 2. [Configuration_Audit_Nov2025.png](photos/Configuration_Audit_Nov2025.png) (Nov 2025 – discovery)
+3. MPPT charger telemetry CSV exports from nine dates: Aug 7/9/10 2021, Feb 1 2022, Feb 1 2023, Feb 1 2024, Feb 1 2025, Apr 11 2025, Apr 12 2025
 
-**Finding:** Telemetry indicates the system charging peaks at **~57.6 V** rather than the datasheet's **58.8 V** (at 25°C). Additionally, audit evidence suggests the system temperature profile was left on a "Warm" mode despite a cooler battery environment (reported).
+**Finding:** The system was left on Schneider XW+ factory-default charge settings at installation. Telemetry from **nine sample dates spanning 3 years and 8 months** (Aug 7, 2021 through Apr 11, 2025) confirms the absorb voltage **never once reached even the 57.6V factory-default setpoint** — let alone the Fullriver-specified 58.8V:
+
+| Date | Float (V) | Absorb Peak (V) | Minutes ≥ 57.6V |
+|------|-----------|-----------------|-----------------|
+| Aug 7, 2021 | 53.3 | 57.25 | **0** |
+| Aug 9, 2021 | 53.4 | 57.01 | **0** |
+| Aug 10, 2021 | 53.4 | 57.17 | **0** |
+| Feb 1, 2022 | 53.5 | 57.22 | **0** |
+| Feb 1, 2023 | 53.5 | 57.16 | **0** |
+| Feb 1, 2024 | 53.5 | 57.16 | **0** |
+| Feb 1, 2025 | 53.8 | 57.50 | **0** |
+| **Apr 11, 2025** | **53.8** | **57.48** | **0** |
+| **Apr 12, 2025** | **54.8** | **59.19** | **18** |
+
+On April 12, 2025 — 3 years and 8 months after installation — the owner first adjusted charge settings while building OpenHAB monitoring software and reading the Fullriver spec sheet. The float was raised from ~53.8V to ~54.8V (closer to the Fullriver-specified 54.6V), and a brief absorb test reached 59.19V. The fact that the bank overshot to 59.19V when ~58.8V was targeted indicates battery imbalance was **already present** at this point — the same pattern that would later manifest more severely as 60.2V (Nov 22) and 60.6V (Dec 24).
+
+The float voltage was also below the Fullriver specification for the entire factory-default period: ~53.3–53.8V measured vs. the specified 54.6V. Additionally, audit evidence suggests the system temperature profile was left on a "Warm" mode despite a cooler battery environment (reported site elevation ~7,000 ft), meaning the batteries needed *even more* voltage than 58.8V.
 
 **Engineering impact:**  
 Long-term operation below recommended absorb voltage/time and with incorrect temperature compensation can cause:
@@ -105,7 +122,7 @@ Long-term operation below recommended absorb voltage/time and with incorrect tem
 - capacity loss,
 - increased unit-to-unit divergence.
 
-> Note: Charge voltage alone is not the whole story—absorb **time at voltage**, actual **battery temperature**, and **where voltage is sensed** are also critical.
+> Note: Charge voltage alone is not the whole story—absorb **time at voltage**, actual **battery temperature**, and **where voltage is sensed** are also critical. However, the telemetry shows the system never reached even the *setpoint* voltage on any factory-default sample date, indicating the absorb phase was being terminated prematurely — likely due to low current triggers or timer limits combined with the sub-spec voltage target.
 
 ---
 
@@ -113,19 +130,29 @@ Long-term operation below recommended absorb voltage/time and with incorrect tem
 
 ### Exhibit D: System Alarms (Trigger Event)
 
-**Source file:** (InsightLocal Events screenshot; Nov 21, 2025)  
-**Finding:** **DC Over Voltage (Event 49)** recorded on **Nov 21, 2025**.
+**Source file:** InsightLocal Events > Historical (screenshot, Dec 27, 2025)
 
-**Additional Finding:** The historical log also shows three more DC Over Voltage (Event 49) alarms in December 2025:
+**Finding:** The XW inverter event log shows exactly **three DC Over Voltage (Event 49) alarms**, all occurring after the owner raised the absorb voltage to the Fullriver-specified 58.8V in late November 2025:
 
-- 2025-12-02 12:25:46 -0700
-- 2025-12-06 14:42:52 -0700
-- 2025-12-06 15:23:35 -0700
+| Date/Time | Event | ID |
+|-----------|-------|----|
+| 2025-12-02 12:25:46 -0700 | DC Over Voltage | 49 |
+| 2025-12-06 14:42:52 -0700 | DC Over Voltage | 49 |
+| 2025-12-06 15:23:35 -0700 | DC Over Voltage | 49 |
 
+**MPPT charger telemetry context:** The charger-side telemetry provides additional detail on the overvoltage behavior:
 
+| Date | Absorb Setting | Peak Voltage | Minutes ≥ 60V | Context |
+|------|---------------|-------------|---------------|---------|
+| Nov 21, 2025 | 57.6V (original) | 57.56V | 0 | Last day at factory-default absorb — normal operation |
+| Nov 22, 2025 | 58.8V (corrected) | **60.20V** | **50** | First day at corrected absorb — immediate overvoltage |
+| Dec 24, 2025 | 58.8V (corrected) | **60.59V** | **51** | Worsening — higher peak, longer duration |
+| Dec 25, 2025 | ~57.4V (lowered) | 57.45V | 0 | Owner lowered absorb as safety measure |
 
 **Interpretation:**  
-This alarm indicates battery voltage approached a cut-out threshold during charging. This is consistent with charging into an imbalanced bank, incorrect cut-out thresholds, temperature/profile mismatch, and/or sensing artifacts under current.
+The alarms and overvoltage events only occurred after the absorb voltage was raised to the manufacturer-specified value. This does **not** indicate the owner caused the damage — it indicates the bank was **already too damaged** to accept the correct charge voltage. The damaged (sulfated) batteries cannot absorb their share of the charge current, forcing voltage onto the healthier batteries in the same series string. The worsening trajectory (59.19V in Apr → 60.20V in Nov → 60.59V in Dec) confirms the imbalance is accelerating.
+
+The owner was forced to lower the absorb voltage back to ~57.4V to keep the system running safely — not because 57.6V is the correct setting, but because the bank is too far gone for the correct settings to work.
 
 ---
 
@@ -198,10 +225,14 @@ The system does not appear supply-starved. The failure mode is more consistent w
 
 **Source file:** [Safety_Mode_Response.png](photos/Safety_Mode_Response.png)
 
-**Finding:** Applying a higher absorb target (e.g., 58.8 V) immediately aggravates overvoltage behavior; lowering the cap (~57.6 V) yields smoother taper.
+**Finding:** Applying the manufacturer-specified absorb target (58.8V) causes the bank to spike to 60V+ within minutes; lowering the absorb to ~57.4V yields smoother operation but perpetuates the chronic undercharge that caused the damage.
 
 **Interpretation (defensible form):**  
-This behavior is **consistent with** charging into an imbalanced bank and/or voltage sensing/drop effects under current. It strongly indicates the bank cannot be safely driven to the datasheet absorb target **without first addressing imbalance and validating sensing/termination under measurement**. It does not, by itself, prove that wiring resistance is the sole cause.
+This behavior is **consistent with** charging into an imbalanced bank where sulfated batteries cannot accept charge current. The bank cannot be safely driven to the datasheet absorb target without overcharging the healthy batteries. This is characteristic of **irreversible sulfation damage** — the bank is trapped between two harmful states:
+- Correct voltage → overvoltage/venting on healthy units
+- Reduced voltage → continued undercharge/sulfation on all units
+
+The overvoltage trajectory is worsening over time: 59.19V (Apr 2025) → 60.20V (Nov 2025) → 60.59V (Dec 2025), indicating accelerating divergence between healthy and damaged batteries.
 
 ---
 
@@ -292,9 +323,12 @@ The battery bank is **imbalanced** and operating in a condition where:
 As of February 2026, **4 of 16 batteries (25%) have reached irreversible failure**, and the degradation front is actively widening. The bank has reached end-of-life at only **~13% of rated cycle throughput**.
 
 ### Most likely contributors (ranked)
-1. **Incorrect charge profile / temperature configuration** relative to the Fullriver datasheet.
+1. **Incorrect charge profile / temperature configuration** relative to the Fullriver datasheet — maintained at Schneider factory defaults for 3 years and 8 months (Aug 2021 through Apr 2025), confirmed by telemetry from nine sample dates showing the absorb voltage never reached even the 57.6V setpoint.
 2. **High-resistance connections and junction practices**, including splices and/or loose/poorly protected terminations.
 3. Secondary contributors may include unit variation, early battery defect(s), and thermal/environmental stresses.
+
+### Owner configuration changes (transparency note)
+The owner first adjusted charge settings on **April 12, 2025** — 3 years and 8 months after installation — while building OpenHAB monitoring software and reviewing the Fullriver specification sheet. The float voltage was raised from ~53.8V to ~54.8V (closer to the Fullriver-specified 54.6V), and a brief absorb test was conducted. In late November 2025, the owner raised the absorb voltage to the Fullriver-specified 58.8V, which triggered the overvoltage events documented in Exhibit D. These changes did not cause the battery damage — the damage was caused by 3+ years of chronic undercharging at factory-default settings. The owner's attempts to correct the voltage to the manufacturer's specification **revealed** the existing damage; they did not create it.
 
 ---
 
