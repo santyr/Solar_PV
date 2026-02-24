@@ -1,7 +1,8 @@
 # Project: Lithium Upgrade
 
-**Document Date:** January 21, 2026  
-**Site:** Off-Grid Earthship / NO GENERATOR
+**Document Date:** February 24, 2026  
+**Site:** Off-Grid Earthship / NO GENERATOR  
+**Revision:** Updated with Inverter Supply pricing
 
 ---
 
@@ -33,7 +34,7 @@ Unlike AGM batteries that require manual configuration of charge voltages, absor
 |-----------|-------------|-------|
 | **Width** | 48 inches | Allows two side-by-side stacks |
 | **Depth** | 36 inches | Single row of 19" rackmount units |
-| **Height** | **24 inches** | **CRITICAL LIMIT** - max 4 units stacked |
+| **Height** | **24 inches** | **CRITICAL LIMIT** - max 3 units per stack |
 
 ### Thermal Environment (Verified via 6-Month Telemetry)
 | Season | Temperature Range | LiFePO4 Compatibility |
@@ -76,17 +77,17 @@ Unlike AGM batteries that require manual configuration of charge voltages, absor
 
 ## 3. Hardware Bill of Materials
 
-### Core Components
-| Item | Part Number | Qty | Unit Price* | Extended | Link |
-|------|-------------|-----|-------------|----------|------|
-| AES Rackmount Battery Module | 48-48-5120 | 5 | $1,773 | $8,865 | [Spec Sheet](https://www.solarelectricsupply.com/media/sparsh/product_attachment/48-48-5120-specifications.pdf) |
-| Battery Module Combiner | 950-0049 | 1 | $1,194 | $1,194 | [Data Sheet](https://discoverenergysys.com/s4x_files/resources/808-0043-aes-rackmount-battery-module-combiner-data-sheet.pdf) |
-| LYNK II Communication Gateway | 950-0025 | 1 | $550 | $550 | [User Manual (XW+)](https://discoverbattery.com/s4x_files/resources/des-lynk-2-schneider-xw-insighthome-xanbus-manual.pdf) |
-| Quick Stack Rack Bracket Set | 950-0050 | 6 | $74 | $444 | [Manual](https://www.solar-electric.com/lib/wind-sun/discover-aes-rackmount-quick-stack-rack-manual-950-0050.pdf) |
+### Core Components (Inverter Supply Pricing - February 2026)
+| Item | Part Number | Qty | Unit Price | Extended |
+|------|-------------|-----|------------|----------|
+| AES Rackmount Battery Module | 48-48-5120 | 5 | $1,363.50 | **$6,817.50** |
+| Battery Module Combiner | 950-0049 | 1 | $1,147.50 | **$1,147.50** |
+| LYNK II Communication Gateway | 950-0025 | 1 | $432.30 | **$432.30** |
+| Quick Stack Rack Bracket Set | 950-0050 | 6 | $74.00 | **$444.00** |
 
-**Hardware Subtotal:** ~$11,053
+| | | | **Hardware Total:** | **$8,841.30** |
 
-*\*Prices from Inverter Supply, NAZ Solar Electric, Solar Electric Supply (Jan 2025). Call for current quotes.*
+*Source: InverterSupply.com shopping cart, February 2026*
 
 **Note:** The standard 48-48-5120 is appropriate for this installation—battery box telemetry confirms temperatures never drop below 60°F, well above the 32°F charging threshold. The heated variant (48-48-5120-H) is unnecessary.
 
@@ -114,32 +115,51 @@ To fit within the **24-inch height limit**, the system must be installed as two 
 │        (3 units)              (2 units + combiner)      │
 │                                                         │
 │   ←────── 17.3" ──────→       ←────── 17.3" ──────→     │
-│   ←──────────────── 34.6" total ─────────────────→      │
+│   ←──────────────────── 34.6" total ────────────────→   │
 └─────────────────────────────────────────────────────────┘
 ```
 
-### Dimensional Verification
+### Dimensional Verification (per Quick Stack Rack Manual 805-0056)
 | Measurement | Required | Actual | Status |
 |-------------|----------|--------|--------|
 | Stack Height (3 units + racks) | ≤24" | **21.15"** (3 × 7.05") | ✅ 2.85" clearance |
 | Stack Height (2 units + combiner + racks) | ≤24" | **21.15"** (3 × 7.05") | ✅ 2.85" clearance |
 | Total Width (2 stacks) | ≤48" | 34.6" (2 × 17.3") | ✅ |
 | Depth (single row) | ≤36" | 19.6" | ✅ |
+| Required clearance above | 1.75" (1U) | 2.85" available | ✅ |
 
-**Note:** Each Quick Stack Rack bracket set adds 1.75" to the 5.3" battery height, resulting in 7.05" per mounted unit. The combiner box has the same 3U form factor as the batteries.
+**Note:** Each Quick Stack Rack bracket set adds 1.75" to the 5.3" battery height, resulting in **7.05" per mounted unit** (179mm per manual spec). The combiner box has the same 3U form factor as the batteries.
 
 ### Interconnect Requirements
 | Connection | Cable Type | Length | Notes |
 |------------|-----------|--------|-------|
-| Left Stack → Combiner | 4 AWG DC (×3 pairs) | ~4-5 ft | Custom length with SurLok Plus |
-| Right Stack → Combiner | Included with combiner | Standard | Pre-made cables included |
-| Combiner → Inverter | **Existing 4/0 AWG** | ~6 ft | Reuse if continuous; replace if spliced |
-| LYNK II → Xanbus | CAT5e | ~10 ft | To InsightHome/SCP |
-| Inter-stack Data | CAT5e | ~3 ft | LYNK Port daisy chain |
+| Batteries → Combiner | 3 AWG DC w/ SurLok Plus | 1.5m (5 ft) | **Included with combiner** |
+| Combiner → Inverter | **Existing 4/0 AWG** | ~6 ft | Reuse existing cables |
+| LYNK II → Xanbus | CAT5e | ~10 ft | To InsightHome |
+| Battery-to-Battery Data | CAT5e | As needed | LYNK network daisy chain |
 
 ---
 
-## 5. System Integration: XW+ Closed-Loop Communication
+## 5. Existing Cable Assessment
+
+### Current Condition
+The existing 4/0 AWG cables between the battery box and inverter contain splices:
+- Split-bolt splice in free air (code violation)
+- Mechanical splice in junction box
+
+### Evaluation
+| Factor | Assessment |
+|--------|------------|
+| Electrical capacity | 4/0 AWG rated 230A; system max ~142A discharge | ✅ Adequate |
+| Heat under load | None observed during monitoring | ✅ Functional |
+| Cable length | ~6 ft run | ✅ Acceptable |
+| BMS communication | Separate data path via LYNK II | ✅ Not affected by DC cable splices |
+
+**Decision:** Reuse existing 4/0 AWG cables. While splices are not code-compliant, they are electrically functional and do not affect BMS communication. Future replacement can be considered if issues arise.
+
+---
+
+## 6. System Integration: XW+ Closed-Loop Communication
 
 ### Compatibility Confirmation
 | Component | Compatibility | Notes |
@@ -149,14 +169,10 @@ To fit within the **24-inch height limit**, the system must be installed as two 
 | InsightHome Gateway | ✅ Already installed | Existing Xanbus infrastructure |
 | Discover AES Rackmount | ✅ Supported | Via LYNK II Gateway |
 
-**Reference Documentation:**
-- Discover User Manual: *"LYNK II User Manual for Schneider XW+ with InsightHome"* (805-0052)
-- Confirms closed-loop communication is supported for XW+ (not just XW Pro)
-
 ### Required Configuration Pathway
 ```
 [AES Rackmount Batteries] 
-        │ (LYNK Port / AEbus)
+        │ (LYNK Port / AEbus - CAT5e daisy chain)
         ▼
    [LYNK II Gateway]
         │ (CAN → Xanbus via RJ45)
@@ -168,81 +184,77 @@ To fit within the **24-inch height limit**, the system must be installed as two 
 ```
 
 ### What Closed-Loop Provides
-| Function | Manual Config (Current) | Closed-Loop (Proposed) |
-|----------|------------------------|------------------------|
+| Function | Manual Config (Current AGM) | Closed-Loop (Proposed Lithium) |
+|----------|----------------------------|-------------------------------|
 | Charge Voltage | Manually set | **BMS-controlled** |
 | Absorption Time | Manually set | **BMS-controlled** |
 | Temperature Comp | Manually set | **Internal to BMS** |
 | SOC Reporting | Voltage-based estimate | **Actual SOC from BMS** |
 | Low Voltage Cutoff | Voltage trigger | **SOC trigger (more accurate)** |
 
----
-
-## 6. Cable Replacement Requirement
-
-**CRITICAL:** The existing 4/0 AWG cables between the battery box and inverter contain **multiple splices** that must be eliminated as part of this project.
-
-| Current Condition | Required Resolution |
-|-------------------|---------------------|
-| Split-bolt splice in free air (code violation) | Remove |
-| Mechanical splice in junction box | Remove |
-| High-resistance connections documented | Eliminate |
-
-**Recommendation:** Replace with continuous, unspliced 4/0 AWG runs from the new Combiner Box to the inverter. This ensures the new lithium system operates within specification with minimal voltage drop.
+### OpenHAB Integration
+Battery data flows through InsightHome and is accessible via **Modbus TCP**:
+- Enable Modbus TCP: Setup → Network → Modbus TCP settings
+- Port 502 for BMS data (SOC, voltage, current, temperature)
+- Port 503 for device data (XW+, MPPT)
+- Schneider Modbus maps available for register addresses
 
 ---
 
 ## 7. Budget Summary
 
-### Hardware
-| Category | Cost |
-|----------|------|
-| 5× AES Rackmount 48-48-5120 | $8,865 |
-| 1× Battery Module Combiner | $1,194 |
-| 1× LYNK II Gateway | $550 |
-| 6× Quick Stack Rack Brackets | $444 |
-| **Hardware Subtotal** | **~$11,053** |
+### Hardware (Inverter Supply - February 2026)
+| Item | Cost |
+|------|------|
+| 5× AES Rackmount 48-48-5120 | $6,817.50 |
+| 1× Battery Module Combiner | $1,147.50 |
+| 1× LYNK II Gateway | $432.30 |
+| 6× Quick Stack Rack Brackets | $444.00 |
+| **Hardware Subtotal** | **$8,841.30** |
 
-### Labor (Contractor)
-| Task | Estimated Cost |
-|------|----------------|
-| Removal of 2,000 lbs AGM batteries | $500 - $800 |
-| Installation of rack system & batteries | $800 - $1,200 |
-| DC wiring (custom interconnects + main run) | $600 - $1,000 |
-| Commissioning & testing | $300 - $500 |
-| **Labor Subtotal** | **$2,200 - $3,500** |
+### Installation Labor Estimates
+| Scenario | Labor Cost | Notes |
+|----------|------------|-------|
+| DIY | $0 | Owner performs all work |
+| Installer (owner supplies hardware) | $1,500 - $2,500 | 2-person crew, 6-9 hours |
+| Installer supplies everything | $2,500 - $4,000 | Includes equipment markup |
 
-### Project Total
-| Scenario | Total Cost |
-|----------|------------|
-| Low Estimate | $13,250 |
-| High Estimate | $14,550 |
-| **Target Budget** | **~$13,500 - $14,000** |
+### AGM Battery Recycling Credit
+| Item | Value |
+|------|-------|
+| 16× Fullriver DC400-6 (2,032 lbs) | **$300 - $500 credit** |
+| Lead-acid scrap rate | $0.15 - $0.25/lb |
 
-### Cost Comparison vs. AGM Replacement
-| Solution | Hardware Cost |
-|----------|---------------|
-| 16× Fullriver DC400-6 AGM | ~$11,200 - $12,800 |
-| 5× Discover AES Rackmount | **~$11,053** |
-| **Difference** | **Lithium is $150 - $1,750 LESS** |
+### Project Total Scenarios
+| Scenario | Hardware | Labor | AGM Credit | **Net Total** |
+|----------|----------|-------|------------|---------------|
+| **DIY Install** | $8,841 | $0 | -$400 | **~$8,440** |
+| **Installer (owner buys hardware)** | $8,841 | $2,000 | -$400 | **~$10,440** |
+| **Installer supplies all** | ~$10,500 | included | -$400 | **~$11,500 - $13,000** |
 
-** The Discover lithium solution costs the same or less than AGM replacement ** while providing superior capacity, longevity, and automatic charge management.
 ---
 
 ## 8. Comparison: AGM Replacement vs. Lithium Upgrade
 
-| Factor | AGM (16× Fullriver DC400-6) | Lithium (5× Discover AES Rackmount) |
-|--------|------------------------------|-----------------------------------|
-| Hardware Cost | ~$11,200 - $12,800 | **~$11,053** |
-| Usable Capacity | 415 Ah (20 kWh @ 50% DoD) | 500 Ah (25.6 kWh @ 100% DoD) |
+| Factor | AGM (16× Fullriver DC400-6) | Lithium (5× Discover AES) |
+|--------|------------------------------|---------------------------|
+| **Hardware Cost** | ~$11,200 - $12,800 | **$8,841** |
+| Usable Capacity | 415 Ah (20 kWh @ 50% DoD) | **500 Ah (25.6 kWh @ 100% DoD)** |
 | Charge Management | Manual configuration required | **Automatic via closed-loop BMS** |
 | SOC Monitoring | Voltage-based estimate | **True SOC from BMS** |
-| Cycle Life | 1,250 @ 50% DoD | 4,000+ @ 100% DoD |
-| Weight | 2,032 lbs | ~485 lbs |
+| Cycle Life | 1,250 @ 50% DoD | **4,000+ @ 100% DoD** |
+| Weight | 2,032 lbs | **~485 lbs** |
 | Warranty | 3-5 years typical | **10 years / 38 MWh throughput** |
 | Expected Lifespan | 5-7 years | **15-20 years** |
 
-**Bottom Line:** The Discover AES system costs **less** than AGM replacement while providing:
+### Cost Advantage Summary
+| Metric | Value |
+|--------|-------|
+| Lithium hardware cost | $8,841 |
+| AGM replacement cost | $11,200 - $12,800 |
+| **Lithium saves** | **$2,359 - $3,959** |
+
+**Bottom Line:** The Discover AES system costs **significantly less** than AGM replacement while providing:
 - 20% more usable amp-hours
 - 28% more usable energy (kWh)
 - 3-4× longer cycle life
@@ -253,11 +265,37 @@ To fit within the **24-inch height limit**, the system must be installed as two 
 
 ---
 
-## 9. Next Steps
+## 9. Installation Timeline (Summer Solstice Target)
 
-1. **Obtain formal quote** from Discover battery distributor (Solar Electric Supply, NAZ Solar, Inverters R Us)
-2. **Coordinate installation** with qualified installer
-3. **Dispose of AGM batteries** via recycler (Interstate Batteries, local scrap yard)
+### Pre-Install (Days -3 to -1)
+- [ ] All hardware received and inspected
+- [ ] Optional: Bench charge 2-3 modules using existing system
+- [ ] Verify cable reach, test-fit rack brackets
+- [ ] Confirm LYNK ACCESS software installed on laptop
+
+### Install Day
+| Time | Task |
+|------|------|
+| 6:30 AM | Open battery disconnect, isolate system |
+| 7:00-9:00 AM | Remove 16× AGM batteries (2,032 lbs) - two-person lift |
+| 9:00-10:30 AM | Assemble rack brackets, place 5 Discover modules |
+| 10:30-11:00 AM | Mount combiner, connect SurLok cables |
+| 11:00-11:30 AM | Connect existing 4/0 cables to combiner, close disconnect |
+| 11:30 AM-12:00 PM | Verify operation, begin solar charging |
+| 1:00-2:30 PM | Install LYNK II, connect to InsightHome, configure closed-loop |
+| 2:30-5:00 PM | Verify BMS communication, test OpenHAB/Modbus integration |
+| 8:30 PM | Sunset - system charged and operational |
+
+---
+
+## 10. Next Steps
+
+- [x] Obtain formal quote from distributor - **Complete (Inverter Supply $8,841.30)**
+- [ ] Place order with Inverter Supply
+- [ ] Coordinate installation date (target: summer solstice for maximum solar)
+- [ ] Arrange AGM battery recycling (Interstate Batteries, local scrap yard)
+- [ ] Download LYNK ACCESS software
+- [ ] Review LYNK II Schneider integration manual
 
 ---
 
@@ -279,10 +317,20 @@ To fit within the **24-inch height limit**, the system must be installed as two 
 | Warranty | 10 years / 38 MWh throughput |
 | Certifications | UL1973, UL9540-BESS |
 
-**Documentation:**
+### 5-Battery System Totals (per Quick Stack Rack Manual Table 4-1)
+| Specification | Value |
+|---------------|-------|
+| Total Capacity | 25 kWh usable |
+| Peak Current (3 sec) | 1,090A |
+| Max Continuous Discharge (1 hr) | 475A |
+| Max Continuous Charge (1 hr) | 475A |
+
+### Documentation Links
 - [AES Rackmount User Manual](https://discoverbattery.com/s4x_files/resources/des-aes-rackmount-user-manual.pdf)
 - [LYNK II Manual for Schneider XW+](https://discoverbattery.com/s4x_files/resources/des-lynk-2-schneider-xw-insighthome-xanbus-manual.pdf)
-- [Quick Stack Rack Manual](https://www.solar-electric.com/lib/wind-sun/discover-aes-rackmount-quick-stack-rack-manual-950-0050.pdf)
+- [Quick Stack Rack Manual (805-0056)](https://discoverenergysys.com/s4x_files/resources/805-0056-aes-rackmount-quick-stack-rack-manual.pdf)
+- [Battery Module Combiner Data Sheet](https://discoverenergysys.com/s4x_files/resources/808-0043-aes-rackmount-battery-module-combiner-data-sheet.pdf)
+- [Schneider Modbus Maps](https://solar.se.com/us/wp-content/uploads/sites/7/2022/02/Conext-Gateway-InsightHome-InsightFacility-Modbus-Maps.zip)
 
 ### Fullriver DC400-6 (Current System - For Reference)
 | Specification | Value |
@@ -297,5 +345,6 @@ To fit within the **24-inch height limit**, the system must be installed as two 
 
 ---
 
-*Document prepared: January 21, 2026*  
+*Document prepared: February 24, 2026*  
+*Previous revision: January 21, 2026*  
 *GitHub Repository: https://github.com/santyr/Solar_PV*
