@@ -2,7 +2,7 @@
 
 **Document Date:** February 24, 2026  
 **Site:** Off-Grid Earthship / NO GENERATOR  
-**Revision:** Updated with Inverter Supply pricing
+**Revision:** Updated for 4-module configuration with Inverter Supply pricing
 
 ---
 
@@ -21,7 +21,7 @@ Unlike AGM batteries that require manual configuration of charge voltages, absor
 | Usable Capacity | 50% DoD recommended | **100% DoD** |
 | Cycle Life | 1,250 @ 50% DoD | **4,000+ @ 100% DoD** |
 | State of Charge | Voltage-based estimation | **True SOC from BMS** |
-| Weight (equivalent capacity) | ~2,000 lbs | **~485 lbs** |
+| Weight (equivalent capacity) | ~2,000 lbs | **~388 lbs** |
 | Maintenance | Periodic torque checks, terminal cleaning | Virtually none |
 | Expected Lifespan | 5-7 years | **15-20 years** |
 
@@ -34,7 +34,7 @@ Unlike AGM batteries that require manual configuration of charge voltages, absor
 |-----------|-------------|-------|
 | **Width** | 48 inches | Allows two side-by-side stacks |
 | **Depth** | 36 inches | Single row of 19" rackmount units |
-| **Height** | **24 inches** | **CRITICAL LIMIT** - max 3 units per stack |
+| **Height** | **24 inches** | **CRITICAL LIMIT** |
 
 ### Thermal Environment (Verified via 6-Month Telemetry)
 | Season | Temperature Range | LiFePO4 Compatibility |
@@ -52,7 +52,7 @@ Unlike AGM batteries that require manual configuration of charge voltages, absor
 
 ---
 
-## 2. Capacity Analysis: Matching/Exceeding Current System
+## 2. Capacity Analysis
 
 ### Current System (AGM Bank)
 | Specification | Value |
@@ -62,30 +62,49 @@ Unlike AGM batteries that require manual configuration of charge voltages, absor
 | Nominal Capacity | 830 Ah |
 | Usable @ 50% DoD | **415 Ah / ~20 kWh** |
 
-### Proposed System (Discover AES Rackmount)
+### Proposed System (4× Discover AES Rackmount)
 | Specification | Value |
 |---------------|-------|
-| Configuration | 5 modules in parallel |
+| Configuration | 4 modules in parallel |
 | Nominal Voltage | 51.2V |
-| Nominal Capacity | 500 Ah |
-| Usable @ 100% DoD | **500 Ah / 25.6 kWh** |
-| Effective Upgrade | **+20% Ah capacity, +28% usable energy** |
+| Nominal Capacity | 400 Ah |
+| Usable @ 100% DoD | **400 Ah / 20.48 kWh** |
 
-**Capacity Verification:** 500 Ah lithium (100% DoD) exceeds 415 Ah usable from AGM (50% DoD) by **20%**, meeting the requirement to "slightly exceed current amp hours."
+**Capacity Match:** 400 Ah lithium (100% DoD) is functionally equivalent to 415 Ah usable from AGM (50% DoD), matching the original system design capacity within 4%.
+
+### Autonomy Analysis (No Generator)
+
+Based on actual InsightLocal consumption data (February 2026) and Coaldale, CO (81222) climate:
+
+| Metric | Value |
+|--------|-------|
+| Winter daily load (worst case) | ~4.9 kWh/day |
+| Days of autonomy (full capacity) | **4.2 days** |
+| Days of autonomy (20% reserve) | **3.4 days** |
+| Average daily DoD | **~10%** |
+
+**Climate context:**
+- 260 sunny days per year (US average: 205)
+- 6.4 peak sun hours/day (fixed tilt)
+- ~105 overcast days/year
+- Typical winter storm duration: 2–3 days, rare events 4–5 days
+- Even heavy overcast yields 10–25% of rated solar output
+
+**Conclusion:** 4 modules provide 3.4 days of true autonomy with safety reserve, comfortably covering typical 3-day winter storms and surviving rare 4–5 day events when factoring in partial solar production during overcast conditions.
 
 ---
 
 ## 3. Hardware Bill of Materials
 
-### Core Components (Inverter Supply Pricing - February 2026)
+### Core Components (Inverter Supply Pricing — February 2026)
 | Item | Part Number | Qty | Unit Price | Extended |
 |------|-------------|-----|------------|----------|
-| AES Rackmount Battery Module | 48-48-5120 | 5 | $1,363.50 | **$6,817.50** |
+| AES Rackmount Battery Module | 48-48-5120 | 4 | $1,363.50 | **$5,454.00** |
 | Battery Module Combiner | 950-0049 | 1 | $1,147.50 | **$1,147.50** |
 | LYNK II Communication Gateway | 950-0025 | 1 | $432.30 | **$432.30** |
-| Quick Stack Rack Bracket Set | 950-0050 | 6 | $74.00 | **$444.00** |
+| Quick Stack Rack Bracket Set | 950-0050 | 5 | $74.00 | **$370.00** |
 
-| | | | **Hardware Total:** | **$8,841.30** |
+| | | | **Hardware Total:** | **$7,403.80** |
 
 *Source: InverterSupply.com shopping cart, February 2026*
 
@@ -95,26 +114,27 @@ Unlike AGM batteries that require manual configuration of charge voltages, absor
 
 ## 4. Installation Layout: The "Split Stack"
 
-To fit within the **24-inch height limit**, the system must be installed as two side-by-side stacks on Quick Stack Racks.
+To fit within the **24-inch height limit**, the system is installed as two side-by-side stacks on Quick Stack Racks.
 
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                    BATTERY BOX (48" × 36" × 24")        │
 │                                                         │
-│   ┌─────────────────┐         ┌─────────────────┐       │
-│   │   Battery #3    │         │    Combiner     │       │  
-│   │   (5.12 kWh)    │         │    (950-0049)   │       │  ~21.15"
-│   ├─────────────────┤         ├─────────────────┤       │  (incl.
-│   │   Battery #2    │         │   Battery #5    │       │   rack
-│   │   (5.12 kWh)    │         │   (5.12 kWh)    │       │   brackets)
-│   ├─────────────────┤         ├─────────────────┤       │
-│   │   Battery #1    │         │   Battery #4    │       │
-│   │   (5.12 kWh)    │         │   (5.12 kWh)    │       │
-│   └─────────────────┘         └─────────────────┘       │
-│        LEFT STACK                 RIGHT STACK           │
-│        (3 units)              (2 units + combiner)      │
 │                                                         │
-│   ←────── 17.3" ──────→       ←────── 17.3" ──────→     │
+│                                    ┌─────────────────┐  │
+│                                    │    Combiner     │  │
+│   ┌─────────────────┐              │    (950-0049)   │  │
+│   │   Battery #2    │              ├─────────────────┤  │
+│   │   (5.12 kWh)    │              │   Battery #4    │  │
+│   ├─────────────────┤              │   (5.12 kWh)    │  │
+│   │   Battery #1    │              ├─────────────────┤  │
+│   │   (5.12 kWh)    │              │   Battery #3    │  │
+│   └─────────────────┘              └─────────────────┘  │
+│        LEFT STACK                      RIGHT STACK      │
+│     (2 units, 14.1")            (2 units + combiner,    │
+│                                       21.15")           │
+│                                                         │
+│   ←────── 17.3" ──────→        ←────── 17.3" ──────→   │
 │   ←──────────────────── 34.6" total ────────────────→   │
 └─────────────────────────────────────────────────────────┘
 ```
@@ -122,13 +142,12 @@ To fit within the **24-inch height limit**, the system must be installed as two 
 ### Dimensional Verification (per Quick Stack Rack Manual 805-0056)
 | Measurement | Required | Actual | Status |
 |-------------|----------|--------|--------|
-| Stack Height (3 units + racks) | ≤24" | **21.15"** (3 × 7.05") | ✅ 2.85" clearance |
-| Stack Height (2 units + combiner + racks) | ≤24" | **21.15"** (3 × 7.05") | ✅ 2.85" clearance |
+| Stack Height, Left (2 units + racks) | ≤24" | **14.1"** (2 × 7.05") | ✅ 9.9" clearance |
+| Stack Height, Right (2 units + combiner + racks) | ≤24" | **21.15"** (3 × 7.05") | ✅ 2.85" clearance |
 | Total Width (2 stacks) | ≤48" | 34.6" (2 × 17.3") | ✅ |
 | Depth (single row) | ≤36" | 19.6" | ✅ |
-| Required clearance above | 1.75" (1U) | 2.85" available | ✅ |
 
-**Note:** Each Quick Stack Rack bracket set adds 1.75" to the 5.3" battery height, resulting in **7.05" per mounted unit** (179mm per manual spec). The combiner box has the same 3U form factor as the batteries.
+**Note:** Each Quick Stack Rack bracket set adds 1.75" to the 5.3" battery height, resulting in **7.05" per mounted unit** (179mm per manual spec). The combiner box has the same 3U form factor as the batteries. The left stack has nearly 10" of clearance for wiring and airflow.
 
 ### Interconnect Requirements
 | Connection | Cable Type | Length | Notes |
@@ -201,16 +220,51 @@ Battery data flows through InsightHome and is accessible via **Modbus TCP**:
 
 ---
 
-## 7. Budget Summary
+## 7. Warranty & Longevity Analysis
 
-### Hardware (Inverter Supply - February 2026)
+### Discover AES Warranty Terms (per module)
+| Parameter | Limit |
+|-----------|-------|
+| Base Workmanship Warranty | 5 years |
+| Extended Warranty (with registration) | **10 years** |
+| Annual Energy Throughput Limit | 3,000 kWh/module |
+| Total Energy Throughput Limit | **30 MWh/module** |
+| End-of-Warranty Capacity | ≥60% of rated Wh |
+
+### Projected Usage Against Warranty Limits (4 Modules)
+
+Based on 4.55 years of actual InsightLocal data (commissioned 8/6/2021):
+
+| Metric | Value |
+|--------|-------|
+| Lifetime battery discharge | 3.4 MWh |
+| Lifetime battery charge | 4.6 MWh |
+| Average annual throughput | ~1.76 MWh/year |
+| Projected per-module annual throughput | ~380 kWh |
+| Per-module annual limit | 3,000 kWh |
+| **Utilization of annual limit** | **~13%** |
+| Years to reach 30 MWh per-module limit | ~79 years |
+| Equivalent full cycles per year | ~37 EFC |
+| Years to reach 4,000 cycle rating | ~108 years |
+
+### Life Expectancy
+
+Cycle life and throughput will not be the limiting factor at this usage level. The limiting factor will be **calendar aging of LiFePO4 cells**, typically 15–20 years. Battery box temperatures of 60–82°F are near-ideal for longevity.
+
+**Expected service life: 15–20 years**, limited by calendar aging rather than cycling.
+
+---
+
+## 8. Budget Summary
+
+### Hardware (Inverter Supply — February 2026)
 | Item | Cost |
 |------|------|
-| 5× AES Rackmount 48-48-5120 | $6,817.50 |
+| 4× AES Rackmount 48-48-5120 | $5,454.00 |
 | 1× Battery Module Combiner | $1,147.50 |
 | 1× LYNK II Gateway | $432.30 |
-| 6× Quick Stack Rack Brackets | $444.00 |
-| **Hardware Subtotal** | **$8,841.30** |
+| 5× Quick Stack Rack Brackets | $370.00 |
+| **Hardware Subtotal** | **$7,403.80** |
 
 ### Installation Labor Estimates
 | Scenario | Labor Cost | Notes |
@@ -228,48 +282,48 @@ Battery data flows through InsightHome and is accessible via **Modbus TCP**:
 ### Project Total Scenarios
 | Scenario | Hardware | Labor | AGM Credit | **Net Total** |
 |----------|----------|-------|------------|---------------|
-| **DIY Install** | $8,841 | $0 | -$400 | **~$8,440** |
-| **Installer (owner buys hardware)** | $8,841 | $2,000 | -$400 | **~$10,440** |
-| **Installer supplies all** | ~$10,500 | included | -$400 | **~$11,500 - $13,000** |
+| **DIY Install** | $7,404 | $0 | -$400 | **~$7,004** |
+| **Installer (owner buys hardware)** | $7,404 | $2,000 | -$400 | **~$9,004** |
+| **Installer supplies all** | ~$9,000 | included | -$400 | **~$9,500 - $11,000** |
 
 ---
 
-## 8. Comparison: AGM Replacement vs. Lithium Upgrade
+## 9. Comparison: AGM Replacement vs. Lithium Upgrade
 
-| Factor | AGM (16× Fullriver DC400-6) | Lithium (5× Discover AES) |
+| Factor | AGM (16× Fullriver DC400-6) | Lithium (4× Discover AES) |
 |--------|------------------------------|---------------------------|
-| **Hardware Cost** | ~$11,200 - $12,800 | **$8,841** |
-| Usable Capacity | 415 Ah (20 kWh @ 50% DoD) | **500 Ah (25.6 kWh @ 100% DoD)** |
+| **Hardware Cost** | ~$11,200 - $12,800 | **$7,404** |
+| Usable Capacity | 415 Ah (20 kWh @ 50% DoD) | **400 Ah (20.48 kWh @ 100% DoD)** |
 | Charge Management | Manual configuration required | **Automatic via closed-loop BMS** |
 | SOC Monitoring | Voltage-based estimate | **True SOC from BMS** |
 | Cycle Life | 1,250 @ 50% DoD | **4,000+ @ 100% DoD** |
-| Weight | 2,032 lbs | **~485 lbs** |
-| Warranty | 3-5 years typical | **10 years / 38 MWh throughput** |
+| Weight | 2,032 lbs | **~388 lbs** |
+| Warranty | 3-5 years typical | **10 years / 30 MWh per module** |
 | Expected Lifespan | 5-7 years | **15-20 years** |
 
 ### Cost Advantage Summary
 | Metric | Value |
 |--------|-------|
-| Lithium hardware cost | $8,841 |
+| Lithium hardware cost | $7,404 |
 | AGM replacement cost | $11,200 - $12,800 |
-| **Lithium saves** | **$2,359 - $3,959** |
+| **Lithium saves** | **$3,796 - $5,396** |
 
-**Bottom Line:** The Discover AES system costs **significantly less** than AGM replacement while providing:
-- 20% more usable amp-hours
-- 28% more usable energy (kWh)
+**Bottom Line:** The 4-module Discover AES system costs **roughly half** the price of AGM replacement while providing:
+- Equivalent usable capacity (~20 kWh)
+- 3.4 days of autonomy (covers typical winter storms without generator)
 - 3-4× longer cycle life
 - Automatic charge management via closed-loop communication
-- 76% weight reduction
+- 81% weight reduction
 - Longer warranty with throughput guarantee
 - True state-of-charge monitoring
 
 ---
 
-## 9. Installation Timeline (Summer Solstice Target)
+## 10. Installation Timeline (Summer Solstice Target)
 
 ### Pre-Install (Days -3 to -1)
 - [ ] All hardware received and inspected
-- [ ] Optional: Bench charge 2-3 modules using existing system
+- [ ] Optional: Bench charge 1-2 modules using existing system
 - [ ] Verify cable reach, test-fit rack brackets
 - [ ] Confirm LYNK ACCESS software installed on laptop
 
@@ -277,25 +331,26 @@ Battery data flows through InsightHome and is accessible via **Modbus TCP**:
 | Time | Task |
 |------|------|
 | 6:30 AM | Open battery disconnect, isolate system |
-| 7:00-9:00 AM | Remove 16× AGM batteries (2,032 lbs) - two-person lift |
-| 9:00-10:30 AM | Assemble rack brackets, place 5 Discover modules |
-| 10:30-11:00 AM | Mount combiner, connect SurLok cables |
-| 11:00-11:30 AM | Connect existing 4/0 cables to combiner, close disconnect |
-| 11:30 AM-12:00 PM | Verify operation, begin solar charging |
-| 1:00-2:30 PM | Install LYNK II, connect to InsightHome, configure closed-loop |
-| 2:30-5:00 PM | Verify BMS communication, test OpenHAB/Modbus integration |
-| 8:30 PM | Sunset - system charged and operational |
+| 7:00-9:00 AM | Remove 16× AGM batteries (2,032 lbs) — two-person lift |
+| 9:00-10:00 AM | Assemble rack brackets, place 4 Discover modules (2+2 stacks) |
+| 10:00-10:30 AM | Mount combiner on right stack, connect SurLok cables |
+| 10:30-11:00 AM | Connect existing 4/0 cables to combiner, close disconnect |
+| 11:00-11:30 AM | Verify operation, begin solar charging |
+| 11:30 AM-1:00 PM | Install LYNK II, connect to InsightHome, configure closed-loop |
+| 1:00-3:00 PM | Verify BMS communication, test OpenHAB/Modbus integration |
+| 8:30 PM | Sunset — system charged and operational |
 
 ---
 
-## 10. Next Steps
+## 11. Next Steps
 
-- [x] Obtain formal quote from distributor - **Complete (Inverter Supply $8,841.30)**
+- [x] Obtain formal quote from distributor — **Complete (Inverter Supply $7,403.80)**
 - [ ] Place order with Inverter Supply
+- [ ] Register warranty within 30 days of installation for 10-year extended coverage
 - [ ] Coordinate installation date (target: summer solstice for maximum solar)
 - [ ] Arrange AGM battery recycling (Interstate Batteries, local scrap yard)
 - [ ] Download LYNK ACCESS software
-- [ ] Review LYNK II Schneider integration manual
+- [ ] Review LYNK II Schneider integration manual (805-0052)
 
 ---
 
@@ -314,16 +369,17 @@ Battery data flows through InsightHome and is accessible via **Modbus TCP**:
 | Operating Temp (Discharge) | -4°F to 131°F |
 | Operating Temp (Charge) | 32°F to 113°F |
 | Cycle Life | 4,000+ @ 100% DoD |
-| Warranty | 10 years / 38 MWh throughput |
+| Warranty | 10 years / 30 MWh throughput (per module, with registration) |
 | Certifications | UL1973, UL9540-BESS |
 
-### 5-Battery System Totals (per Quick Stack Rack Manual Table 4-1)
+### 4-Battery System Totals
 | Specification | Value |
 |---------------|-------|
-| Total Capacity | 25 kWh usable |
-| Peak Current (3 sec) | 1,090A |
-| Max Continuous Discharge (1 hr) | 475A |
-| Max Continuous Charge (1 hr) | 475A |
+| Total Capacity | 20.48 kWh usable |
+| Total Amp-Hours | 400 Ah |
+| Peak Current (3 sec) | 872A |
+| Max Continuous Discharge (1 hr) | 380A |
+| Max Continuous Charge (1 hr) | 380A |
 
 ### Documentation Links
 - [AES Rackmount User Manual](https://discoverbattery.com/s4x_files/resources/des-aes-rackmount-user-manual.pdf)
@@ -332,7 +388,7 @@ Battery data flows through InsightHome and is accessible via **Modbus TCP**:
 - [Battery Module Combiner Data Sheet](https://discoverenergysys.com/s4x_files/resources/808-0043-aes-rackmount-battery-module-combiner-data-sheet.pdf)
 - [Schneider Modbus Maps](https://solar.se.com/us/wp-content/uploads/sites/7/2022/02/Conext-Gateway-InsightHome-InsightFacility-Modbus-Maps.zip)
 
-### Fullriver DC400-6 (Current System - For Reference)
+### Fullriver DC400-6 (Current System — For Reference)
 | Specification | Value |
 |---------------|-------|
 | Nominal Voltage | 6V |
