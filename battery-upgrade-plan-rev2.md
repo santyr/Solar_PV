@@ -2,6 +2,8 @@
 ## Discover AES Rackmount + Closed-Loop via LYNK II
 ### M8 (5/16") Confirmed — Fullriver DC400-6 terminals are M8 per datasheet
 
+**Companion document:** [LYNK II Deployment Guide](lynk2-deployment-guide.md) — step-by-step software configuration for LYNK II, XW+, and MPPT 60-150 (including all InsightLocal settings, current-vs-target values, and comms-loss fallback configuration).
+
 ---
 
 ## System Summary
@@ -11,8 +13,8 @@
 | Batteries | 16× Fullriver DC400-6 (6V) | 4× Discover AES 48-48-5120 |
 | Configuration | 8S2P | 4P (each module is 48V) |
 | Nominal Voltage | 48V | 51.2V |
-| Total Capacity | 400 Ah / 19.2 kWh | 400 Ah / 20.48 kWh |
-| Usable Capacity | ~9.6 kWh (50% DoD) | ~20.48 kWh (100% DoD) |
+| Total Capacity | 830 Ah / 39.8 kWh | 400 Ah / 20.48 kWh |
+| Usable Capacity | ~415 Ah / ~20 kWh (50% DoD) | ~20.48 kWh (100% DoD) |
 | Weight | 2,032 lbs | 388 lbs |
 | Days of Autonomy | ~2 days | 3.4 days (20% reserve) |
 | Communication | None (open-loop) | Closed-loop via LYNK II → Xanbus |
@@ -248,8 +250,8 @@ The Lynx Power In has **4 front M8 studs** plus **1 side M8 busbar tab** per pol
 | 1:00–1:15 PM | Connect AEbus from Battery #4 to LYNK II | 15 min |
 | 1:15–1:30 PM | Install AEbus terminator on Battery #1 | 15 min |
 | 1:30–2:00 PM | Connect LYNK II CAN Out to Xanbus network (RJ45 patch cable) | 30 min |
-| 2:00–3:00 PM | Configure LYNK II via USB + LYNK ACCESS: select Xanbus protocol, save | 1 hr |
-| 3:00–3:30 PM | Verify on InsightLocal: Battery Bank = 400 Ah, SOC reporting active | 30 min |
+| 2:00–3:00 PM | Configure LYNK II via USB + LYNK ACCESS: select Xanbus protocol, save (see [Deployment Guide](lynk2-deployment-guide.md)) | 1 hr |
+| 3:00–3:30 PM | Verify on InsightLocal: Battery Bank = 400 Ah, SOC reporting active. Configure XW+ and MPPT settings per [Deployment Guide](lynk2-deployment-guide.md) | 30 min |
 | 3:30–4:00 PM | Apply anti-oxidant to all connections, tidy cable management | 30 min |
 | 8:30 PM | Sunset — system fully charged and operational | — |
 
@@ -310,11 +312,11 @@ Coaldale, CO receives 260 sunny days/year and 6.4 peak sun hours/day. The 3.4-da
 
 ## Open Items — Verify Before Ordering
 
-1. **☐ VERIFY: Inverter cable lug hole = M8 (5/16")**
-   Status: Fullriver DC400-6 datasheet confirms M8 terminal studs. Lugs currently on those studs are almost certainly M8. Physical verification recommended tomorrow with breaker off.
+1. **✅ RESOLVED: Inverter cable lug hole = M8 (5/16")**
+   Fullriver DC400-6 datasheet confirms M8 terminal studs. Existing lugs are M8.
 
-2. **☐ VERIFY: No Conext Battery Monitor on Xanbus network**
-   Check InsightHome device list. Must be removed before LYNK II installation.
+2. **✅ RESOLVED: No Conext Battery Monitor on Xanbus network**
+   Confirmed via InsightHome device list — not present.
 
 3. **☐ VERIFY: LYNK II current pricing at Inverter Supply**
    Range seen: $328–$432. Budget at ~$400.
@@ -331,13 +333,13 @@ Coaldale, CO receives 260 sunny days/year and 6.4 peak sun hours/day. The 3.4-da
 
 | Document | Location / Link |
 |----------|----------------|
-| Original BOM | /mnt/user-data/uploads/docs/battery-bom-feb-2026.md |
-| Battery box photo | /mnt/user-data/uploads/images/fullriver-battery-box.jpg |
-| Lynx Distributor Manual | /mnt/user-data/uploads/docs/lynx-distributor-manual.pdf |
+| LYNK II Deployment Guide | [lynk2-deployment-guide.md](lynk2-deployment-guide.md) |
 | LYNK II + XW+ Manual | [805-0052 REV B](https://discoverbattery.com/s4x_files/resources/des-lynk-2-schneider-xw-insighthome-xanbus-manual.pdf) |
 | Fullriver DC400-6 Datasheet | [fullriver.com](http://www.fullriver.com/upload/article/20220723/62db951348bfe.pdf) |
 | Quick Stack Rack Manual | 805-0056 |
 | Schneider Modbus Maps | [solar.se.com](https://solar.se.com/us/wp-content/uploads/sites/7/2022/02/Conext-Gateway-InsightHome-InsightFacility-Modbus-Maps.zip) |
+| AES Rackmount User Manual | [discoverbattery.com](https://discoverbattery.com/s4x_files/resources/des-aes-rackmount-user-manual.pdf) |
+| System Defect Analysis | [System_Defect_Analysis.md](System_Defect_Analysis.md) |
 
 ### Supplier Links
 
@@ -352,4 +354,4 @@ Coaldale, CO receives 260 sunny days/year and 6.4 peak sun hours/day. The 3.4-da
 
 ---
 
-*Document generated February 27, 2026. Prices subject to change. Verify all pricing at time of order.*
+*Document generated February 27, 2026 (Rev 2.1). Prices subject to change. Verify all pricing at time of order.*
