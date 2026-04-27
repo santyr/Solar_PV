@@ -207,7 +207,7 @@ The Lynx Power In has **4 front M8 studs** plus **1 side M8 busbar tab** per pol
 | AGM recycling credit (2,032 lbs) | −$300 to −$500 |
 | **Estimated net cost (remaining)** | **~$5,930 to $6,130** |
 
-> **Cost-share note:** Per the warranty dispute resolution framework with Colorado Mountain Solar (CMS), CMS reimburses 86% of fair-market hardware cost, with Sat covering ~14% (reflecting actual measured Fullriver bank usage of 88/625 EFC). At ~$6,432 remaining hardware total: CMS share ~$5,531, Sat share ~$893, plus CMS providing labor.
+> **Cost-share note:** Per the warranty dispute resolution framework with Colorado Mountain Solar (CMS), CMS reimburses 86% of fair-market hardware cost, with Shane covering ~14% (reflecting actual measured Fullriver bank usage of 88/625 EFC). At ~$6,432 remaining hardware total: CMS share ~$5,531, Shane share ~$893, plus CMS providing labor.
 
 ---
 
