@@ -149,7 +149,7 @@ The Lynx Power In has **4 front M8 studs** plus **1 side M8 busbar tab** per pol
 | 3 | LYNK II Comm Gateway | 950-0025 | 1 | ~$432.30 | ~$432.30 | TBD |
 | 4 | Quick Stack Rack | 950-0050 | 4 | ~$74.00 | ~$296.00 | TBD |
 
-> **Note on cable kits (item 2):** Each Discover 950-0055 cable set provides 2 positive + 2 negative cables (one set serves 2 batteries). With 2 sets already on hand and 4 batteries total, we need 2 additional sets — but verify cable set contents at order time. If a single set already covers all 4 batteries' needs, this item may not be needed.
+> **Note on cable kits (item 2):** Each Discover 950-0055 cable set provides 2 positive + 2 negative cables (one set serves 2 batteries). With 2 sets already on hand and 4 batteries total, we need 2 additional sets — but verify cable set contents at order time. If a single set already covers all 4 batteries' needs, this item may not be needed.  Existing set (6')  has M6 Lugs which will need to be replaced or drilled to accomodate M8 bolts on the busbar.
 
 ### Configuration
 
@@ -200,7 +200,7 @@ The Lynx Power In has **4 front M8 studs** plus **1 side M8 busbar tab** per pol
 | AGM recycling credit (2,032 lbs) | −$300 to −$500 |
 | **Estimated net cost (remaining)** | **~$5,930 to $6,130** |
 
-> **Cost-share note:** Per the warranty dispute resolution framework with Colorado Mountain Solar (CMS), CMS reimburses 86% of fair-market hardware cost, with Sat covering ~14% (reflecting actual measured Fullriver bank usage of 88/625 EFC). At ~$6,432 remaining hardware total: CMS share ~$5,531, Sat share ~$893, plus CMS providing labor.
+> **Cost-share note:** Per the warranty dispute resolution framework with Colorado Mountain Solar (CMS), CMS reimburses 86% of fair-market hardware cost, with Shane covering ~14% (reflecting actual measured Fullriver bank usage of 88/625 EFC). At ~$6,432 remaining hardware total: CMS share ~$5,531, Shane share ~$893, plus CMS providing labor.
 
 ---
 
