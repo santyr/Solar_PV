@@ -232,8 +232,6 @@ The Lynx Power In has **4 front M8 studs** plus **1 side M8 busbar tab** per pol
 - [ ] Verify M8 bolt + inverter lug + washers + nut fits side tab properly
 - [ ] Install LYNK ACCESS software on Windows laptop/VM
 - [ ] Download Discover manuals 805-0033 (LYNK II) and 805-0043 REVD (AES Rackmount)
-- [ ] Confirm Conext Battery Monitor NOT present on Xanbus (remove if found)
-- [ ] Coordinate AGM recycling pickup
 - [ ] Measure Xanbus cable run: LYNK II location → nearest Xanbus jack
 
 ### Install Day
