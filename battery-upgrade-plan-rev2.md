@@ -126,8 +126,6 @@ The Lynx Power In has **4 front M8 studs** plus **1 side M8 busbar tab** per pol
 - Manual intervention required to restart
 - Mitigation: wired CAN bus — failures are rare
 
-**Critical:** Conext Battery Monitor is INCOMPATIBLE with LYNK II — must be removed from Xanbus if present.
-
 ---
 
 ## Complete Bill of Materials
