@@ -126,6 +126,8 @@ The Lynx Power In has **4 front M8 studs** plus **1 side M8 busbar tab** per pol
 - Manual intervention required to restart
 - Mitigation: wired CAN bus — failures are rare
 
+**Critical:** Conext Battery Monitor is INCOMPATIBLE with LYNK II — must be removed from Xanbus if present.
+
 ---
 
 ## Complete Bill of Materials
@@ -134,7 +136,7 @@ The Lynx Power In has **4 front M8 studs** plus **1 side M8 busbar tab** per pol
 
 | # | Item | Part Number | Qty | Status |
 |---|------|-------------|-----|--------|
-| A1 | Discover Battery Cable Set (3 AWG, 2-Pos/Neg) | 950-0055 | 2 sets | ✅ On hand |
+| A1 | Discover Battery Cable Set (3 AWG, 2-Pos/Neg, M6 lugs) | 950-0055 | 2 sets | ✅ On hand — M6 lugs need conversion to M8 |
 | A2 | Victron Lynx Power In M8 | LYN020102000 | 1 | ✅ On hand |
 | A3 | LYNK Network / Xanbus CAT5e patch cables | 1–2 ft | 5+ | ✅ On hand |
 
@@ -147,7 +149,14 @@ The Lynx Power In has **4 front M8 studs** plus **1 side M8 busbar tab** per pol
 | 3 | LYNK II Comm Gateway | 950-0025 | 1 | ~$432.30 | ~$432.30 | TBD |
 | 4 | Quick Stack Rack | 950-0050 | 4 | ~$74.00 | ~$296.00 | TBD |
 
-> **Note on cable kits (item 2):** Each Discover 950-0055 cable set provides 2 positive + 2 negative cables (one set serves 2 batteries). With 2 sets already on hand and 4 batteries total, we need 2 additional sets — but verify cable set contents at order time. If a single set already covers all 4 batteries' needs, this item may not be needed.  Existing set (6')  has M6 Lugs which will need to be replaced or drilled to accomodate M8 bolts on the busbar.
+> **Note on cable kits (item 2):** Each Discover 950-0055 cable set provides 2 positive + 2 negative cables (one set serves 2 batteries). With 2 sets already on hand and 4 batteries total, we may not need additional sets — verify cable set contents and lug compatibility at order time.
+
+> **⚠️ Note on existing cable lugs:** The 2× 950-0055 sets already on hand (6' length) ship with **M6 ring lugs**, but the Victron Lynx Power In has **M8 studs**. Three options to address:
+> 1. **Drill out the M6 lugs to M8** (simplest; slightly weakens the lug but acceptable for this current rating)
+> 2. **Re-terminate with M8 lugs** (preferred; requires hydraulic crimper and new lugs)
+> 3. **Order new 950-0055 sets with M8 lugs** (verify Inverter Supply stock and lug spec at time of order)
+>
+> Decision pending. If CMS labor includes a crimper on-site, option 2 is cleanest.
 
 ### Configuration
 
@@ -198,7 +207,7 @@ The Lynx Power In has **4 front M8 studs** plus **1 side M8 busbar tab** per pol
 | AGM recycling credit (2,032 lbs) | −$300 to −$500 |
 | **Estimated net cost (remaining)** | **~$5,930 to $6,130** |
 
-> **Cost-share note:** Per the warranty dispute resolution framework with Colorado Mountain Solar (CMS), CMS reimburses 86% of fair-market hardware cost, with Shane covering ~14% (reflecting actual measured Fullriver bank usage of 88/625 EFC). At ~$6,432 remaining hardware total: CMS share ~$5,531, Shane share ~$893, plus CMS providing labor.
+> **Cost-share note:** Per the warranty dispute resolution framework with Colorado Mountain Solar (CMS), CMS reimburses 86% of fair-market hardware cost, with Sat covering ~14% (reflecting actual measured Fullriver bank usage of 88/625 EFC). At ~$6,432 remaining hardware total: CMS share ~$5,531, Sat share ~$893, plus CMS providing labor.
 
 ---
 
@@ -209,13 +218,13 @@ The Lynx Power In has **4 front M8 studs** plus **1 side M8 busbar tab** per pol
 - Multimeter (voltage verification)
 - Phillips screwdriver (rack assembly, Lynx mounting)
 - Windows 10/11 64-bit laptop or VM (LYNK ACCESS 2.5 or later software)
+- **Drill with step bit OR hydraulic crimper + M8 lugs** (to address M6 → M8 lug conversion on existing cable sets — see note above)
 
 ### No Special Tools Needed
 
-- No hydraulic crimper — all cables come pre-terminated
-- No drilling — all holes pre-made
+- No drilling — all rack/battery holes pre-made (minor lug drilling may be required, see above)
 - No soldering
-- Assembly is entirely bolt-on connections with standard wrenches
+- Assembly is primarily bolt-on connections with standard wrenches
 
 ---
 
@@ -232,6 +241,8 @@ The Lynx Power In has **4 front M8 studs** plus **1 side M8 busbar tab** per pol
 - [ ] Verify M8 bolt + inverter lug + washers + nut fits side tab properly
 - [ ] Install LYNK ACCESS software on Windows laptop/VM
 - [ ] Download Discover manuals 805-0033 (LYNK II) and 805-0043 REVD (AES Rackmount)
+- [ ] Confirm Conext Battery Monitor NOT present on Xanbus (remove if found)
+- [ ] Coordinate AGM recycling pickup
 - [ ] Measure Xanbus cable run: LYNK II location → nearest Xanbus jack
 
 ### Install Day
@@ -328,15 +339,18 @@ Coaldale, CO receives 260 sunny days/year and 6.4 peak sun hours/day. The 3.4-da
    Per Discover 805-0033, both LYNK II and AES Rackmount batteries are internally terminated. Removed from BOM.
 
 4. **☐ VERIFY: Jonsson Tech availability and price hold**
-   Contact pending. Confirm 4 modules in stock at $1,350 each plus shipping.
+   Contact pending. Confirm 4 modules in stock at $1,350 each plus shipping to 81222.
 
-5. **☐ VERIFY: 950-0055 cable kit contents**
-   Each kit contains 2 positive + 2 negative cables (covers 2 batteries). Confirm at order time whether 2 sets already on hand cover all 4 batteries, or whether additional sets needed.
+5. **☐ DECIDE: M6 → M8 lug conversion approach**
+   The 2× 950-0055 cable sets already on hand have M6 ring lugs; the Victron Lynx Power In has M8 studs. Choose between drilling existing lugs to M8, re-terminating with M8 lugs (requires crimper), or ordering new M8-terminated sets. Coordinate with CMS on tooling availability.
 
-6. **☐ VERIFY: Lynx Power In M8 side tab bolt clearance**
+6. **☐ VERIFY: 950-0055 cable kit contents and lug spec**
+   Each kit contains 2 positive + 2 negative cables (covers 2 batteries). If purchasing additional sets, confirm M8 lug option is available rather than M6.
+
+7. **☐ VERIFY: Lynx Power In M8 side tab bolt clearance**
    Confirm on receipt that M8 bolt passes through side busbar hole cleanly and lug + washers + nut fit without interference from housing.
 
-7. **☐ MEASURE: Xanbus cable length**
+8. **☐ MEASURE: Xanbus cable length**
    Distance from planned LYNK II location to nearest Xanbus RJ45 jack, to order correct length CAT5e patch cable.
 
 ---
