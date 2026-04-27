@@ -1,8 +1,8 @@
-# Earthship Battery Upgrade — Project Plan (Rev 2)
-## Discover AES Rackmount + Closed-Loop via LYNK II
-### M8 (5/16") Confirmed — Fullriver DC400-6 terminals are M8 per datasheet
+# Earthship Battery Upgrade — Project Plan (Rev 3)
 
-**Companion document:** [LYNK II Deployment Guide](lynk2-deployment-guide.md) — step-by-step software configuration for LYNK II, XW+, and MPPT 60-150 (including all InsightLocal settings, current-vs-target values, and comms-loss fallback configuration).
+## Discover AES Rackmount + Closed-Loop via LYNK II
+
+**Companion document:** [LYNK II Deployment Guide](lynk2-deployment-guide.md) — step-by-step software configuration for LYNK II, XW Pro 6848, and MPPT 60-150 (including all InsightLocal settings, current-vs-target values, and comms-loss fallback configuration).
 
 ---
 
@@ -11,7 +11,7 @@
 | Parameter | Current (AGM) | Upgrade (LiFePO4) |
 |-----------|---------------|-------------------|
 | Batteries | 16× Fullriver DC400-6 (6V) | 4× Discover AES 48-48-5120 |
-| Configuration | 8S2P | 4P (each module is 48V) |
+| Configuration | 8S2P | 4P (each module is 51.2V) |
 | Nominal Voltage | 48V | 51.2V |
 | Total Capacity | 830 Ah / 39.8 kWh | 400 Ah / 20.48 kWh |
 | Usable Capacity | ~415 Ah / ~20 kWh (50% DoD) | ~20.48 kWh (100% DoD) |
@@ -19,7 +19,7 @@
 | Days of Autonomy | ~2 days | 3.4 days (20% reserve) |
 | Communication | None (open-loop) | Closed-loop via LYNK II → Xanbus |
 
-**Inverter:** Schneider XW6848 + MPPT 60-150 + InsightHome (Xanbus network)
+**Inverter:** Schneider XW Pro 6848 NA 120/240 + MPPT 60-150 + InsightHome (Xanbus network)
 **Location:** Earthship, Coaldale, CO 81222 (off-grid, no generator)
 **Battery Box:** 48"W × 36"D × 24"H
 **Temperature Range:** 60–82°F year-round (non-heated batteries appropriate)
@@ -30,31 +30,31 @@
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
-│                BATTERY BOX (48"W × 36"D × 24"H)                 │
+│                BATTERY BOX (48"W × 36"D × 24"H)                  │
 │                                                                  │
 │                                                    RIGHT WALL    │
-│                                                   ┌──────────┐  │
-│   ┌─────────────────┐    ┌─────────────────┐      │  LYNX    │  │
-│   │   Battery #2    │    │   Battery #4    │      │  POWER   │  │
-│   │   (5.12 kWh)    │    │   (5.12 kWh)    │      │   IN     │  │
-│   ├─────────────────┤    ├─────────────────┤      │  M8      │  │
-│   │   Battery #1    │    │   Battery #3    │      │          │  │
-│   │   (5.12 kWh)    │    │   (5.12 kWh)    │      │[+]  [-]  │  │
-│   └─────────────────┘    └─────────────────┘      │ s1   s1  │  │
-│     LEFT STACK             RIGHT STACK            │ s2   s2  │  │
-│     14.1" tall             14.1" tall             │ s3   s3  │  │
-│     9.9" clearance         9.9" clearance         │ s4   s4  │  │
-│                                                   └────┬─────┘  │
-│   ←── 17.3" ──→          ←── 17.3" ──→                │        │
-│                                                        │        │
-│                     Inverter 4/0 cables enter ─────────┘        │
+│                                                   ┌──────────┐   │
+│   ┌─────────────────┐    ┌─────────────────┐      │  LYNX    │   │
+│   │   Battery #2    │    │   Battery #4    │      │  POWER   │   │
+│   │   (5.12 kWh)    │    │   (5.12 kWh)    │      │   IN     │   │
+│   ├─────────────────┤    ├─────────────────┤      │  M8      │   │
+│   │   Battery #1    │    │   Battery #3    │      │          │   │
+│   │   (5.12 kWh)    │    │   (5.12 kWh)    │      │[+]  [-]  │   │
+│   └─────────────────┘    └─────────────────┘      │ s1   s1  │   │
+│     LEFT STACK             RIGHT STACK            │ s2   s2  │   │
+│     14.1" tall             14.1" tall             │ s3   s3  │   │
+│     9.9" clearance         9.9" clearance         │ s4   s4  │   │
+│                                                   └────┬─────┘   │
+│   ←── 17.3" ──→          ←── 17.3" ──→                 │         │
+│                                                        │         │
+│                     Inverter 4/0 cables enter ─────────┘         │
 │                     from right wall (existing, in wall/ceiling)  │
 └──────────────────────────────────────────────────────────────────┘
 ```
 
-**Stack dimensions (each):**
-- Battery: 17.3"W × 19.1"D × 5.3"H
-- Quick Stack Rack adds: 1.75" height
+**Stack dimensions (each, per AES Rackmount manual 805-0043 REVD):**
+- Battery: 19.6"L × 17.3"W × 5.3"H (3U)
+- Quick Stack Rack adds: 1.75" height (1U recommended spacing per manual)
 - Per unit mounted: 7.05"
 - Stack of 2: 14.1" (leaves 9.9" clearance to 24" box lid)
 
@@ -97,31 +97,31 @@ The Lynx Power In has **4 front M8 studs** plus **1 side M8 busbar tab** per pol
 ## Communication Network — Closed-Loop
 
 ```
-                              AEbus Daisy Chain (RJ45 / CAT5e)
-[LYNK II]──AEbus──[Batt 4]──AEbus──[Batt 3]──AEbus──[Batt 2]──AEbus──[Batt 1]──[Terminator]
+                              LYNK Network (RJ45 / CAT5e or higher)
+[LYNK II]──LYNK──[Batt 4]──LYNK──[Batt 3]──LYNK──[Batt 2]──LYNK──[Batt 1]   (no terminator)
     │
     │ CAN Out (RJ45)
     │
     ├─────────────────────── Xanbus Network ───────────────────────┐
     │                           │                                  │
-[InsightHome]              [XW+ 6848]                       [MPPT 60-150]
+[InsightHome]              [XW Pro 6848]                    [MPPT 60-150]
 ```
 
-**AEbus cables needed:** 4 (LYNK II↔B4, B4↔B3, B3↔B2, B2↔B1)
+**LYNK Network cables needed:** 4 (LYNK II↔B4, B4↔B3, B3↔B2, B2↔B1) — each AES Rackmount has 2 LYNK ports for daisy chaining
 **Xanbus cable needed:** 1 (LYNK II CAN Out → existing Xanbus network)
-**Terminator needed:** 1 (at Battery #1, end opposite LYNK II)
+**External terminator:** NONE — both LYNK II and AES Rackmount batteries are internally terminated per manual 805-0033
 
 **What closed-loop provides:**
 - BMS automatically controls charge voltage, absorption time, temp compensation
 - True SOC reporting (replaces voltage-based estimation)
 - Dynamic charge optimization (~25% faster recharge vs. open-loop)
-- XW+ "Fixed" and "Dynamic" settings overwritten by BMS automatically
+- XW Pro "Fixed" and "Dynamic" settings overwritten by BMS automatically
 - User retains control of "Adjustable" settings (Grid Support, gen triggers) via InsightLocal
 - SOC-based triggers recommended over voltage-based
 
 **Communication failure behavior (important for no-generator setup):**
-- XW+ continues with last received settings (no error displayed)
-- Over time, could overcharge/over-discharge batteries
+- XW Pro applies configured Comms Loss action after 7-10s timeout (Warning, with graceful-degradation current limits per Deployment Guide)
+- Over time, stale parameters could push batteries to over-charge or over-discharge
 - BMS self-protects and disconnects when limits reached
 - Manual intervention required to restart
 - Mitigation: wired CAN bus — failures are rare
@@ -132,53 +132,54 @@ The Lynx Power In has **4 front M8 studs** plus **1 side M8 busbar tab** per pol
 
 ## Complete Bill of Materials
 
-### Main Components
+### Already Purchased (Sourced During Negotiation Period)
+
+| # | Item | Part Number | Qty | Status |
+|---|------|-------------|-----|--------|
+| A1 | Discover Battery Cable Set (3 AWG, 2-Pos/Neg) | 950-0055 | 2 sets | ✅ On hand |
+| A2 | Victron Lynx Power In M8 | LYN020102000 | 1 | ✅ On hand |
+| A3 | LYNK Network / Xanbus CAT5e patch cables | 1–2 ft | 5+ | ✅ On hand |
+
+### Remaining Components — To Be Sourced
 
 | # | Item | Part Number | Qty | Unit Price | Extended | Source |
 |---|------|-------------|-----|-----------|----------|--------|
-| 1 | AES Rackmount Battery | 48-48-5120 | 4 | $1,363.50 | $5,454.00 | Inverter Supply |
-| 2 | Cable Kit (SurLok→M8, 2m) | 950-0055 | 4 | $129.05 | $516.20 | Inverter Supply |
-| 3 | LYNK II Comm Gateway | 950-0025 | 1 | ~$400.00 | ~$400.00 | Inverter Supply |
-| 4 | Quick Stack Rack | 950-0050 | 4 | $74.00 | $296.00 | Inverter Supply |
-| 5 | Victron Lynx Power In M8 | LYN020102000 | 1 | ~$150.00 | ~$150.00 | Inverter Supply / Current Connected |
+| 1 | AES Rackmount Battery | 48-48-5120 | 4 | $1,350.00 | $5,400.00 | Jonsson Tech |
+| 2 | Cable Kit (SurLok→M8, 2m) | 950-0055 | 2 | ~$129.05 | ~$258.10 | TBD |
+| 3 | LYNK II Comm Gateway | 950-0025 | 1 | ~$432.30 | ~$432.30 | TBD |
+| 4 | Quick Stack Rack | 950-0050 | 4 | ~$74.00 | ~$296.00 | TBD |
 
-### Communication Cables
-
-| # | Item | Spec | Qty | Unit Price | Extended | Source |
-|---|------|------|-----|-----------|----------|--------|
-| 6 | AEbus patch cables | CAT5e RJ45, 1–2 ft | 4 | ~$5.00 | ~$20.00 | Amazon |
-| 7 | Xanbus patch cable | CAT5e RJ45, length TBD | 1 | ~$5.00 | ~$5.00 | Amazon |
-| 8 | AEbus Terminator | RJ45 terminator plug | 1 | ~$10.00 | ~$10.00 | Discover / Amazon |
+> **Note on cable kits (item 2):** Each Discover 950-0055 cable set provides 2 positive + 2 negative cables (one set serves 2 batteries). With 2 sets already on hand and 4 batteries total, we need 2 additional sets — but verify cable set contents at order time. If a single set already covers all 4 batteries' needs, this item may not be needed.
 
 ### Configuration
 
 | # | Item | Spec | Qty | Unit Price | Extended | Source |
 |---|------|------|-----|-----------|----------|--------|
-| 9 | USB cable for LYNK II | Type-B mini | 1 | ~$8.00 | ~$8.00 | Amazon |
+| 5 | USB cable for LYNK II | Type-B mini | 1 | ~$8.00 | ~$8.00 | Amazon |
 
 ### Hardware — Lynx Side Tab Connections (Inverter Cables)
 
 | # | Item | Spec | Qty | Unit Price | Extended | Source |
 |---|------|------|-----|-----------|----------|--------|
-| 10 | M8 stainless steel bolts | M8-1.25 × 25mm (or 1") | 2 | — | — | Hardware store |
-| 11 | M8 stainless steel nuts | M8-1.25 | 2 | — | — | Hardware store |
-| 12 | M8 flat washers | Stainless | 4 | — | — | Hardware store |
-| 13 | M8 lock washers | Stainless (split or Nordlock) | 2 | — | — | Hardware store |
+| 6 | M8 stainless steel bolts | M8-1.25 × 25mm (or 1") | 2 | — | — | Hardware store |
+| 7 | M8 stainless steel nuts | M8-1.25 | 2 | — | — | Hardware store |
+| 8 | M8 flat washers | Stainless | 4 | — | — | Hardware store |
+| 9 | M8 lock washers | Stainless (split or Nordlock) | 2 | — | — | Hardware store |
 | | | | | **Hardware subtotal:** | ~$10.00 | |
 
 ### Mounting
 
 | # | Item | Spec | Qty | Unit Price | Extended | Source |
 |---|------|------|-----|-----------|----------|--------|
-| 14 | Lynx Power In mounting screws | Per Lynx manual (may be included) | — | — | ~$5.00 | Hardware store |
-| 15 | Wall anchors / wood screws | For right wall mounting | — | — | ~$5.00 | Hardware store |
+| 10 | Lynx Power In mounting screws | Per Lynx manual (may be included) | — | — | ~$5.00 | Hardware store |
+| 11 | Wall anchors / wood screws | For right wall mounting | — | — | ~$5.00 | Hardware store |
 
 ### Optional but Recommended
 
 | # | Item | Spec | Qty | Unit Price | Extended | Source |
 |---|------|------|-----|-----------|----------|--------|
-| 16 | Anti-oxidant compound | No-Ox-Id or Ox-Guard | 1 | ~$10.00 | ~$10.00 | Amazon / hardware store |
-| 17 | Cable ties / velcro straps | For cable management | 1 pkg | ~$8.00 | ~$8.00 | Amazon |
+| 12 | Anti-oxidant compound | No-Ox-Id or Ox-Guard | 1 | ~$10.00 | ~$10.00 | Amazon / hardware store |
+| 13 | Cable ties / velcro straps | For cable management | 1 pkg | ~$8.00 | ~$8.00 | Amazon |
 
 ---
 
@@ -186,15 +187,20 @@ The Lynx Power In has **4 front M8 studs** plus **1 side M8 busbar tab** per pol
 
 | Category | Cost |
 |----------|------|
-| Main components (items 1–5) | $6,816.20 |
-| Communication cables (items 6–8) | ~$35.00 |
-| Configuration cable (item 9) | ~$8.00 |
-| Side tab hardware (items 10–13) | ~$10.00 |
-| Mounting hardware (items 14–15) | ~$10.00 |
-| Optional items (items 16–17) | ~$18.00 |
-| **Total hardware** | **~$6,897** |
+| Already on hand (items A1–A3) | $0 (sunk) |
+| Discover AES batteries (item 1) | $5,400.00 |
+| Cable kits (item 2) | ~$258.10 |
+| LYNK II Gateway (item 3) | ~$432.30 |
+| Quick Stack Racks (item 4) | ~$296.00 |
+| Configuration cable (item 5) | ~$8.00 |
+| Side tab hardware (items 6–9) | ~$10.00 |
+| Mounting hardware (items 10–11) | ~$10.00 |
+| Optional items (items 12–13) | ~$18.00 |
+| **Subtotal hardware (remaining)** | **~$6,432** |
 | AGM recycling credit (2,032 lbs) | −$300 to −$500 |
-| **Estimated net cost** | **~$6,400 to $6,600** |
+| **Estimated net cost (remaining)** | **~$5,930 to $6,130** |
+
+> **Cost-share note:** Per the warranty dispute resolution framework with Colorado Mountain Solar (CMS), CMS reimburses 86% of fair-market hardware cost, with Sat covering ~14% (reflecting actual measured Fullriver bank usage of 88/625 EFC). At ~$6,432 remaining hardware total: CMS share ~$5,531, Sat share ~$893, plus CMS providing labor.
 
 ---
 
@@ -204,7 +210,7 @@ The Lynx Power In has **4 front M8 studs** plus **1 side M8 busbar tab** per pol
 - Torque wrench capable of 14 Nm / ~10 ft-lbs (for M8 connections)
 - Multimeter (voltage verification)
 - Phillips screwdriver (rack assembly, Lynx mounting)
-- Windows 10/11 64-bit laptop (LYNK ACCESS software)
+- Windows 10/11 64-bit laptop or VM (LYNK ACCESS 2.5 or later software)
 
 ### No Special Tools Needed
 
@@ -215,7 +221,9 @@ The Lynx Power In has **4 front M8 studs** plus **1 side M8 busbar tab** per pol
 
 ---
 
-## Installation Timeline — Summer Solstice Target
+## Installation Timeline — Coordinated with CMS Labor
+
+> **Status:** Replacement scheduling in progress with Colorado Mountain Solar. Exact install date pending CMS confirmation.
 
 ### Pre-Install (Days −3 to −1)
 
@@ -224,10 +232,9 @@ The Lynx Power In has **4 front M8 studs** plus **1 side M8 busbar tab** per pol
 - [ ] Test-fit one Quick Stack Rack bracket on one battery
 - [ ] Verify M8 bolt fits through Lynx Power In side busbar tab
 - [ ] Verify M8 bolt + inverter lug + washers + nut fits side tab properly
-- [ ] Install LYNK ACCESS software on Windows laptop
-- [ ] Download Discover manual 805-0052 REV B
+- [ ] Install LYNK ACCESS software on Windows laptop/VM
+- [ ] Download Discover manuals 805-0033 (LYNK II) and 805-0043 REVD (AES Rackmount)
 - [ ] Confirm Conext Battery Monitor NOT present on Xanbus (remove if found)
-- [ ] Arrange helper for AGM removal (2,032 lbs — two-person minimum)
 - [ ] Coordinate AGM recycling pickup
 - [ ] Measure Xanbus cable run: LYNK II location → nearest Xanbus jack
 
@@ -246,12 +253,12 @@ The Lynx Power In has **4 front M8 studs** plus **1 side M8 busbar tab** per pol
 | 11:30 AM | **System live — solar charging begins** | — |
 | 11:30 AM–12:00 PM | Verify voltage on InsightLocal, confirm charging current | 30 min |
 | 12:00–12:30 PM | Lunch break (system charges unattended) | 30 min |
-| 12:30–1:00 PM | Install LYNK II: connect AEbus daisy chain between all 4 batteries | 30 min |
-| 1:00–1:15 PM | Connect AEbus from Battery #4 to LYNK II | 15 min |
-| 1:15–1:30 PM | Install AEbus terminator on Battery #1 | 15 min |
+| 12:30–1:00 PM | Install LYNK II: connect LYNK Network daisy chain between all 4 batteries | 30 min |
+| 1:00–1:15 PM | Connect LYNK Network from Battery #4 to LYNK II | 15 min |
+| 1:15–1:30 PM | (Skip — no terminator needed; both ends internally terminated) | — |
 | 1:30–2:00 PM | Connect LYNK II CAN Out to Xanbus network (RJ45 patch cable) | 30 min |
-| 2:00–3:00 PM | Configure LYNK II via USB + LYNK ACCESS: select Xanbus protocol, save (see [Deployment Guide](lynk2-deployment-guide.md)) | 1 hr |
-| 3:00–3:30 PM | Verify on InsightLocal: Battery Bank = 400 Ah, SOC reporting active. Configure XW+ and MPPT settings per [Deployment Guide](lynk2-deployment-guide.md) | 30 min |
+| 2:00–3:00 PM | Configure LYNK II via USB + LYNK ACCESS: select Schneider Electric - Xanbus protocol, save (see [Deployment Guide](lynk2-deployment-guide.md)) | 1 hr |
+| 3:00–3:30 PM | Verify on InsightLocal: Battery Bank = 400 Ah, SOC reporting active. Configure XW Pro and MPPT settings per [Deployment Guide](lynk2-deployment-guide.md) | 30 min |
 | 3:30–4:00 PM | Apply anti-oxidant to all connections, tidy cable management | 30 min |
 | 8:30 PM | Sunset — system fully charged and operational | — |
 
@@ -260,18 +267,21 @@ The Lynx Power In has **4 front M8 studs** plus **1 side M8 busbar tab** per pol
 ## Post-Installation
 
 ### Within 24 Hours
+
 - [ ] Monitor first full charge/discharge cycle
 - [ ] Verify SOC accuracy: LYNK II vs. InsightLocal
 - [ ] Check all connection temperatures under load (hand-feel for warmth at Lynx studs and side tabs)
 
 ### Within 30 Days
+
 - [ ] **Register warranty online for 10-year coverage** (critical deadline — do not miss)
-- [ ] Configure SOC-based triggers on XW+ via InsightLocal (replace voltage-based)
+- [ ] Configure SOC-based triggers on XW Pro via InsightLocal (replace voltage-based)
 - [ ] Set "Adjustable" parameters: Grid Support thresholds, low-SOC generator triggers
 
 ### Ongoing
+
 - [ ] Integrate monitoring into OpenHAB via Modbus TCP (ports 502/503)
-- [ ] Document final XW+ configuration settings
+- [ ] Document final XW Pro configuration settings
 - [ ] Periodic visual inspection of connections (quarterly)
 - [ ] Annual torque check on all Lynx connections
 
@@ -318,13 +328,19 @@ Coaldale, CO receives 260 sunny days/year and 6.4 peak sun hours/day. The 3.4-da
 2. **✅ RESOLVED: No Conext Battery Monitor on Xanbus network**
    Confirmed via InsightHome device list — not present.
 
-3. **☐ VERIFY: LYNK II current pricing at Inverter Supply**
-   Range seen: $328–$432. Budget at ~$400.
+3. **✅ RESOLVED: No external LYNK Network terminator needed**
+   Per Discover 805-0033, both LYNK II and AES Rackmount batteries are internally terminated. Removed from BOM.
 
-4. **☐ VERIFY: Lynx Power In M8 side tab bolt clearance**
+4. **☐ VERIFY: Jonsson Tech availability and price hold**
+   Contact pending. Confirm 4 modules in stock at $1,350 each plus shipping.
+
+5. **☐ VERIFY: 950-0055 cable kit contents**
+   Each kit contains 2 positive + 2 negative cables (covers 2 batteries). Confirm at order time whether 2 sets already on hand cover all 4 batteries, or whether additional sets needed.
+
+6. **☐ VERIFY: Lynx Power In M8 side tab bolt clearance**
    Confirm on receipt that M8 bolt passes through side busbar hole cleanly and lug + washers + nut fit without interference from housing.
 
-5. **☐ MEASURE: Xanbus cable length**
+7. **☐ MEASURE: Xanbus cable length**
    Distance from planned LYNK II location to nearest Xanbus RJ45 jack, to order correct length CAT5e patch cable.
 
 ---
@@ -334,24 +350,22 @@ Coaldale, CO receives 260 sunny days/year and 6.4 peak sun hours/day. The 3.4-da
 | Document | Location / Link |
 |----------|----------------|
 | LYNK II Deployment Guide | [lynk2-deployment-guide.md](lynk2-deployment-guide.md) |
-| LYNK II + XW+ Manual | [805-0052 REV B](https://discoverbattery.com/s4x_files/resources/des-lynk-2-schneider-xw-insighthome-xanbus-manual.pdf) |
-| Fullriver DC400-6 Datasheet | [fullriver.com](http://www.fullriver.com/upload/article/20220723/62db951348bfe.pdf) |
-| Quick Stack Rack Manual | 805-0056 |
+| LYNK II Installation and Operation Manual | Discover 805-0033 |
+| AES Rackmount Installation and Operation Manual | Discover 805-0043 REVD |
+| Fullriver DC400-6 Datasheet | [DC400-6.pdf](DC400-6.pdf) |
+| Quick Stack Rack Manual | Discover 805-0056 |
 | Schneider Modbus Maps | [solar.se.com](https://solar.se.com/us/wp-content/uploads/sites/7/2022/02/Conext-Gateway-InsightHome-InsightFacility-Modbus-Maps.zip) |
-| AES Rackmount User Manual | [discoverbattery.com](https://discoverbattery.com/s4x_files/resources/des-aes-rackmount-user-manual.pdf) |
 | System Defect Analysis | [System_Defect_Analysis.md](System_Defect_Analysis.md) |
 
 ### Supplier Links
 
 | Item | URL |
 |------|-----|
-| AES Rackmount Battery | [Inverter Supply](https://www.invertersupply.com/index.php?main_page=product_info&products_id=204421) |
-| Cable Kit 950-0055 | [Inverter Supply](https://www.invertersupply.com/index.php?main_page=product_info&products_id=204427) |
-| LYNK II Gateway | [Inverter Supply](https://www.invertersupply.com/index.php?main_page=product_info&products_id=204420) |
-| Quick Stack Rack | [Inverter Supply](https://www.invertersupply.com/index.php?main_page=product_info&products_id=204430) |
-| Lynx Power In M8 | [Inverter Supply](https://www.invertersupply.com/index.php?main_page=product_info&products_id=1221) |
+| AES Rackmount Battery (primary source) | [Jonsson Tech](https://www.jonssontech.net/products/aes-rackmount-battery-48-48-5120?variant=46323021250779) |
 | Lynx Power In M8 (alt) | [Current Connected](https://www.currentconnected.com/product/victron-lynx-power-in-distribution-system/) |
+
+> **Supply note (April 2026):** The Discover AES Rackmount battery supply situation has materially deteriorated. Inverter Supply has dropped the SKU. Most major distributors (Inverters R Us, NAZ Solar, Off Grid Source) show backorder status with no firm ship dates. Discover's own site no longer publishes pricing. Jonsson Tech at $1,350/module is at or below the current market floor — pricing and availability may not hold long.
 
 ---
 
-*Document generated February 27, 2026 (Rev 2.1). Prices subject to change. Verify all pricing at time of order.*
+*Document Rev 3 — April 27, 2026. Updates from Rev 2.1: corrected Schneider inverter model (XW Pro 6848 NA, not XW+); removed external LYNK terminator (internally terminated per 805-0033); updated manual references (805-0033 for LYNK II, 805-0043 REVD for AES Rackmount); split BOM into items already purchased vs. remaining; updated supplier from Inverter Supply (no longer carries SKU) to Jonsson Tech; added cost-share framework with CMS; added supply chain notes. Prices subject to change. Verify all pricing at time of order.*
