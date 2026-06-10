@@ -17,6 +17,8 @@ This repository serves as the central knowledge base for the Schneider Electric 
   + *Content:* Active project plan for the **4-Unit Discover AES Rackmount** upgrade. Covers BOM, physical layout, Lynx Power In connection plan, installation timeline, autonomy analysis, and warranty terms. Reflects current supply chain conditions (April 2026) and CMS cost-share framework.
 * **⚙️ [LYNK II Deployment Guide](lynk2-deployment-guide.md)** — **CURRENT**
   + *Content:* Step-by-step software configuration for LYNK II, XW Pro 6848, and MPPT 60-150. Includes jumper configuration for Schneider Xanbus, LYNK Network topology, LYNK ACCESS protocol selection, and complete InsightLocal settings (Battery Settings, BMS Comms-Loss Fallback, Charger Settings) for both inverter and charge controller.
+* **🏠 [openHAB Cutover Plan](openhab-cutover-plan.md)** — **CURRENT**
+  + *Content:* Monitoring/automation-layer cutover for the openHAB instance: what the AGM→lithium swap breaks (coulomb-counter SoC, voltage gating, SunSpec telemetry), phased re-baseline to BMS-reported SOC, the comms-loss watchdog (critical for no-generator operation), rollback, and operator decisions.
 * **📦 [Discover Lithium Upgrade](Discover-Lithium-Upgrade.md)** — *DEPRECATED*
   + *Content:* Earlier design using the Discover 950-0049 Battery Module Combiner. Superseded by the upgrade plan above. Retained for git history.
 
