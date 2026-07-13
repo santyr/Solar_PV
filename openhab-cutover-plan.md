@@ -28,9 +28,12 @@ Summary of what changed since this plan was written:
 2. **LYNK II stays OFF the LAN** until later analysis (operator decision):
    closed-loop via Xanbus proceeds; LYNK ACCESS is USB-only. No openHAB step
    needs IP access to the LYNK II.
-3. **Comms-loss alerting channel: DEFERRED** (operator decision).
-   `BMS_Comms_Status` freshness tracking still ships; paging is a follow-up.
-   Until then the dashboards are the watchdog — check daily.
+3. **Comms-loss alerting: IMPLEMENTED and tested** (decision revised later
+   the same day): Nostr NIP-04 DM from the hexdaemon identity to the
+   operator-monitored account, sent by staged rule `hex_bms_comms_watchdog`
+   via a whitelisted exec script. End-to-end tested through the openhab
+   service user; enable in Phase 2. Caveat: it cannot page during a
+   whole-site outage (no internet) — accepted.
 4. **`SouthOutlet_LowSocCutoff` = 45** post-cutover (operator decision).
 5. **Phase 0 is complete** (re-verified 2026-07-13): registers identified
    (XW Pro = gateway unit 10; storage model 40216–40231), poller + items
@@ -188,8 +191,8 @@ Phase 3, per standing backup policy (`/tmp`, dated).
 ## Open questions for the operator
 
 1. ~~Notification channel for the comms-loss watchdog~~ — RESOLVED
-   2026-07-13: **deferred**; revisit in Phase 4 (runbook 4.5). Highest-value
-   missing safety piece until then.
+   2026-07-13: **Nostr DM (hexdaemon → operator)**, implemented and
+   end-to-end tested; staged rule enables in Phase 2.
 2. ~~Post-cutover `SouthOutlet_LowSocCutoff` value~~ — RESOLVED 2026-07-13:
    **45**.
 3. Whether AGM history should be archived out of the live `openhab` DB
