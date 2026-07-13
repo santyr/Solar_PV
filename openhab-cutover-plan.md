@@ -13,6 +13,44 @@ accurate SOC/telemetry, load automation gating, and **comms-loss alerting**
 
 ---
 
+## Status as of 2026-07-13 (eve of hardware day)
+
+Execution detail lives in the on-host runbook
+(`~/openhab/docs/plans/2026-07-14-discover-aes-cutover-runbook.md`, v2).
+Summary of what changed since this plan was written:
+
+1. **Hardware day is a FULL site power-down** — the openHAB host itself goes
+   dark and the site is offline (no internet). Phase 1 below is superseded by
+   the runbook's pre-shutdown checklist (snapshot, disable
+   `hex_southoutlet_cycle`, graceful `systemctl poweroff` before the battery
+   disconnect) and post-boot recovery checklist (services → things → telemetry
+   → rules, plus a known-bogus SoC window until Phase 3).
+2. **LYNK II stays OFF the LAN** until later analysis (operator decision):
+   closed-loop via Xanbus proceeds; LYNK ACCESS is USB-only. No openHAB step
+   needs IP access to the LYNK II.
+3. **Comms-loss alerting channel: DEFERRED** (operator decision).
+   `BMS_Comms_Status` freshness tracking still ships; paging is a follow-up.
+   Until then the dashboards are the watchdog — check daily.
+4. **`SouthOutlet_LowSocCutoff` = 45** post-cutover (operator decision).
+5. **Phase 0 is complete** (re-verified 2026-07-13): registers identified
+   (XW Pro = gateway unit 10; storage model 40216–40231), poller + items
+   staged disabled (items tagged `cutover-staged` after a dead-item sweep
+   deleted three of them), AGM history pg_dump taken without sudo via the
+   persistence DB credentials, snapshots moved out of `/tmp` to
+   `~/openhab/backups/cutover-20260714/` with an offsite copy on lnnode.
+6. **Phases 2/3 are pre-staged**: rules `hex_bms_soc_scale` (raw→BMS_SOC
+   scaling + freshness) and `hex_bms_soc_passthrough` (SOC authority swap,
+   400 Ah / 20 % floor derivations) exist DISABLED; the SouthOutlet re-gate
+   and all dashboard edits are ready-to-apply BEFORE/AFTER JSON artifacts in
+   the backups dir. Hardware day is enable-and-verify.
+7. **Display cards added to scope** — see the expanded dashboard step in
+   Phase 3: Overview battery card (AGM Float-implies-full logic), Solar page
+   Battery block (SoC/voltage color bands, EMA footer, runtime floor label,
+   new BMS SOC + BMS Comms cards), `battery-metrics-vertical` widget
+   (runtime floor label). Chart pages and `UpdateBatteryIcon` need no edits.
+
+---
+
 ## What the battery change breaks in openHAB
 
 | Component | Today (AGM, open-loop) | Problem after cutover |
@@ -104,9 +142,19 @@ input), persistence policy (new items persist automatically under `*`).
    (80.2 was sized for AGM cycle-life protection at 50% DoD; with 100% DoD
    lithium and 20% reserve the operator may want a different number —
    **operator decision, ask before changing**).
-3. **Review `UpdateBatteryIcon`** and the battery Overview widget
-   (`widget:battery-metrics-vertical`): floor label 40%→20%, Ah math,
-   voltage chart ranges (new band ~48–56 V, much flatter).
+3. **Dashboards / display cards** (ready-to-apply artifacts prepared
+   2026-07-13, see runbook 3.3):
+   - Solar page Battery block: SoC color bands 80/50 → 50/30; voltage bands
+     48.5/50/57.8 → 47/49.5/57.6; `Battery_Voltage_EMA` footer → live power;
+     "Runtime to 40%" → "Runtime to 20%"; new BMS SOC + BMS Comms cards.
+   - Overview battery card: drop the AGM `Float && SoC≥99` full-detection
+     clause (Float no longer implies full under BMS control); keep the
+     `BatteryChargingStatus` animation (item stays — maintained by
+     `UpdateBatteryIcon`).
+   - `widget:battery-metrics-vertical`: floor label 40%→20%; Ah values
+     self-correct via the passthrough rule (400 Ah basis).
+   - No edits needed: `BatteryVoltage`/`BatteryCurrent` chart pages
+     (auto-scale) and `UpdateBatteryIcon` (SoC-percent based).
 4. **Update `AGENTS.md`:** system map (4× AES 48-48-5120, 4P, closed-loop
    LYNK II), remove tail-charge/AGM conventions, add comms-loss watchdog as
    protected safety chain, note BMS owns charge control.
@@ -139,8 +187,12 @@ Phase 3, per standing backup policy (`/tmp`, dated).
 
 ## Open questions for the operator
 
-1. Notification channel for the comms-loss watchdog (this is the one item
-   that should be decided *before* hardware day).
-2. Post-cutover `SouthOutlet_LowSocCutoff` value (80.2 today; sized for AGM).
+1. ~~Notification channel for the comms-loss watchdog~~ — RESOLVED
+   2026-07-13: **deferred**; revisit in Phase 4 (runbook 4.5). Highest-value
+   missing safety piece until then.
+2. ~~Post-cutover `SouthOutlet_LowSocCutoff` value~~ — RESOLVED 2026-07-13:
+   **45**.
 3. Whether AGM history should be archived out of the live `openhab` DB
-   (12 GB today) once the warranty dispute settles, or kept in place.
+   (13 GB today) once the warranty dispute settles, or kept in place.
+4. When (and whether) to put the LYNK II on the LAN — deferred pending
+   later analysis; everything works without it.
