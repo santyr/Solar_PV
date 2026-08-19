@@ -2,7 +2,8 @@
 
 **Status:** Living planning document  
 **Planning horizon:** 2026–2040+  
-**Last updated:** 2026-08-19
+**Last updated:** 2026-08-19  
+**Revision note:** Added Schneider product lifecycle / 2035 end-of-standard-service planning constraint.
 
 **Companion documents:**
 - [Battery Upgrade Plan](battery-upgrade-plan-rev2.md) — current Discover AES hardware design and installation record
@@ -38,6 +39,36 @@ The working assumption is that the present Discover battery bank and Schneider p
 - **Schneider MPPT 60-150** charge controller
 - **InsightHome / InsightLocal** monitoring and configuration
 - Discover BMS remains authoritative for battery charge/discharge limits and battery protection
+
+### Schneider product support lifecycle — hard planning constraint
+
+The current Schneider platform is already in its post-commercialization lifecycle in the United States:
+
+| Component | U.S. status | End of standard service |
+|---|---|---|
+| **XW Pro 6848 (865-6848-21)** | Discontinued July 27, 2025 | **April 4, 2035** |
+| **Conext MPPT 60-150 (865-1030-1)** | Discontinued July 19, 2025 | **April 4, 2035** |
+| **InsightHome (865-0330)** | Discontinued July 17, 2025 | **April 4, 2035** |
+
+Schneider defines *end of standard service* as the last date it expects to provide maintenance services such as repair and spare parts. As of August 2026, Schneider's U.S. product pages do not list direct replacements for these references.
+
+This creates an important asymmetry in the long-term plan:
+
+- the **Discover battery bank may still be healthy and useful well beyond 2035**;
+- the Schneider inverter/MPPT/gateway ecosystem reaches its official service horizon first;
+- therefore the next major migration is more likely to be **power electronics first, batteries later**.
+
+**Planning rule:** treat **April 4, 2035** as the latest date by which a tested migration path away from dependence on Schneider factory service should exist.
+
+This does **not** mean the Schneider equipment must be removed in 2035. If it remains reliable, it can continue operating as legacy equipment. However, continued operation after that date should assume reduced vendor repair/spares availability and should only occur with a replacement design, budget, configuration plan, and installation path already prepared.
+
+**Recommended readiness targets:**
+
+- **2026–2030:** preserve configuration backups, firmware, manuals, logs, and system documentation; monitor the replacement market.
+- **2030–2032:** begin a serious architecture comparison, with Victron and other local-first platforms evaluated against actual site data.
+- **By 2033:** select a preferred replacement architecture and validate compatibility with the then-current Discover bank if reuse is desirable.
+- **2033–2034:** establish budget, BOM, installer/DIY plan, wiring changes, migration runbook, and fallback strategy.
+- **Before April 2035:** be capable of replacing the XW Pro/MPPT/Insight stack without an emergency redesign.
 
 ### Solar array
 
@@ -358,15 +389,19 @@ Whenever possible, operational history should remain locally accessible in stand
 
 Avoid an unnecessary all-at-once replacement whenever interfaces allow components to be migrated safely in stages.
 
-### Scenario A — Schneider electronics fail first
+### Scenario A — Schneider electronics are replaced first
+
+This is now the **default long-term scenario**, not merely a failure contingency, because Schneider standard service for the XW Pro, MPPT 60-150, and InsightHome is scheduled to end in 2035.
 
 If the Discover batteries remain healthy:
 
-1. Replace inverter/charge-controller platform
-2. Reuse the Discover bank if supported safely by the new system
-3. Use LYNK II or whatever supported BMS interface exists at that time
-4. Preserve openHAB/PostgreSQL integration
-5. Replace batteries later when economics or health justify it
+1. Replace the inverter/charge-controller/gateway platform before or around the Schneider support horizon.
+2. Reuse the Discover bank if it remains healthy and is safely supported by the new system.
+3. Use LYNK II, native battery CAN, or whatever supported BMS interface exists at that time.
+4. Preserve openHAB/PostgreSQL history and local automation interfaces.
+5. Replace the batteries later when economics, health, or technology justify it.
+
+A failure before 2035 may accelerate this schedule. Continued reliable operation after 2035 may delay physical replacement, but should not delay **migration readiness**.
 
 ### Scenario B — Battery bank ages first
 
@@ -399,11 +434,21 @@ Begin serious evaluation when one or more of the following occurs:
 
 ### Inverter / charge-controller replacement evaluation
 
-Trigger review for:
+Unlike the battery bank, the Schneider power electronics have a known external lifecycle deadline: **standard service ends April 4, 2035** for the current U.S. XW Pro 6848, MPPT 60-150, and InsightHome product references.
+
+Therefore:
+
+- architecture review should begin well before failure;
+- a preferred replacement platform should be identified by approximately **2032–2033**;
+- the site should be migration-ready by **2034**;
+- operation beyond April 2035 is acceptable only as a deliberate legacy-hardware choice, not because no replacement plan exists.
+
+Additional triggers for earlier replacement include:
 
 - repeated hardware faults
 - inability to obtain repair parts
-- loss of vendor support or security/firmware maintenance
+- declining availability of spares
+- loss of useful firmware or protocol support
 - communications limitations that materially restrict automation
 - poor efficiency compared with current systems
 - need for substantially more PV or AC capacity
@@ -432,27 +477,55 @@ Trigger review for:
 - Continue refining openHAB battery telemetry
 - Establish daily EFC and recharge-completeness metrics
 
-### 2027–2032 — Observe, maintain, avoid unnecessary upgrades
+### 2027–2030 — Observe, preserve, and avoid unnecessary upgrades
 
 - Annual battery health review
 - Track capacity and throughput trends
 - Track PV seasonal production and degradation
-- Keep inverter, MPPT, Insight, LYNK II, and battery firmware records
+- Preserve local copies of Schneider firmware, configuration exports, manuals, and commissioning records
 - Improve local data collection where useful
 - Follow development of Victron and competing locally controlled ecosystems
 - Follow sodium-ion and other stationary-storage technologies without committing prematurely
+- Watch availability and pricing of Schneider spare equipment as the discontinued product family ages
 
-### 2032–2036 — Mid-life architecture review
+### 2030–2032 — Early power-electronics architecture review
 
-- Assess Schneider parts/support outlook
-- Assess Discover bank measured SOH
+- Treat the known **2035 Schneider end-of-standard-service date** as the primary planning clock
+- Assess Discover bank measured SOH and likely remaining service life
 - Compare current inverter efficiency/integration against the market
 - Verify whether the existing PV array remains adequate for winter recovery
-- Begin defining requirements for the next system, but avoid purchasing solely because newer products exist
+- Define hard requirements for the next inverter/MPPT/gateway platform
+- Evaluate whether the Discover bank can and should be retained through the electronics migration
+- Compare Victron against the best then-current local-first alternatives
 
-### 2037–2039 — Formal replacement-market evaluation
+### 2032–2033 — Select preferred migration architecture
 
-Evaluate complete system architectures using actual historical site data.
+- Select a preferred replacement ecosystem
+- Confirm true 120/240 V split-phase behavior
+- Confirm battery/BMS compatibility
+- Confirm local MQTT/Modbus/API integration
+- Define wiring, protection, communications, and panel changes
+- Determine whether existing PV modules/stringing can be retained
+- Develop a preliminary BOM and budget
+
+### 2033–2034 — Become migration-ready
+
+- Finalize implementation design
+- Maintain an executable cutover and rollback runbook
+- Identify installers or validate DIY scope as appropriate
+- Budget or reserve funds for the migration
+- Verify lead times and availability
+- Preserve a path to reuse the Discover batteries if their health remains good
+
+### Before April 4, 2035 — Schneider support-horizon checkpoint
+
+By this point the site should be capable of replacing the Schneider inverter, charge controller, and gateway without an emergency engineering exercise.
+
+If the Schneider equipment remains healthy, continued use after end of standard service is reasonable, but the system should be treated as **supported-by-owner legacy infrastructure** with a ready replacement path.
+
+### 2037–2039 — Battery-technology and whole-system review
+
+Independently of whether the Schneider electronics have already been replaced, evaluate the battery market and broader system architecture using the accumulated site history.
 
 Questions to answer:
 
@@ -497,9 +570,11 @@ As of August 2026:
 
 - **Four Discover modules appear sufficient.** There is no present operational case for adding a fifth module.
 - The bank is cycling so lightly that **calendar life should dominate cycle wear**.
-- A **~12–18 year useful-life planning range** is reasonable, with a formal replacement-market review around year 12.
+- A **~12–18 year useful-life planning range** remains reasonable for the Discover bank, but **the Schneider electronics have an earlier external deadline: end of standard service in April 2035**.
+- The most likely migration order is therefore **inverter/MPPT/gateway first, battery bank later**.
 - The current PV array should likely be retained until performance, economics, or architecture creates a specific reason to replace it.
 - **Victron is the current leading future architecture to watch** because of its local-control and automation-friendly ecosystem, not because today's specific hardware should be purchased years in advance.
+- A preferred successor architecture should be identified by roughly **2032–2033**, with the property migration-ready by **2034**, even if the Schneider equipment ultimately continues operating beyond 2035.
 - The future system should be **local-first, modular, interoperable, and AI-ready**.
 - openHAB/PostgreSQL history being accumulated now may become one of the most valuable inputs to a future locally hosted energy-management model.
 - Battery chemistry should remain an open decision until replacement is actually needed; sodium-ion and other emerging stationary-storage technologies should be monitored.
