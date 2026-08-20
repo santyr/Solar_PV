@@ -37,7 +37,7 @@ Key sources are:
 | Battery SOC | `BMS_SOC` | Discover via LYNK II, Schneider SunSpec 802, managed scaler | 15,826 rows, 2026-07-14 through snapshot | Current authority |
 | Remaining capacity | `BMS_Capacity_Remaining_Ah` | Discover Battery Monitor map, Modbus unit 190 | 4,130 rows, 2026-07-14 through snapshot | Current |
 | Battery temperature | `BMS_Temperature` | Discover Battery Monitor map, Modbus unit 190 | 572 changes, 2026-07-14 through snapshot | Current; Fahrenheit raw |
-| DC voltage/current/power | `DCData_Native_*` | Schneider SunSpec 802 native scaler path | High-rate history from 2025-09-29 | Current; sign calibration required |
+| DC voltage/current/power | `DCData_Native_*` | Schneider SunSpec 802 native scaler path | High-rate history from 2025-09-29 | Current; positive means charging |
 | PV input power | `MPPT60_PV_Power` | Schneider MPPT native Modbus, unit 30 | Item/table present | Current |
 | PV output power | `MPPT60_DC_OutputPower` | Schneider MPPT native Modbus, unit 30 | Item/table present | Current |
 | PV daily energy | `MPPT60_EnergyFromPV_Today` | Schneider MPPT native Modbus, unit 30 | Item/table present | Cross-check, not sole integration source |
@@ -71,6 +71,35 @@ point-in-time checks, not guarantees.
   the original quote identifies 12 × 350 W Qcells panels (4.2 kW) installed
   with the inverter and charge controller on 2021-08-06.
 
+## Battery power sign calibration
+
+A read-only 14-day hourly comparison on 2026-08-20 found:
+
+- positive power with rising SOC: 32 windows;
+- positive power with falling SOC: 1 window;
+- negative power with falling SOC: 75 windows;
+- negative power with rising SOC: 0 windows;
+- correlation of hourly mean battery power with hourly SOC change: 0.895;
+- mean residual for `battery power - (PV power - AC load)`: about -69 W.
+
+The operational convention is therefore **positive battery DC power/current =
+charging** and negative = discharging. The residual is plausible for conversion
+losses and other DC-side consumption, but it is not itself an efficiency model.
+
+## Read-only daily aggregation cross-check
+
+The initial CLI dry run for local date 2026-08-19 produced:
+
+- SOC range 84–100%;
+- integrated PV 7.388 kWh;
+- integrated house load 5.657 kWh;
+- battery charge/discharge throughput 3.553/3.045 kWh;
+- daily EFC 0.161 using 20.48 kWh nominal usable capacity.
+
+An independent query of `MPPT60_EnergyFromPV_Today` reached 7.385 kWh for the
+same local day, 0.003 kWh (about 0.04%) below the integrated PV value. This is
+a read-only validation result, not yet a persisted production aggregate.
+
 ## Explicit exclusions
 
 - `BatterySoC_Calculated`, `CoulombCounter`, and other AGM-derived Items are
@@ -85,6 +114,7 @@ point-in-time checks, not guarantees.
 
 1. Off-root compressed backup plus verified isolated restore.
 2. Current source resolution and type check.
-3. DC current/power sign calibration against SOC direction and PV/load balance.
+3. Recheck DC current/power sign calibration if the Schneider source path or
+   scaler rules change.
 4. Independent aggregate comparison over bounded dates including a DST day.
 5. Existing OpenHAB safety/freshness rules and feeder contracts unchanged.

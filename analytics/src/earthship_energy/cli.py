@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import argparse
+from datetime import date, datetime
 import json
 from pathlib import Path
 import sys
 
 from .config import ConfigError, load_source_config
+from .daily import build_daily_snapshot
 from .db import (
     DatabaseConfigError,
     connect_read_only,
@@ -52,11 +54,21 @@ def _parser() -> argparse.ArgumentParser:
     mode.add_argument("--dry-run", action="store_true")
     mode.add_argument("--apply", action="store_true")
     migrate.add_argument("--backup-manifest", type=Path)
+    aggregate = subparsers.add_parser("aggregate")
+    aggregate.add_argument("--date", required=True)
+    aggregate.add_argument("--config", type=Path)
+    aggregate.add_argument("--jdbc-config", default=DEFAULT_JDBC_CONFIG, type=Path)
+    aggregate.add_argument("--dry-run", action="store_true")
     return parser
 
 
 def _print(payload: object) -> None:
-    print(json.dumps(payload, indent=2, sort_keys=True))
+    def encode(value):
+        if isinstance(value, (date, datetime)):
+            return value.isoformat()
+        raise TypeError(f"cannot encode {type(value).__name__}")
+
+    print(json.dumps(payload, indent=2, sort_keys=True, default=encode))
 
 
 def _validate_config(config_path: Path | None) -> int:
@@ -138,6 +150,33 @@ def _migrate(args) -> int:
     return 0
 
 
+def _aggregate(args) -> int:
+    if not args.dry_run:
+        raise ValueError("aggregate currently requires --dry-run")
+    try:
+        local_date = date.fromisoformat(args.date)
+    except ValueError as exc:
+        raise ValueError("--date must use YYYY-MM-DD") from exc
+    config = load_source_config(args.config)
+    settings = parse_openhab_jdbc_config(args.jdbc_config)
+    try:
+        connection = connect_read_only(settings)
+    except Exception as exc:
+        raise DatabaseConfigError(
+            f"database connection failed ({type(exc).__name__})"
+        ) from exc
+    try:
+        items, tables = fetch_inventory(connection)
+        resolved = resolve_sources(config, items, tables)
+        snapshot = build_daily_snapshot(connection, config, resolved, local_date)
+    finally:
+        close = getattr(connection, "close", None)
+        if close is not None:
+            close()
+    _print(snapshot)
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     try:
@@ -147,6 +186,8 @@ def main(argv: list[str] | None = None) -> int:
             return _validate_sources(args.config, args.jdbc_config)
         if args.command == "migrate":
             return _migrate(args)
+        if args.command == "aggregate":
+            return _aggregate(args)
     except (
         BackupGateError,
         ConfigError,

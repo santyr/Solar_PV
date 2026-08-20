@@ -106,3 +106,30 @@ def test_migrate_apply_refuses_without_verified_backup(tmp_path, monkeypatch, ca
     )
     assert rc == 2
     assert "backup" in capsys.readouterr().err.lower()
+
+
+def test_aggregate_date_runs_read_only_dry_run(tmp_path, monkeypatch, capsys):
+    path = source_config(tmp_path)
+
+    class Settings:
+        pass
+
+    monkeypatch.setattr(cli, "parse_openhab_jdbc_config", lambda _: Settings())
+    monkeypatch.setattr(cli, "connect_read_only", lambda _: object())
+    monkeypatch.setattr(cli, "fetch_inventory", lambda _: ([], set()))
+    monkeypatch.setattr(cli, "resolve_sources", lambda *_: [])
+    monkeypatch.setattr(
+        cli,
+        "build_daily_snapshot",
+        lambda _connection, _config, _resolved, day: {
+            "status": "ok",
+            "mode": "read_only_dry_run",
+            "local_date": day.isoformat(),
+        },
+    )
+    assert cli.main(
+        ["aggregate", "--date", "2026-01-02", "--config", str(path), "--dry-run"]
+    ) == 0
+    output = json.loads(capsys.readouterr().out)
+    assert output["local_date"] == "2026-01-02"
+    assert output["mode"] == "read_only_dry_run"
