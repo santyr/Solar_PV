@@ -20,7 +20,10 @@ from .config import load_source_config
 from .db import connect_read_only, connect_write, parse_openhab_jdbc_config
 from .forecasts import persist_forecast_snapshots, snapshots_from_openhab_detail
 from .inventory import fetch_inventory, resolve_sources
+from .materialize import load_epoch_config
 from .reader import ITEM_TABLE
+from .ui_publish import DEFAULT_OPENHAB_URL, publish_energy_ui_state
+from .ui_reader import build_energy_ui_snapshot
 
 
 SEVERITIES = ("Routine", "Interesting", "Actionable", "Critical electrical condition")
@@ -360,6 +363,11 @@ def _parser() -> argparse.ArgumentParser:
     monthly.add_argument(
         "--event-dir", default="~/.local/state/earthship-energy/pending-events"
     )
+    ui_publish = commands.add_parser("energy-ui-publish")
+    ui_publish.add_argument("--jdbc-config", default=DEFAULT_JDBC_CONFIG)
+    ui_publish.add_argument("--epochs")
+    ui_publish.add_argument("--timezone", default="America/Denver")
+    ui_publish.add_argument("--openhab-url", default=DEFAULT_OPENHAB_URL)
     return parser
 
 
@@ -456,6 +464,22 @@ def main(argv: list[str] | None = None) -> int:
         )
         print(json.dumps(result, sort_keys=True, separators=(",", ":")))
         return _exit_for_severity("Interesting")
+    if args.command == "energy-ui-publish":
+        now = utc_now()
+        connection = connect_read_only(parse_openhab_jdbc_config(args.jdbc_config))
+        try:
+            payload = build_energy_ui_snapshot(
+                connection, load_epoch_config(args.epochs), generated_at=now,
+                timezone_name=args.timezone,
+            )
+        finally:
+            connection.close()
+        result = publish_energy_ui_state(
+            payload, base_url=args.openhab_url,
+            token=os.environ.get("OPENHAB_TOKEN", ""),
+        )
+        print(json.dumps(result, sort_keys=True, separators=(",", ":")))
+        return 0
     raise AssertionError(f"unhandled command: {args.command}")
 
 

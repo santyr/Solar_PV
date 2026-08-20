@@ -131,7 +131,7 @@ git commit -m "feat: assemble UI analytics from bounded PostgreSQL evidence"
 - [ ] **Step 1: Write publisher RED tests**
 
 Assert exactly one `PUT` to `/rest/items/Energy_Analytics_JSON/state`,
-`Content-Type: text/plain; charset=utf-8`, Basic token authentication when a
+`Content-Type: text/plain; charset=utf-8`, Bearer token authentication when a
 token is supplied, redirect refusal, a 16 KiB preflight, sanitized failures,
 and no request when payload construction fails.
 
