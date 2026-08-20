@@ -106,9 +106,10 @@ older deleted designs that were already absent from `HEAD`.
 
 Solar_PV owns engineering meaning; live hardware/OpenHAB/PostgreSQL remain
 runtime authority. Codex performed the reorganization on an isolated branch
-and verified it against the live Stage 0 evidence. No separate human or
-independent-agent verification has occurred, and no commit or push was
-authorized.
+and verified it against the live Stage 0 evidence. No separate independent-agent
+verification occurred. The operator subsequently authorized commit, local
+`main` merge, and publication to `origin/main` on 2026-08-20; the initial
+reorganization commit is `fb95ecc`.
 
 Evidence includes repository history, account-wide dependency searches,
 authenticated read-only OpenHAB inspection, read-only PostgreSQL inspection,
@@ -125,4 +126,5 @@ systemd/process inventory, deployed-source hashes, and link/hash/tree checks.
    compatibility.
 
 Stage 0 durable outcomes were stored in Hexmem facts `1781`–`1784`.
-Stage 1 durable records are written only after final verification.
+Stage 1's PV-rating and documentation-architecture decisions were stored after
+verification in Hexmem facts `1785` and `1786`.
