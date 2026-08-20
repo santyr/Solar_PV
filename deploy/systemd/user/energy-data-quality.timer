@@ -1,0 +1,10 @@
+[Unit]
+Description=Check Earthship energy analytics hourly
+
+[Timer]
+OnCalendar=*-*-* *:20:00
+Persistent=true
+RandomizedDelaySec=60
+
+[Install]
+WantedBy=timers.target

@@ -37,3 +37,7 @@ continuous controller and not an electrical safety component.
 A future in-house model should reuse the same OpenHAB contracts, PostgreSQL
 schema/views, Markdown runbooks, and provider-neutral Hexmem records. Important
 semantics must not exist only in a prompt or UI component.
+
+Named review commands, structured-event handling, and the provider-neutral
+Hexmem capture contract are documented in
+`docs/operations/codex-review-workflows.md`.

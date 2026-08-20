@@ -135,11 +135,26 @@ def test_aggregate_date_runs_read_only_dry_run(tmp_path, monkeypatch, capsys):
     assert output["mode"] == "read_only_dry_run"
 
 
-def test_aggregate_apply_requires_verified_backup(tmp_path, monkeypatch, capsys):
+def test_aggregate_apply_requires_current_schema_not_backup(tmp_path, monkeypatch, capsys):
     path = source_config(tmp_path)
-    rc = cli.main(["aggregate", "--date", "2026-01-02", "--config", str(path), "--apply"])
+
+    class Settings:
+        pass
+
+    class Connection:
+        def close(self):
+            pass
+
+    monkeypatch.setattr(cli, "parse_openhab_jdbc_config", lambda _: Settings())
+    monkeypatch.setattr(cli, "connect_write", lambda _: Connection())
+    monkeypatch.setattr(cli, "discover_migrations", lambda: [object()])
+    monkeypatch.setattr(cli, "get_applied_migrations", lambda _: {})
+    monkeypatch.setattr(cli, "plan_migrations", lambda *_: [object()])
+    rc = cli.main([
+        "aggregate", "--date", "2026-01-02", "--config", str(path), "--apply"
+    ])
     assert rc == 2
-    assert "backup" in capsys.readouterr().err.lower()
+    assert "pending migration" in capsys.readouterr().err.lower()
 
 
 def test_aggregate_apply_seeds_and_materializes(tmp_path, monkeypatch, capsys):
@@ -159,8 +174,10 @@ def test_aggregate_apply_seeds_and_materializes(tmp_path, monkeypatch, capsys):
 
     epoch = type("Epoch", (), {"epoch_id": "current"})()
     monkeypatch.setattr(cli, "parse_openhab_jdbc_config", lambda _: Settings())
-    monkeypatch.setattr(cli, "load_verified_backup_manifest", lambda *_: {})
     monkeypatch.setattr(cli, "connect_write", lambda _: Connection())
+    monkeypatch.setattr(cli, "discover_migrations", lambda: [object()])
+    monkeypatch.setattr(cli, "get_applied_migrations", lambda _: {1: "sha"})
+    monkeypatch.setattr(cli, "plan_migrations", lambda *_: [])
     monkeypatch.setattr(cli, "fetch_inventory", lambda _: ([], set()))
     monkeypatch.setattr(cli, "resolve_sources", lambda *_: [])
     monkeypatch.setattr(cli, "load_epoch_config", lambda _: (epoch,))
@@ -174,7 +191,7 @@ def test_aggregate_apply_seeds_and_materializes(tmp_path, monkeypatch, capsys):
     })
     assert cli.main([
         "aggregate", "--date", "2026-01-02", "--config", str(path),
-        "--epochs", str(epochs_path), "--apply", "--backup-manifest", str(manifest),
+        "--epochs", str(epochs_path), "--apply",
     ]) == 0
     output = json.loads(capsys.readouterr().out)
     assert output["mode"] == "materialized"

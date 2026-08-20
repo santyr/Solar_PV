@@ -25,7 +25,9 @@ PYTHONPATH=src python3 -m earthship_energy.cli report winter --format json
 
 Daily writes are idempotent and confined to `energy_analytics`. Migration and
 the initial bounded backfill require the verified backup manifest documented in
-`recovery-and-backup.md`. Raw `public.itemNNNN` history is read-only.
+`recovery-and-backup.md`. Recurring aggregation first verifies that no schema
+migration is pending, then updates only compact analytics rows; it does not
+rehash the migration backup. Raw `public.itemNNNN` history is read-only.
 
 ## Current limitations
 

@@ -1,0 +1,18 @@
+[Unit]
+Description=Materialize previous local day Earthship energy aggregates
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/sat/Solar_PV/analytics
+Environment=PYTHONPATH=/home/sat/Solar_PV/analytics/src
+EnvironmentFile=-%h/.config/hex/openhab.env
+ExecStart=/usr/bin/flock --nonblock %t/energy-daily-aggregate.lock /usr/bin/python3 -m earthship_energy.scheduled daily-aggregate
+TimeoutStartSec=1800
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=%h/.local/state/earthship-energy

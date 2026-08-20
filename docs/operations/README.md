@@ -2,6 +2,8 @@
 
 - [OpenHAB energy monitoring](openhab-energy-monitoring.md)
 - [Energy analysis runbook](energy-analysis-runbook.md)
+- [Codex energy review workflows](codex-review-workflows.md)
+- [Scheduled energy jobs](scheduled-jobs.md)
 - [Maintenance](maintenance.md)
 - [Recovery and backup](recovery-and-backup.md)
 

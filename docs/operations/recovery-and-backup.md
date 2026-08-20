@@ -33,6 +33,9 @@ This restore point is on the same host and filesystem as PostgreSQL. It is a
 verified migration rollback artifact, not disaster recovery. Stage 5 must add
 an off-host or separately mounted encrypted destination, retention, automated
 restore testing, and alerting before backup operations can be called complete.
+`energy-backup-check.timer` now verifies freshness and archive readability
+weekly and keeps this limitation Actionable; an off-host destination still
+requires operator selection.
 
 List an archive without restoring it:
 

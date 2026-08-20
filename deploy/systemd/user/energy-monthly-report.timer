@@ -1,0 +1,10 @@
+[Unit]
+Description=Prepare previous-month Earthship report on the first day
+
+[Timer]
+OnCalendar=*-*-01 07:15:00
+Persistent=true
+RandomizedDelaySec=300
+
+[Install]
+WantedBy=timers.target

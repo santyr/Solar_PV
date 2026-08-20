@@ -1,0 +1,18 @@
+[Unit]
+Description=Persist leak-free Earthship forecast snapshots
+After=network-online.target forecast-json.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/sat/Solar_PV/analytics
+Environment=PYTHONPATH=/home/sat/Solar_PV/analytics/src
+EnvironmentFile=-%h/.config/hex/openhab.env
+ExecStart=/usr/bin/flock --nonblock %t/energy-forecast-snapshot.lock /usr/bin/python3 -m earthship_energy.scheduled forecast-snapshot
+TimeoutStartSec=300
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=%h/.local/state/earthship-energy

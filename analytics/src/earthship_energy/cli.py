@@ -181,9 +181,6 @@ def _aggregate(args) -> int:
     config = load_source_config(args.config)
     settings = parse_openhab_jdbc_config(args.jdbc_config)
     if args.apply:
-        if args.backup_manifest is None:
-            raise BackupGateError("--backup-manifest is required with --apply")
-        load_verified_backup_manifest(args.backup_manifest, settings.dbname)
         connection_factory = connect_write
     else:
         connection_factory = connect_read_only
@@ -194,6 +191,14 @@ def _aggregate(args) -> int:
             f"database connection failed ({type(exc).__name__})"
         ) from exc
     try:
+        if args.apply:
+            pending = plan_migrations(
+                discover_migrations(), get_applied_migrations(connection)
+            )
+            if pending:
+                raise MigrationDriftError(
+                    "pending migrations must be applied before aggregate"
+                )
         items, tables = fetch_inventory(connection)
         resolved = resolve_sources(config, items, tables)
         snapshot = build_daily_snapshot(connection, config, resolved, local_date)

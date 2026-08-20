@@ -1,0 +1,18 @@
+[Unit]
+Description=Prepare deterministic Earthship monthly energy report
+After=energy-daily-aggregate.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/sat/Solar_PV/analytics
+Environment=PYTHONPATH=/home/sat/Solar_PV/analytics/src
+EnvironmentFile=-%h/.config/hex/openhab.env
+ExecStart=/usr/bin/flock --nonblock %t/energy-monthly-report.lock /usr/bin/python3 -m earthship_energy.scheduled monthly-report
+SuccessExitStatus=10 20
+TimeoutStartSec=900
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=%h/.local/state/earthship-energy

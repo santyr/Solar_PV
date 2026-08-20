@@ -1,0 +1,10 @@
+[Unit]
+Description=Persist Earthship forecast snapshots every two hours
+
+[Timer]
+OnCalendar=*-*-* 00/2:10:00
+Persistent=true
+RandomizedDelaySec=60
+
+[Install]
+WantedBy=timers.target
