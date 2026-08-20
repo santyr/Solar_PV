@@ -7,6 +7,7 @@ from earthship_energy.scheduled import (
     assess_backup,
     build_quality_report,
     capture_forecast,
+    current_health_status,
     highest_severity,
     previous_local_date,
     write_event,
@@ -91,6 +92,7 @@ def test_quality_report_escalates_missing_yesterday_aggregate():
         now=now,
         timezone_name="America/Denver",
         sources_ok=True,
+        live_sources_ok=False,
         latest_aggregate=date(2026, 8, 18),
         latest_forecast_issued=now - timedelta(hours=3),
     )
@@ -98,9 +100,24 @@ def test_quality_report_escalates_missing_yesterday_aggregate():
     assert report["severity"] == "Actionable"
     assert {row["name"]: row["severity"] for row in report["checks"]} == {
         "source_inventory": "Routine",
+        "live_source_health": "Actionable",
         "daily_aggregate": "Actionable",
         "forecast_snapshot": "Interesting",
     }
+
+
+def test_current_health_status_enforces_timestamp_and_state_policies():
+    now = datetime(2026, 8, 20, 12, tzinfo=UTC)
+    assert current_health_status(
+        "timestamp_threshold", (now - timedelta(seconds=30)).isoformat(),
+        now, 120,
+    ) is True
+    assert current_health_status(
+        "timestamp_threshold", (now - timedelta(seconds=121)).isoformat(),
+        now, 120,
+    ) is False
+    assert current_health_status("status_must_equal_OK", "ok", now, None) is True
+    assert current_health_status("numeric_must_equal_1", "0", now, None) is False
 
 
 def test_forecast_snapshot_command_uses_openhab_detail_and_write_connection(monkeypatch, capsys):
@@ -149,7 +166,7 @@ def test_data_quality_command_writes_only_actionable_event(monkeypatch, tmp_path
     now = datetime(2026, 8, 20, 12, tzinfo=UTC)
     monkeypatch.setattr(
         "earthship_energy.scheduled.read_quality_state",
-        lambda _: (True, date(2026, 8, 18), now - timedelta(hours=3)),
+        lambda _, __: (True, False, date(2026, 8, 18), now - timedelta(hours=3)),
     )
     monkeypatch.setattr("earthship_energy.scheduled.utc_now", lambda: now)
 

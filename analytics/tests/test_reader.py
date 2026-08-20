@@ -5,6 +5,7 @@ import pytest
 from earthship_energy.reader import (
     datetime_state_for_local_date,
     fetch_numeric_series,
+    fetch_observation_stats,
     fetch_text_series,
     normalize_window_series,
     normalize_window_text_series,
@@ -111,3 +112,17 @@ def test_fetch_text_series_uses_same_bounded_validated_query():
         (START + timedelta(hours=1), "ON"),
         (END, "ON"),
     ]
+
+
+def test_fetch_observation_stats_counts_only_raw_rows_in_window():
+    class StatsCursor(Cursor):
+        def fetchone(self):
+            return (2, START + timedelta(minutes=1), END - timedelta(minutes=1))
+
+    class StatsConnection:
+        def cursor(self):
+            return StatsCursor()
+
+    assert fetch_observation_stats(
+        StatsConnection(), "item0550", START, END
+    ) == (2, START + timedelta(minutes=1), END - timedelta(minutes=1))

@@ -11,18 +11,21 @@
 
 ## Verification
 
-- Analytics tests: `86 passed`.
+- Analytics tests after gap closure: `114 passed`.
 - `pyflakes src tests`: clean.
 - All five service/timer pairs passed `systemd-analyze verify`.
-- Source validation: 15 resolved sources, read-only.
+- Source validation after gap closure: 21 resolved sources plus all configured
+  required freshness companions, read-only.
 - Migration dry run: zero pending migrations.
 - Forecast canary: 1,428 immutable facts inserted from one OpenHAB detail
   snapshot; immediate replay inserted zero. One issue timestamp and bounded
   future valid timestamps were retained.
-- Daily aggregate canary: 2026-08-19 materialized twice with four tables and
-  the same cumulative EFC `4.658455815604287`.
+- Daily aggregate canary: 2026-08-19 materialized twice with four domain
+  tables plus 21 source-quality rows and the same cumulative EFC
+  `4.658455815604`.
 - Data quality canary: Routine; source inventory present, aggregate current
-  through 2026-08-19, forecast age below two hours.
+  through 2026-08-19, all required live companion checks healthy, and forecast
+  age below two hours.
 - Backup canary: archive readable and restore evidence fresh; Actionable
   because storage remains same-host/same-filesystem, so disaster recovery is
   false.
@@ -58,6 +61,10 @@ enabled/active restoration.
   Item/rule was changed.
 - Existing `openhab-sanity.timer` and `forecast-json.timer` remain the owners
   of live OpenHAB health and UI forecast refresh respectively.
+
+The Stage 2 gap-closure validation added atomic `daily_source_quality`
+materialization and made the hourly canary fail closed on missing or stale
+required health companions. It did not add a control or action path.
 
 ## Long-term calendar checkpoints
 

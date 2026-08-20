@@ -25,6 +25,8 @@ class ResolvedSource:
     table_name: str | None
     required: bool
     status: str
+    freshness_item: str | None = None
+    freshness_table_name: str | None = None
 
     def as_dict(self) -> dict[str, object]:
         return {
@@ -34,6 +36,8 @@ class ResolvedSource:
             "table_name": self.table_name,
             "required": self.required,
             "status": self.status,
+            "freshness_item": self.freshness_item,
+            "freshness_table_name": self.freshness_table_name,
         }
 
 
@@ -77,6 +81,27 @@ def resolve_sources(
             table_name = None
         else:
             status = "ok"
+        freshness_table_name = None
+        if source.freshness_item is not None:
+            freshness_ids = by_name.get(source.freshness_item, [])
+            if len(freshness_ids) > 1:
+                raise SourceResolutionError(
+                    f"ambiguous freshness Item: {source.freshness_item}"
+                )
+            if not freshness_ids:
+                if source.required:
+                    raise SourceResolutionError(
+                        f"required freshness Item missing: {source.freshness_item}"
+                    )
+            else:
+                candidate = item_table_name(freshness_ids[0])
+                if candidate not in existing_tables:
+                    if source.required:
+                        raise SourceResolutionError(
+                            f"required freshness raw table missing: {candidate}"
+                        )
+                else:
+                    freshness_table_name = candidate
         results.append(
             ResolvedSource(
                 source.canonical_name,
@@ -85,6 +110,8 @@ def resolve_sources(
                 table_name,
                 source.required,
                 status,
+                source.freshness_item,
+                freshness_table_name,
             )
         )
     return results

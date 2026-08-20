@@ -134,9 +134,16 @@ def test_materialize_daily_snapshot_upserts_all_daily_tables():
                     "peak_irradiance_w_m2": 800, "precipitation_mm": 2.5,
                     "snow_state": None, "coverage": .96, "quality": "ok"},
         "balance": {"pv_load_ratio": 1.4, "surplus_deficit_kwh": 2},
+        "source_quality": [{
+            "canonical_name": "battery.soc_pct", "row_count": 12,
+            "first_at": "2026-08-19T06:00:00+00:00",
+            "last_at": "2026-08-20T05:59:00+00:00", "coverage": .99,
+            "stale_intervals": 0, "quality": "ok",
+            "detail": {"policy": "status_must_equal_OK"},
+        }],
     }
     result = materialize_daily_snapshot(connection, snapshot, "discover_4_module_2026")
-    assert result["tables_written"] == 4
+    assert result["tables_written"] == 5
     assert result["cumulative_efc"] == 0.125
     assert connection.commits == 1
     sql = "\n".join(statement for statement, _ in connection.statements)
@@ -160,6 +167,12 @@ def test_materialize_daily_snapshot_upserts_all_daily_tables():
         if "INSERT INTO energy_analytics.daily_weather" in statement
     )
     assert "precipitation_mm" in weather_statement[0]
+    quality_statement = next(
+        (statement, params) for statement, params in connection.statements
+        if "INSERT INTO energy_analytics.daily_source_quality" in statement
+    )
+    assert "ON CONFLICT (local_date, canonical_name)" in quality_statement[0]
+    assert quality_statement[1][1] == "battery.soc_pct"
 
 
 def test_recomputes_cumulative_efc_and_true_contiguous_no_full_streaks():

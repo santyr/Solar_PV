@@ -16,6 +16,7 @@ from .events import fetch_snow_state_as_of
 from .reader import (
     datetime_state_for_local_date,
     fetch_numeric_series,
+    fetch_observation_stats,
     fetch_text_series,
     state_duration_seconds,
 )
@@ -25,6 +26,7 @@ from .series import (
     integrate_trapezoid,
     local_day_bounds,
 )
+from .quality import assess_source_quality
 
 
 REQUIRED_DAILY = {
@@ -189,6 +191,57 @@ def build_daily_snapshot(
     load_payload["active_loads"] = active_loads
     weather_payload = asdict(weather)
     weather_payload["snow_state"] = fetch_snow_state_as_of(connection, end)
+
+    source_quality = []
+    for resolved in resolved_sources:
+        if resolved.table_name is None:
+            continue
+        definition = definitions[resolved.canonical_name]
+        row_count, first_at, last_at = fetch_observation_stats(
+            connection, resolved.table_name, start, end
+        )
+        freshness_table = getattr(resolved, "freshness_table_name", None)
+        freshness_points = (
+            fetch_text_series(connection, freshness_table, start, end)
+            if freshness_table is not None else []
+        )
+        source_quality.append(assess_source_quality(
+            canonical_name=resolved.canonical_name,
+            row_count=row_count,
+            first_at=first_at,
+            last_at=last_at,
+            window_start=start,
+            window_end=end,
+            stale_policy=definition.stale_policy,
+            stale_after_seconds=definition.stale_after_seconds,
+            freshness_item=definition.freshness_item,
+            freshness_points=freshness_points,
+        ))
+
+    quality_by_name = {row["canonical_name"]: row for row in source_quality}
+
+    def apply_source_quality(payload, names):
+        rows = [quality_by_name[name] for name in names if name in quality_by_name]
+        if not rows:
+            payload["coverage"] = 0.0
+            payload["quality"] = "insufficient_data"
+            return
+        payload["coverage"] = min(
+            float(payload["coverage"]), *(float(row["coverage"]) for row in rows)
+        )
+        if any(row["quality"] not in {"ok", "partial"} for row in rows):
+            payload["quality"] = "insufficient_data"
+        elif payload["coverage"] < 0.9:
+            payload["quality"] = "partial" if payload["coverage"] >= 0.5 else "insufficient_data"
+
+    apply_source_quality(battery_payload, (
+        "battery.soc_pct", "battery.dc_power_w", "battery.temperature_c",
+    ))
+    apply_source_quality(pv_payload, ("pv.input_power_w", "pv.output_power_w"))
+    apply_source_quality(load_payload, ("house.ac_power_w",))
+    apply_source_quality(weather_payload, (
+        "weather.irradiance_w_m2", "weather.outdoor_temperature_c",
+    ))
     return {
         "status": "ok",
         "mode": "read_only_dry_run",
@@ -203,4 +256,5 @@ def build_daily_snapshot(
             "pv_load_ratio": ratio,
             "surplus_deficit_kwh": pv.energy_kwh - load.energy_kwh,
         },
+        "source_quality": source_quality,
     }

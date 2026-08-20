@@ -60,6 +60,25 @@ def fetch_numeric_series(
     return normalize_window_series(carry_in, rows, window_start, window_end)
 
 
+def fetch_observation_stats(
+    connection,
+    table_name: str,
+    window_start: datetime,
+    window_end: datetime,
+) -> tuple[int, datetime | None, datetime | None]:
+    """Return raw in-window evidence without counting synthetic boundary carries."""
+    if not ITEM_TABLE.fullmatch(table_name):
+        raise ValueError("invalid OpenHAB Item table name")
+    with connection.cursor() as cursor:
+        cursor.execute(
+            f"""SELECT count(*), min(time), max(time) FROM public.{table_name}
+                WHERE time >= %s AND time < %s""",
+            (window_start, window_end),
+        )
+        row_count, first_at, last_at = cursor.fetchone()
+    return int(row_count), first_at, last_at
+
+
 def normalize_window_text_series(
     carry_in: tuple[datetime, object] | None,
     rows: list[tuple[datetime, object]],

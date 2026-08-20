@@ -170,7 +170,8 @@
       "canonical_unit": "W/m2",
       "scale": 1.0,
       "sign": "unsigned",
-      "stale_policy": "source_quality",
+      "stale_policy": "status_must_equal_OK",
+      "freshness_item": "WeatherData_HealthStatus",
       "kind": "measured",
       "confidence": 0.95,
       "required": true
@@ -185,7 +186,8 @@
       "conversion": "fahrenheit_to_celsius",
       "scale": 1.0,
       "sign": "signed",
-      "stale_policy": "source_quality",
+      "stale_policy": "status_must_equal_OK",
+      "freshness_item": "WeatherData_HealthStatus",
       "kind": "measured",
       "confidence": 0.95,
       "required": true
@@ -200,7 +202,8 @@
       "conversion": "inches_to_millimeters",
       "scale": 1.0,
       "sign": "unsigned",
-      "stale_policy": "source_quality",
+      "stale_policy": "status_must_equal_OK",
+      "freshness_item": "WeatherData_HealthStatus",
       "kind": "device_reported_daily_counter",
       "confidence": 0.95,
       "required": false

@@ -262,9 +262,31 @@ def materialize_daily_snapshot(connection, snapshot: dict[str, object], epoch_id
                 weather["irradiance_wh_m2"], weather["peak_irradiance_w_m2"],
                 weather["precipitation_mm"], weather["snow_state"],
                 weather["coverage"], weather["quality"]))
+            for source in snapshot.get("source_quality", []):
+                cursor.execute(
+                    """INSERT INTO energy_analytics.daily_source_quality
+                       (local_date, canonical_name, row_count, first_at, last_at,
+                        coverage, stale_intervals, quality, detail)
+                       VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                       ON CONFLICT (local_date, canonical_name) DO UPDATE SET
+                         row_count = EXCLUDED.row_count,
+                         first_at = EXCLUDED.first_at,
+                         last_at = EXCLUDED.last_at,
+                         coverage = EXCLUDED.coverage,
+                         stale_intervals = EXCLUDED.stale_intervals,
+                         quality = EXCLUDED.quality,
+                         detail = EXCLUDED.detail""",
+                    (
+                        local_date, source["canonical_name"], source["row_count"],
+                        source["first_at"], source["last_at"], source["coverage"],
+                        source["stale_intervals"], source["quality"],
+                        Json(source["detail"]),
+                    ),
+                )
         connection.commit()
     except Exception:
         connection.rollback()
         raise
     return {"local_date": local_date.isoformat(), "epoch_id": epoch_id,
-            "tables_written": 4, "cumulative_efc": cumulative_efc}
+            "tables_written": 5, "source_quality_rows": len(snapshot.get("source_quality", [])),
+            "cumulative_efc": cumulative_efc}

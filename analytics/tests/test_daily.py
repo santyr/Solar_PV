@@ -65,6 +65,9 @@ def test_build_daily_snapshot_is_read_only_and_uses_canonical_conversions(monkey
 
     monkeypatch.setattr(daily, "fetch_numeric_series", fake_fetch)
     monkeypatch.setattr(daily, "fetch_text_series", fake_text)
+    monkeypatch.setattr(
+        daily, "fetch_observation_stats", lambda *_: (3, start, end)
+    )
     monkeypatch.setattr(daily, "fetch_snow_state_as_of", lambda *_: "snow_cleared")
     result = daily.build_daily_snapshot(object(), config, resolved, date(2026, 1, 1))
     assert result["mode"] == "read_only_dry_run"
@@ -97,3 +100,5 @@ def test_build_daily_snapshot_is_read_only_and_uses_canonical_conversions(monkey
     }
     assert result["load"]["energy_kwh"] == 12
     assert result["balance"]["pv_load_ratio"] == 1
+    assert result["battery"]["quality"] == "insufficient_data"
+    assert len(result["source_quality"]) == len(required)

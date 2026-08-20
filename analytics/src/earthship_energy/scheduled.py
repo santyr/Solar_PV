@@ -20,6 +20,7 @@ from .config import load_source_config
 from .db import connect_read_only, connect_write, parse_openhab_jdbc_config
 from .forecasts import persist_forecast_snapshots, snapshots_from_openhab_detail
 from .inventory import fetch_inventory, resolve_sources
+from .reader import ITEM_TABLE
 
 
 SEVERITIES = ("Routine", "Interesting", "Actionable", "Critical electrical condition")
@@ -59,6 +60,7 @@ def build_quality_report(
     now: datetime,
     timezone_name: str,
     sources_ok: bool,
+    live_sources_ok: bool = True,
     latest_aggregate: date | None,
     latest_forecast_issued: datetime | None,
 ) -> dict[str, object]:
@@ -68,6 +70,11 @@ def build_quality_report(
         "severity": "Routine" if sources_ok else "Actionable",
         "ok": sources_ok,
     }]
+    checks.append({
+        "name": "live_source_health",
+        "severity": "Routine" if live_sources_ok else "Actionable",
+        "ok": live_sources_ok,
+    })
     aggregate_ok = latest_aggregate is not None and latest_aggregate >= yesterday
     checks.append({
         "name": "daily_aggregate",
@@ -214,20 +221,83 @@ def fetch_openhab_forecast_detail() -> dict[str, object]:
     return payload
 
 
-def read_quality_state(jdbc_config: str) -> tuple[bool, date | None, datetime | None]:
+def current_health_status(
+    policy: str,
+    raw_value: str,
+    now: datetime,
+    stale_after_seconds: int | None,
+) -> bool:
+    if policy == "status_must_equal_OK":
+        return raw_value.strip().upper() == "OK"
+    if policy == "numeric_must_equal_1":
+        try:
+            return float(raw_value) == 1.0
+        except ValueError:
+            return False
+    if policy == "timestamp_threshold":
+        if stale_after_seconds is None:
+            return False
+        try:
+            reported_at = datetime.fromisoformat(raw_value)
+        except ValueError:
+            return False
+        if reported_at.tzinfo is None or reported_at.utcoffset() is None:
+            return False
+        age = (now - reported_at).total_seconds()
+        return 0 <= age <= stale_after_seconds
+    return False
+
+
+def _live_sources_ok(connection, config, resolved, now: datetime) -> bool:
+    definitions = {source.canonical_name: source for source in config.sources}
+    required = [source for source in resolved if source.required]
+    if not required or any(source.freshness_table_name is None for source in required):
+        return False
+    for source in required:
+        if not ITEM_TABLE.fullmatch(source.freshness_table_name):
+            return False
+        with connection.cursor() as cursor:
+            cursor.execute(
+                f"SELECT value FROM public.{source.freshness_table_name} "
+                "WHERE time <= %s ORDER BY time DESC LIMIT 1",
+                (now,),
+            )
+            row = cursor.fetchone()
+        definition = definitions[source.canonical_name]
+        if row is None or not current_health_status(
+            definition.stale_policy, str(row[0]), now,
+            definition.stale_after_seconds,
+        ):
+            return False
+    return True
+
+
+def read_quality_state(
+    jdbc_config: str, now: datetime
+) -> tuple[bool, bool, date | None, datetime | None]:
     settings = parse_openhab_jdbc_config(jdbc_config)
     connection = connect_read_only(settings)
     try:
         items, tables = fetch_inventory(connection)
-        resolve_sources(load_source_config(), items, tables)
+        config = load_source_config()
+        resolved = resolve_sources(config, items, tables)
+        live_sources_ok = _live_sources_ok(connection, config, resolved, now)
         with connection.cursor() as cursor:
-            cursor.execute("SELECT max(local_date) FROM energy_analytics.daily_battery")
+            cursor.execute(
+                """SELECT max(b.local_date)
+                   FROM energy_analytics.daily_battery b
+                   JOIN energy_analytics.daily_pv p USING (local_date, epoch_id)
+                   JOIN energy_analytics.daily_load l USING (local_date, epoch_id)
+                   JOIN energy_analytics.daily_weather w USING (local_date, epoch_id)
+                   WHERE b.quality = 'ok' AND p.quality = 'ok'
+                     AND l.quality = 'ok' AND w.quality = 'ok'"""
+            )
             latest_aggregate = cursor.fetchone()[0]
             cursor.execute("SELECT max(issued_at) FROM energy_analytics.forecast_snapshots")
             latest_forecast = cursor.fetchone()[0]
     finally:
         connection.close()
-    return True, latest_aggregate, latest_forecast
+    return True, live_sources_ok, latest_aggregate, latest_forecast
 
 
 def archive_is_readable(path: str | Path) -> bool:
@@ -316,13 +386,14 @@ def main(argv: list[str] | None = None) -> int:
         ])
     if args.command == "data-quality":
         now = utc_now()
-        sources_ok, latest_aggregate, latest_forecast = read_quality_state(
-            args.jdbc_config
+        sources_ok, live_sources_ok, latest_aggregate, latest_forecast = read_quality_state(
+            args.jdbc_config, now
         )
         result = build_quality_report(
             now=now,
             timezone_name=args.timezone,
             sources_ok=sources_ok,
+            live_sources_ok=live_sources_ok,
             latest_aggregate=latest_aggregate,
             latest_forecast_issued=latest_forecast,
         )

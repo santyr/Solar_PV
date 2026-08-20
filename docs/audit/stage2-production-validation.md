@@ -26,11 +26,16 @@ not host-loss recovery.
 - migration `0001_energy_analytics`, checksum
   `b0931c39963b12c6dd4fa5014d58c1abd790794a64c4c150d7d094758d027dd5`;
 - post-apply dry run: no pending migrations;
-- reference rows: 15 metric sources and 3 system epochs;
+- reference rows: 21 metric sources and 3 system epochs;
 - bounded canary: 2026-08-19 matched the independent MPPT daily counter to
   about 0.04 percent (7.388 versus 7.385 kWh);
 - current epoch backfill: 32 dates, 2026-07-19 through 2026-08-19;
 - aggregate rows: 32 each in daily battery, PV, load, and weather;
+- source-quality rows after gap closure: 672 across all 21 sources and all 32
+  dates; 416 companion-verified `ok`, 256 optional/uncompanionized
+  `freshness_unverified`;
+- aggregate quality after rebuild: battery, PV, load, and weather all `ok` on
+  all 32 dates;
 - PV: 225.911 kWh; load: 180.246 kWh;
 - battery throughput: 97.958 kWh charge and 92.852 kWh discharge;
 - equivalent full cycles: 4.6585 using 20.48 kWh nominal usable capacity;
@@ -43,7 +48,7 @@ SOC 75 times, one comparison disagreed, and the power/SOC-delta correlation was
 
 ## Quality and regression checks
 
-- unit and contract tests: 68 passed;
+- unit and contract tests after gap closure: 114 passed;
 - static Python check: clean;
 - OpenHAB service: active throughout migration and backfill;
 - REST Item inventory remained readable;
@@ -55,15 +60,19 @@ SOC 75 times, one comparison disagreed, and the power/SOC-delta correlation was
   registry.
 
 OpenHAB's `everyChange` persistence deliberately produces long intervals for
-unchanged values. The daily data is plausible and dense on power channels, but
-historical freshness/status companions must remain part of publication review.
-This limitation is explicit in the runbook and must not be converted into
-false zeroes or false certainty.
+unchanged values. Gap closure therefore does not infer health from raw sample
+cadence. Each daily run writes all 21 `daily_source_quality` rows with raw
+row-count/first/last evidence and coverage authorized by explicit persisted
+companions. Required daily domains use BMS communications/device-present,
+Schneider update clocks, and `WeatherData_HealthStatus`; their aggregate
+quality is downgraded when companion coverage is insufficient. Optional
+sources without a validated companion remain `freshness_unverified`.
 
 ## Remaining handoffs
 
-Stage 3 may now expose stable read-only analytics contracts and link/persist the
-Philips illuminance and occupancy channels. Shade and kiva inference remain
-confidence-bearing observations requiring winter/operator validation. Stage 5
-must add recurring daily materialization, reports, backup verification, and a
-real separately mounted or off-host backup target.
+Stage 3 may now expose stable read-only analytics contracts. Philips
+illuminance, occupancy, and temperature are linked and persisted. Shade and
+kiva inference remain confidence-bearing observations requiring
+winter/operator validation. Recurring daily materialization, reports, and
+backup verification are deployed. A real separately mounted or off-host
+backup target still requires operator input.

@@ -8,7 +8,7 @@ change an OpenHAB Item, or control hardware.
 
 | Unit | Cadence | Purpose | Inputs | Outputs | Invokes Codex? | Severity handling | Manual run |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `energy-data-quality` | hourly at :20 | Check source inventory, previous-day aggregate, forecast age | JDBC config, source contract | structured journal JSON; actionable pending event | No | Routine / Interesting / Actionable | `systemctl --user start energy-data-quality.service` |
+| `energy-data-quality` | hourly at :20 | Check source inventory, current required-source health, previous-day quality-approved aggregate, forecast age | JDBC config, source contract and freshness companions | structured journal JSON; actionable pending event | No | Routine / Interesting / Actionable | `systemctl --user start energy-data-quality.service` |
 | `energy-forecast-snapshot` | every 2 hours at :10 | Preserve the current additive OpenHAB forecast with issue/valid timestamps | `Forecast_10Day_JSON`, JDBC config | deduplicated `forecast_snapshots` rows | No | nonzero exit on malformed/unavailable input | `systemctl --user start energy-forecast-snapshot.service` |
 | `energy-daily-aggregate` | 00:20 local | Idempotently materialize the previous local day | raw JDBC history, source/epoch contracts | four daily tables plus source quality | No | nonzero exit; pending migrations refuse the run | `systemctl --user start energy-daily-aggregate.service` |
 | `energy-backup-check` | Sunday 03:30 | Check restore evidence freshness and archive readability | verified backup manifest/archive | structured result; actionable pending event | No | current same-host-only backup remains Actionable | `systemctl --user start energy-backup-check.service` |
@@ -18,6 +18,13 @@ The existing `openhab-sanity.timer` continues to own ten-minute live Item,
 rule, algorithm, and persistence health. The existing `forecast-json.timer`
 continues to refresh the OpenHAB/UI forecast every two hours. The analytics
 snapshot runs afterward and does not replace either job.
+
+The hourly health check resolves every required source and its persisted
+companion. BMS status/device-present states must be healthy, Schneider update
+timestamps must be no more than 120 seconds old, and the weather health state
+must be `OK`. A missing companion, invalid timestamp, stale update, or
+non-healthy state is Actionable. The daily aggregate checkpoint only advances
+when battery, PV, load, and weather rows all have `quality=ok`.
 
 ## Installation and status
 

@@ -92,8 +92,13 @@ prints row count, byte count, and SHA-256 for provenance.
   over the current data explicitly returns `insufficient_winter_observations`;
   summer scenarios must not be presented as winter evidence.
 - OpenHAB persists on `everyChange`. Long gaps for unchanged state are expected;
-  freshness/status companion Items and live health remain part of publication
-  review until historical source-quality materialization is complete.
+  each daily run now materializes raw row counts, first/last observations,
+  explicit companion-authorized coverage, stale intervals, and policy evidence
+  in `daily_source_quality`. Required battery, Schneider, and weather products
+  are downgraded unless their configured BMS/device/timestamp/health companion
+  authorizes the interval. Sources without an explicit companion remain
+  `freshness_unverified`; a raw value carried across a day cannot authorize
+  publication by itself.
 - Curtailment and lost-harvest estimates remain unavailable.
 - Philips illuminance, occupancy, and temperature Items are linked, persisted,
   and present in the current 21-source provenance contract; inference remains

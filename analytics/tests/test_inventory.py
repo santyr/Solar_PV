@@ -27,10 +27,25 @@ def test_item_table_name_is_zero_padded_and_rejects_invalid_ids():
 
 
 def test_resolves_item_names_to_existing_tables():
-    config = config_for(minimal_source())
-    result = resolve_sources(config, [(550, "BMS_SOC")], {"item0550"})
+    source = minimal_source()
+    source["freshness_item"] = "BMS_Comms_Status"
+    config = config_for(source)
+    result = resolve_sources(
+        config,
+        [(550, "BMS_SOC"), (551, "BMS_Comms_Status")],
+        {"item0550", "item0551"},
+    )
     assert result[0].table_name == "item0550"
+    assert result[0].freshness_table_name == "item0551"
     assert result[0].status == "ok"
+
+
+def test_missing_required_freshness_companion_fails_closed():
+    source = minimal_source()
+    source["freshness_item"] = "BMS_Comms_Status"
+    config = config_for(source)
+    with pytest.raises(SourceResolutionError, match="freshness Item missing"):
+        resolve_sources(config, [(550, "BMS_SOC")], {"item0550"})
 
 
 def test_missing_required_source_fails_closed():
