@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "timezone": "America/Denver",
+  "epochs": [
+    {
+      "id": "agm_historical",
+      "start_local_date": null,
+      "end_local_date_exclusive": "2026-07-14",
+      "current_analytics": false,
+      "battery": "16 Fullriver AGM batteries, retired",
+      "quality": "historical_only"
+    },
+    {
+      "id": "discover_commissioning_transition",
+      "start_local_date": "2026-07-14",
+      "end_local_date_exclusive": "2026-07-19",
+      "current_analytics": false,
+      "battery": "Discover commissioning and transition to full bank",
+      "quality": "transition_days_excluded_from_baseline"
+    },
+    {
+      "id": "discover_4_module_2026",
+      "start_local_date": "2026-07-19",
+      "end_local_date_exclusive": null,
+      "current_analytics": true,
+      "battery": "4 x Discover AES Rackmount 48-48-5120 in parallel",
+      "nominal_capacity_ah": 400.0,
+      "nominal_usable_kwh": 20.48,
+      "power_electronics": "Schneider XW Pro 6848 and MPPT 60-150",
+      "pv_array": "12 x Qcells 350 W, 4.2 kW DC",
+      "pv_inverter_mppt_installed": "2021-08-06"
+    }
+  ]
+}
