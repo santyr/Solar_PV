@@ -21,6 +21,9 @@ PYTHONPATH=src python3 -m earthship_energy.cli aggregate --date 2026-08-19 --dry
 PYTHONPATH=src python3 -m earthship_energy.cli report monthly --format json
 PYTHONPATH=src python3 -m earthship_energy.cli report lifecycle --format json
 PYTHONPATH=src python3 -m earthship_energy.cli report winter --format json
+PYTHONPATH=src python3 -m earthship_energy.cli report modules --format json
+PYTHONPATH=src python3 -m earthship_energy.cli import-lynk \
+  --file /protected/operator-export.csv --dry-run
 ```
 
 Daily writes are idempotent and confined to `energy_analytics`. Migration and
@@ -28,6 +31,21 @@ the initial bounded backfill require the verified backup manifest documented in
 `recovery-and-backup.md`. Recurring aggregation first verifies that no schema
 migration is pending, then updates only compact analytics rows; it does not
 rehash the migration backup. Raw `public.itemNNNN` history is read-only.
+
+The winter report uses November through March rows only. It includes observed
+minimum-SOC median and fifth percentile, reserve-threshold day counts,
+consecutive no-full days, the worst contiguous PV deficit and time to the next
+99% recharge, required 100/90/80/70/60% capacity scenarios, and an explicit
+PV-versus-storage matrix. A window with no winter rows returns no simulated
+winter evidence.
+
+`import-lynk --dry-run` validates the complete UTF-8 CSV and reports its
+SHA-256 without writing. After review, repeat with `--apply`; the command
+refuses pending schema migrations and inserts the batch and all module samples
+in one transaction. A byte-identical export is a successful write-free
+duplicate. `report modules` then reports per-module current-sharing
+deviation, cell spread, temperature, throughput deltas, faults, and exact
+import-batch provenance.
 
 ## Current limitations
 
@@ -38,7 +56,8 @@ rehash the migration backup. Raw `public.itemNNNN` history is read-only.
   freshness/status companion Items and live health remain part of publication
   review until historical source-quality materialization is complete.
 - Curtailment and lost-harvest estimates remain unavailable.
-- Philips illuminance/occupancy Items and shade inference remain Stage 3 work.
+- Philips illuminance/occupancy Items are now linked and persisted; inference
+  remains Stage 3 work and must begin observationally.
 
 Never mix retired AGM SOC estimates or dormant miner signals into Discover-bank
 analysis.

@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import argparse
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, time, timedelta
 import json
 from pathlib import Path
 import sys
+from zoneinfo import ZoneInfo
 
 from .config import ConfigError, load_source_config
 from .daily import build_daily_snapshot
@@ -17,6 +18,11 @@ from .db import (
     parse_openhab_jdbc_config,
 )
 from .inventory import SourceResolutionError, fetch_inventory, resolve_sources
+from .imports import (
+    fetch_existing_import_hashes,
+    persist_lynk_import,
+    prepare_lynk_import,
+)
 from .materialize import (
     EpochConfigError,
     load_epoch_config,
@@ -33,11 +39,17 @@ from .migrations import (
     load_verified_backup_manifest,
     plan_migrations,
 )
-from .report_reader import fetch_daily_report_rows
-from .reports import lifecycle_report, monthly_report, winter_report
+from .report_reader import fetch_daily_report_rows, fetch_module_report_rows
+from .reports import (
+    lifecycle_report,
+    module_health_report,
+    monthly_report,
+    winter_report,
+)
 
 
 DEFAULT_JDBC_CONFIG = "/var/lib/openhab/config/org/openhab/jdbc.config"
+REPORT_TIMEZONE = ZoneInfo("America/Denver")
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -73,13 +85,20 @@ def _parser() -> argparse.ArgumentParser:
     aggregate_mode.add_argument("--apply", action="store_true")
     aggregate.add_argument("--backup-manifest", type=Path)
     report = subparsers.add_parser("report")
-    report.add_argument("kind", choices=("monthly", "winter", "lifecycle"))
+    report.add_argument("kind", choices=("monthly", "winter", "lifecycle", "modules"))
     report.add_argument("--start")
     report.add_argument("--end", help="Exclusive local end date")
     report.add_argument("--epoch")
     report.add_argument("--epochs", type=Path)
     report.add_argument("--jdbc-config", default=DEFAULT_JDBC_CONFIG, type=Path)
     report.add_argument("--format", choices=("json", "markdown"), default="json")
+    lynk = subparsers.add_parser("import-lynk")
+    lynk.add_argument("--file", required=True, type=Path)
+    lynk.add_argument("--source-name")
+    lynk.add_argument("--jdbc-config", default=DEFAULT_JDBC_CONFIG, type=Path)
+    lynk_mode = lynk.add_mutually_exclusive_group(required=True)
+    lynk_mode.add_argument("--dry-run", action="store_true")
+    lynk_mode.add_argument("--apply", action="store_true")
     return parser
 
 
@@ -239,13 +258,23 @@ def _report(args) -> int:
     settings = parse_openhab_jdbc_config(args.jdbc_config)
     connection = connect_read_only(settings)
     try:
-        rows = fetch_daily_report_rows(connection, epoch.epoch_id, start, end)
+        if args.kind == "modules":
+            rows = fetch_module_report_rows(
+                connection,
+                datetime.combine(start, time.min, tzinfo=REPORT_TIMEZONE),
+                datetime.combine(end, time.min, tzinfo=REPORT_TIMEZONE),
+            )
+        else:
+            rows = fetch_daily_report_rows(connection, epoch.epoch_id, start, end)
     finally:
         connection.close()
     if args.kind == "monthly":
         payload = monthly_report(rows, epoch_id=epoch.epoch_id)
     elif args.kind == "lifecycle":
         payload = lifecycle_report(rows)
+        payload["epoch_id"] = epoch.epoch_id
+    elif args.kind == "modules":
+        payload = module_health_report(rows)
         payload["epoch_id"] = epoch.epoch_id
     else:
         if epoch.nominal_usable_kwh is None:
@@ -267,6 +296,48 @@ def _report(args) -> int:
     return 0
 
 
+def _import_lynk(args) -> int:
+    try:
+        content = args.file.read_bytes()
+    except OSError as exc:
+        raise ValueError(f"cannot read LYNK CSV: {exc}") from exc
+    settings = parse_openhab_jdbc_config(args.jdbc_config)
+    connection_factory = connect_write if args.apply else connect_read_only
+    try:
+        connection = connection_factory(settings)
+    except Exception as exc:
+        raise DatabaseConfigError(
+            f"database connection failed ({type(exc).__name__})"
+        ) from exc
+    try:
+        if args.apply:
+            pending = plan_migrations(
+                discover_migrations(), get_applied_migrations(connection)
+            )
+            if pending:
+                raise MigrationDriftError(
+                    "pending migrations must be applied before LYNK import"
+                )
+        existing = fetch_existing_import_hashes(connection)
+        source_name = args.source_name or args.file.name
+        batch = prepare_lynk_import(content, source_name, existing)
+        if args.apply:
+            result = persist_lynk_import(connection, batch)
+            result["mode"] = "materialized"
+        else:
+            result = {
+                "status": batch.status,
+                "mode": "dry_run",
+                "source_name": source_name,
+                "sha256": batch.sha256,
+                "rows": len(batch.rows),
+            }
+    finally:
+        connection.close()
+    _print(result)
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     try:
@@ -280,6 +351,8 @@ def main(argv: list[str] | None = None) -> int:
             return _aggregate(args)
         if args.command == "report":
             return _report(args)
+        if args.command == "import-lynk":
+            return _import_lynk(args)
     except (
         BackupGateError,
         ConfigError,

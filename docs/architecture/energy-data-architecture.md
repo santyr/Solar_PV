@@ -45,10 +45,13 @@ tables dynamically, materializes compact daily battery/PV/load/weather rows,
 and produces monthly, lifecycle, and winter-scenario JSON or Markdown reports.
 The first current-epoch backfill covers 2026-07-19 through 2026-08-19.
 
-Forecast capture, LYNK file ingestion, event contracts, portable feature
-exports, and scenario math have test-backed library contracts. Stage 3 owns
-stable UI-facing OpenHAB Items and the Philips sensor links. Stage 5 owns
-scheduling and separately mounted/off-host backups.
+Forecast capture and scenario math are deployed. LYNK file ingestion now has
+an idempotent dry-run/apply CLI and a provenance-preserving module-health
+report; it does not touch the closed-loop battery network. Event contracts and
+portable feature exports currently remain test-backed library surfaces rather
+than complete operator CLI workflows. Stage 3 owns the stable UI-facing
+OpenHAB analytics contract; its Philips observation Items are linked and
+persisted. Stage 5 owns scheduling and separately mounted/off-host backups.
 
 Dormant miner data and AGM-derived SOC calculations are excluded from the
 active model. Historical rows may be retained with provenance and a historical

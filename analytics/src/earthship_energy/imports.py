@@ -8,6 +8,8 @@ from datetime import datetime, timezone
 import hashlib
 import io
 
+from psycopg2.extras import Json
+
 
 class ImportError(ValueError):
     pass
@@ -113,3 +115,65 @@ def prepare_lynk_import(
     if not rows:
         raise ImportError("LYNK CSV contains no samples")
     return LynkImportBatch(sha256, source_name, "ready", tuple(rows))
+
+
+def fetch_existing_import_hashes(connection) -> set[str]:
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT sha256 FROM energy_analytics.lynk_import_batches")
+        return {str(row[0]) for row in cursor.fetchall()}
+
+
+def persist_lynk_import(connection, batch: LynkImportBatch) -> dict[str, object]:
+    if batch.status == "duplicate":
+        return {
+            "status": "duplicate",
+            "batch_id": None,
+            "rows": 0,
+            "sha256": batch.sha256,
+        }
+    if batch.status != "ready":
+        raise ImportError(f"unsupported import status: {batch.status}")
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """INSERT INTO energy_analytics.lynk_import_batches
+                   (sha256, source_name, row_count)
+                   VALUES (%s, %s, %s)
+                   ON CONFLICT (sha256) DO NOTHING
+                   RETURNING batch_id""",
+                (batch.sha256, batch.source_name, len(batch.rows)),
+            )
+            inserted = cursor.fetchone()
+            if inserted is None:
+                connection.commit()
+                return {
+                    "status": "duplicate",
+                    "batch_id": None,
+                    "rows": 0,
+                    "sha256": batch.sha256,
+                }
+            batch_id = int(inserted[0])
+            for row in batch.rows:
+                cursor.execute(
+                    """INSERT INTO energy_analytics.battery_module_samples
+                       (batch_id, module_id, sampled_at, soc_pct, voltage_v,
+                        current_a, temperature_c, cell_spread_mv, charge_kwh,
+                        discharge_kwh, faults)
+                       VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+                    (
+                        batch_id, row.module_id, row.sampled_at, row.soc_pct,
+                        row.voltage_v, row.current_a, row.temperature_c,
+                        row.cell_spread_mv, row.charge_kwh, row.discharge_kwh,
+                        Json(list(row.faults)),
+                    ),
+                )
+        connection.commit()
+    except Exception:
+        connection.rollback()
+        raise
+    return {
+        "status": "imported",
+        "batch_id": batch_id,
+        "rows": len(batch.rows),
+        "sha256": batch.sha256,
+    }

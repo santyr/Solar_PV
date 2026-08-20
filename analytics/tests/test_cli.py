@@ -219,3 +219,80 @@ def test_report_reads_compact_products_and_prints_json(monkeypatch, capsys):
     output = json.loads(capsys.readouterr().out)
     assert output["report"] == "monthly"
     assert output["metrics"]["pv_kwh"] == 7
+
+
+def test_module_report_uses_bounded_module_reader(monkeypatch, capsys):
+    class Connection:
+        def close(self):
+            pass
+
+    captured = []
+    monkeypatch.setattr(cli, "parse_openhab_jdbc_config", lambda _: object())
+    monkeypatch.setattr(cli, "connect_read_only", lambda _: Connection())
+    monkeypatch.setattr(
+        cli, "fetch_module_report_rows",
+        lambda _connection, start, end: captured.append((start, end)) or [],
+    )
+    assert cli.main([
+        "report", "modules", "--start", "2026-08-01", "--end", "2026-09-01",
+        "--epoch", "discover_4_module_2026", "--format", "json",
+    ]) == 0
+    output = json.loads(capsys.readouterr().out)
+    assert output["report"] == "module_health"
+    assert output["status"] == "unavailable"
+    assert output["epoch_id"] == "discover_4_module_2026"
+    assert captured[0][0].isoformat() == "2026-08-01T00:00:00-06:00"
+    assert captured[0][1].isoformat() == "2026-09-01T00:00:00-06:00"
+
+
+def test_lynk_import_dry_run_is_write_free(tmp_path, monkeypatch, capsys):
+    source = tmp_path / "lynk.csv"
+    source.write_bytes(b"module csv")
+
+    class Connection:
+        def close(self):
+            pass
+
+    monkeypatch.setattr(cli, "parse_openhab_jdbc_config", lambda _: object())
+    monkeypatch.setattr(cli, "connect_read_only", lambda _: Connection())
+    monkeypatch.setattr(cli, "fetch_existing_import_hashes", lambda _: set())
+    batch = type("Batch", (), {
+        "status": "ready", "sha256": "a" * 64, "rows": (1, 2),
+    })()
+    monkeypatch.setattr(cli, "prepare_lynk_import", lambda *_: batch)
+    assert cli.main(["import-lynk", "--file", str(source), "--dry-run"]) == 0
+    output = json.loads(capsys.readouterr().out)
+    assert output == {
+        "mode": "dry_run", "rows": 2, "sha256": "a" * 64,
+        "source_name": "lynk.csv", "status": "ready",
+    }
+
+
+def test_lynk_import_apply_persists_with_current_schema(tmp_path, monkeypatch, capsys):
+    source = tmp_path / "lynk.csv"
+    source.write_bytes(b"module csv")
+    calls = []
+
+    class Connection:
+        def close(self):
+            calls.append("close")
+
+    monkeypatch.setattr(cli, "parse_openhab_jdbc_config", lambda _: object())
+    monkeypatch.setattr(cli, "connect_write", lambda _: Connection())
+    monkeypatch.setattr(cli, "discover_migrations", lambda: [object()])
+    monkeypatch.setattr(cli, "get_applied_migrations", lambda _: {1: "sha"})
+    monkeypatch.setattr(cli, "plan_migrations", lambda *_: [])
+    monkeypatch.setattr(cli, "fetch_existing_import_hashes", lambda _: set())
+    batch = type("Batch", (), {
+        "status": "ready", "sha256": "b" * 64, "rows": (1,),
+    })()
+    monkeypatch.setattr(cli, "prepare_lynk_import", lambda *_: batch)
+    monkeypatch.setattr(
+        cli, "persist_lynk_import",
+        lambda *_: {"status": "imported", "batch_id": 7, "rows": 1, "sha256": "b" * 64},
+    )
+    assert cli.main(["import-lynk", "--file", str(source), "--apply"]) == 0
+    output = json.loads(capsys.readouterr().out)
+    assert output["mode"] == "materialized"
+    assert output["batch_id"] == 7
+    assert calls == ["close"]

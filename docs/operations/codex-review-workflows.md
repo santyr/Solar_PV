@@ -27,6 +27,7 @@ python3 -m earthship_energy.cli validate-sources --read-only
 python3 -m earthship_energy.cli report monthly --format json
 python3 -m earthship_energy.cli report winter --format json
 python3 -m earthship_energy.cli report lifecycle --format json
+python3 -m earthship_energy.cli report modules --format json
 ```
 
 - **Monthly energy review:** cite the private monthly report path and SHA-256,
@@ -36,6 +37,9 @@ python3 -m earthship_energy.cli report lifecycle --format json
   `insufficient_winter_observations` as the conclusion until they exist.
 - **Lifecycle review:** use analytics EFC and recharge completeness rather
   than Schneider's cycle counter alone.
+- **Module review:** use the checksum-pinned LYNK batch provenance and report
+  current-sharing, cell-spread, temperature, throughput, and fault trends;
+  never probe or modify the closed-loop battery network for telemetry.
 - **Scenario review:** preserve observed inputs, state assumptions explicitly,
   and compare 100/90/80/70/60% usable SOH plus PV/storage alternatives.
 - **Anomaly review:** start from a structured pending event, reproduce its
