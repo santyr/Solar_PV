@@ -73,3 +73,11 @@ def connect_read_only(settings: JdbcSettings):
     connection = psycopg2.connect(**settings.connect_kwargs)
     connection.set_session(readonly=True, autocommit=True)
     return connection
+
+
+def connect_write(settings: JdbcSettings):
+    import psycopg2
+
+    connection = psycopg2.connect(**settings.connect_kwargs)
+    connection.set_session(readonly=False, autocommit=False)
+    return connection

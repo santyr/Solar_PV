@@ -8,8 +8,22 @@ from pathlib import Path
 import sys
 
 from .config import ConfigError, load_source_config
-from .db import DatabaseConfigError, connect_read_only, parse_openhab_jdbc_config
+from .db import (
+    DatabaseConfigError,
+    connect_read_only,
+    connect_write,
+    parse_openhab_jdbc_config,
+)
 from .inventory import SourceResolutionError, fetch_inventory, resolve_sources
+from .migrations import (
+    BackupGateError,
+    MigrationDriftError,
+    apply_migrations,
+    discover_migrations,
+    get_applied_migrations,
+    load_verified_backup_manifest,
+    plan_migrations,
+)
 
 
 DEFAULT_JDBC_CONFIG = "/var/lib/openhab/config/org/openhab/jdbc.config"
@@ -31,6 +45,13 @@ def _parser() -> argparse.ArgumentParser:
             action="store_true",
             help="Compatibility flag; inventory commands are always read-only.",
         )
+    migrate = subparsers.add_parser("migrate")
+    migrate.add_argument("--migrations", type=Path)
+    migrate.add_argument("--jdbc-config", default=DEFAULT_JDBC_CONFIG, type=Path)
+    mode = migrate.add_mutually_exclusive_group()
+    mode.add_argument("--dry-run", action="store_true")
+    mode.add_argument("--apply", action="store_true")
+    migrate.add_argument("--backup-manifest", type=Path)
     return parser
 
 
@@ -79,6 +100,44 @@ def _validate_sources(config_path: Path | None, jdbc_path: Path) -> int:
     return 0
 
 
+def _migrate(args) -> int:
+    settings = parse_openhab_jdbc_config(args.jdbc_config)
+    migrations = discover_migrations(args.migrations)
+    if args.apply:
+        if args.backup_manifest is None:
+            raise BackupGateError("--backup-manifest is required with --apply")
+        load_verified_backup_manifest(args.backup_manifest, settings.dbname)
+        connection_factory = connect_write
+        mode = "apply"
+    else:
+        connection_factory = connect_read_only
+        mode = "dry_run"
+    try:
+        connection = connection_factory(settings)
+    except Exception as exc:
+        raise DatabaseConfigError(
+            f"database connection failed ({type(exc).__name__})"
+        ) from exc
+    try:
+        applied = get_applied_migrations(connection)
+        pending = plan_migrations(migrations, applied)
+        applied_now = apply_migrations(connection, pending) if args.apply else []
+    finally:
+        close = getattr(connection, "close", None)
+        if close is not None:
+            close()
+    _print(
+        {
+            "status": "ok",
+            "mode": mode,
+            "database": settings.safe_summary(),
+            "pending": [migration.as_dict() for migration in pending],
+            "applied_now": applied_now,
+        }
+    )
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     try:
@@ -86,7 +145,16 @@ def main(argv: list[str] | None = None) -> int:
             return _validate_config(args.config)
         if args.command in {"validate-sources", "inventory"}:
             return _validate_sources(args.config, args.jdbc_config)
-    except (ConfigError, DatabaseConfigError, SourceResolutionError) as exc:
+        if args.command == "migrate":
+            return _migrate(args)
+    except (
+        BackupGateError,
+        ConfigError,
+        DatabaseConfigError,
+        MigrationDriftError,
+        SourceResolutionError,
+        ValueError,
+    ) as exc:
         print(f"energy-data: {exc}", file=sys.stderr)
         return 2
     raise AssertionError(f"unhandled command: {args.command}")
