@@ -27,6 +27,10 @@ PYTHONPATH=src python3 -m earthship_energy.cli import-lynk \
 PYTHONPATH=src python3 -m earthship_energy.cli record-snow \
   --state snow_cleared --occurred-at 2026-12-01T10:30:00-07:00 \
   --method operator --confidence 1.0 --note "array cleared" --dry-run
+PYTHONPATH=src python3 -m earthship_energy.cli export-features \
+  --start 2026-08-01T00:00:00-06:00 \
+  --end 2026-08-02T00:00:00-06:00 \
+  --cadence 15 --output /protected/energy-features-2026-08-01.csv
 ```
 
 Daily writes are idempotent and confined to `energy_analytics`. Migration and
@@ -57,6 +61,16 @@ to `energy_analytics.snow_events`; it has no OpenHAB or electrical-control
 authority. Inferred shade and kiva producers use the corresponding
 observational-event persistence API with method version, confidence, bounded
 evidence, and optional operator confirmation.
+
+`export-features` reads PostgreSQL without write privileges and writes a
+version-2 CSV at an explicit 5- or 15-minute cadence. Each row includes current
+and one-hour-lagged SOC/PV/load state, current outdoor temperature and
+irradiance, observed daylight, active dishwasher/pump state when available,
+the system epoch, as-of hourly weather and daily PV forecasts, and
+confidence-bearing shade/kiva observations. Forecast selection requires
+`issued_at <= at`; unavailable forecasts remain explicitly unavailable.
+Existing output is not replaced unless `--force` is supplied. The command
+prints row count, byte count, and SHA-256 for provenance.
 
 ## Current limitations
 

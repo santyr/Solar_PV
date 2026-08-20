@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 from dataclasses import asdict
 from datetime import date, datetime, time, timedelta
+import hashlib
 import json
 from pathlib import Path
 import sys
@@ -20,6 +21,8 @@ from .db import (
 )
 from .inventory import SourceResolutionError, fetch_inventory, resolve_sources
 from .events import SnowEvent, persist_snow_event
+from .export import export_feature_csv
+from .feature_reader import fetch_feature_rows
 from .imports import (
     fetch_existing_import_hashes,
     persist_lynk_import,
@@ -112,6 +115,14 @@ def _parser() -> argparse.ArgumentParser:
     snow_mode = snow.add_mutually_exclusive_group(required=True)
     snow_mode.add_argument("--dry-run", action="store_true")
     snow_mode.add_argument("--apply", action="store_true")
+    feature_export = subparsers.add_parser("export-features")
+    feature_export.add_argument("--start", required=True)
+    feature_export.add_argument("--end", required=True)
+    feature_export.add_argument("--output", required=True, type=Path)
+    feature_export.add_argument("--cadence", type=int, choices=(5, 15), default=15)
+    feature_export.add_argument("--config", type=Path)
+    feature_export.add_argument("--jdbc-config", default=DEFAULT_JDBC_CONFIG, type=Path)
+    feature_export.add_argument("--force", action="store_true")
     return parser
 
 
@@ -410,6 +421,57 @@ def _record_snow(args) -> int:
     return 0
 
 
+def _export_features(args) -> int:
+    start = _aware_datetime(args.start, "--start")
+    end = _aware_datetime(args.end, "--end")
+    if end <= start:
+        raise ValueError("--end must be after --start")
+    if args.output.exists() and not args.force:
+        raise ValueError("output exists; pass --force to replace it")
+    if not args.output.parent.is_dir():
+        raise ValueError("output parent directory does not exist")
+    config = load_source_config(args.config)
+    settings = parse_openhab_jdbc_config(args.jdbc_config)
+    try:
+        connection = connect_read_only(settings)
+    except Exception as exc:
+        raise DatabaseConfigError(
+            f"database connection failed ({type(exc).__name__})"
+        ) from exc
+    try:
+        items, tables = fetch_inventory(connection)
+        resolved = resolve_sources(config, items, tables)
+        source_tables = {
+            source.canonical_name: source.table_name
+            for source in resolved if source.table_name is not None
+        }
+        source_conversions = {
+            source.canonical_name: source.conversion
+            for source in config.sources
+        }
+        rows = fetch_feature_rows(
+            connection, source_tables, start, end,
+            cadence_minutes=args.cadence, timezone_name=config.timezone,
+            conversions=source_conversions,
+        )
+    finally:
+        connection.close()
+    content = export_feature_csv(rows, cadence_minutes=args.cadence)
+    try:
+        args.output.write_bytes(content)
+    except OSError as exc:
+        raise ValueError(f"cannot write feature export: {exc}") from exc
+    _print({
+        "status": "ok",
+        "schema_version": 2,
+        "rows": len(rows),
+        "bytes": len(content),
+        "sha256": hashlib.sha256(content).hexdigest(),
+        "output": str(args.output),
+    })
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     try:
@@ -427,6 +489,8 @@ def main(argv: list[str] | None = None) -> int:
             return _import_lynk(args)
         if args.command == "record-snow":
             return _record_snow(args)
+        if args.command == "export-features":
+            return _export_features(args)
     except (
         BackupGateError,
         ConfigError,

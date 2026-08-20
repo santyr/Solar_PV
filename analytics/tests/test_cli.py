@@ -333,3 +333,38 @@ def test_record_snow_apply_is_schema_gated(monkeypatch, capsys):
     ]) == 0
     output = json.loads(capsys.readouterr().out)
     assert output == {"event_id": 9, "mode": "materialized", "status": "inserted"}
+
+
+def test_export_features_writes_versioned_csv_from_read_only_database(
+    tmp_path, monkeypatch, capsys
+):
+    output_path = tmp_path / "features.csv"
+
+    class Connection:
+        def close(self):
+            pass
+
+    monkeypatch.setattr(cli, "parse_openhab_jdbc_config", lambda _: object())
+    monkeypatch.setattr(cli, "connect_read_only", lambda _: Connection())
+    monkeypatch.setattr(cli, "fetch_inventory", lambda _: ([], set()))
+    monkeypatch.setattr(
+        cli, "resolve_sources",
+        lambda *_: [type("Resolved", (), {
+            "canonical_name": "battery.soc_pct", "table_name": "item0001",
+        })()],
+    )
+    monkeypatch.setattr(
+        cli, "fetch_feature_rows", lambda *_args, **_kwargs: [{"at": "row"}],
+    )
+    monkeypatch.setattr(cli, "export_feature_csv", lambda *_args, **_kwargs: b"schema\nrow\n")
+    assert cli.main([
+        "export-features", "--start", "2026-08-01T00:00:00Z",
+        "--end", "2026-08-02T00:00:00Z", "--output", str(output_path),
+        "--cadence", "15",
+    ]) == 0
+    result = json.loads(capsys.readouterr().out)
+    assert result["status"] == "ok"
+    assert result["rows"] == 1
+    assert result["bytes"] == len(b"schema\nrow\n")
+    assert len(result["sha256"]) == 64
+    assert output_path.read_bytes() == b"schema\nrow\n"
