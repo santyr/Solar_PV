@@ -133,3 +133,50 @@ def test_aggregate_date_runs_read_only_dry_run(tmp_path, monkeypatch, capsys):
     output = json.loads(capsys.readouterr().out)
     assert output["local_date"] == "2026-01-02"
     assert output["mode"] == "read_only_dry_run"
+
+
+def test_aggregate_apply_requires_verified_backup(tmp_path, monkeypatch, capsys):
+    path = source_config(tmp_path)
+    rc = cli.main(["aggregate", "--date", "2026-01-02", "--config", str(path), "--apply"])
+    assert rc == 2
+    assert "backup" in capsys.readouterr().err.lower()
+
+
+def test_aggregate_apply_seeds_and_materializes(tmp_path, monkeypatch, capsys):
+    path = source_config(tmp_path)
+    manifest = tmp_path / "backup.json"
+    manifest.write_text("{}")
+    epochs_path = tmp_path / "epochs.json"
+    epochs_path.write_text("{}")
+    calls = []
+
+    class Settings:
+        dbname = "openhab"
+
+    class Connection:
+        def close(self):
+            calls.append("close")
+
+    epoch = type("Epoch", (), {"epoch_id": "current"})()
+    monkeypatch.setattr(cli, "parse_openhab_jdbc_config", lambda _: Settings())
+    monkeypatch.setattr(cli, "load_verified_backup_manifest", lambda *_: {})
+    monkeypatch.setattr(cli, "connect_write", lambda _: Connection())
+    monkeypatch.setattr(cli, "fetch_inventory", lambda _: ([], set()))
+    monkeypatch.setattr(cli, "resolve_sources", lambda *_: [])
+    monkeypatch.setattr(cli, "load_epoch_config", lambda _: (epoch,))
+    monkeypatch.setattr(cli, "select_epoch", lambda *_: epoch)
+    monkeypatch.setattr(cli, "seed_reference_data", lambda *_: calls.append("seed") or {})
+    monkeypatch.setattr(cli, "build_daily_snapshot", lambda *_: {
+        "status": "ok", "mode": "read_only_dry_run", "local_date": "2026-01-02"
+    })
+    monkeypatch.setattr(cli, "materialize_daily_snapshot", lambda *_: {
+        "tables_written": 4, "epoch_id": "current"
+    })
+    assert cli.main([
+        "aggregate", "--date", "2026-01-02", "--config", str(path),
+        "--epochs", str(epochs_path), "--apply", "--backup-manifest", str(manifest),
+    ]) == 0
+    output = json.loads(capsys.readouterr().out)
+    assert output["mode"] == "materialized"
+    assert output["tables_written"] == 4
+    assert calls == ["seed", "close"]

@@ -17,6 +17,13 @@ from .db import (
     parse_openhab_jdbc_config,
 )
 from .inventory import SourceResolutionError, fetch_inventory, resolve_sources
+from .materialize import (
+    EpochConfigError,
+    load_epoch_config,
+    materialize_daily_snapshot,
+    seed_reference_data,
+    select_epoch,
+)
 from .migrations import (
     BackupGateError,
     MigrationDriftError,
@@ -57,8 +64,12 @@ def _parser() -> argparse.ArgumentParser:
     aggregate = subparsers.add_parser("aggregate")
     aggregate.add_argument("--date", required=True)
     aggregate.add_argument("--config", type=Path)
+    aggregate.add_argument("--epochs", type=Path)
     aggregate.add_argument("--jdbc-config", default=DEFAULT_JDBC_CONFIG, type=Path)
-    aggregate.add_argument("--dry-run", action="store_true")
+    aggregate_mode = aggregate.add_mutually_exclusive_group()
+    aggregate_mode.add_argument("--dry-run", action="store_true")
+    aggregate_mode.add_argument("--apply", action="store_true")
+    aggregate.add_argument("--backup-manifest", type=Path)
     return parser
 
 
@@ -151,16 +162,23 @@ def _migrate(args) -> int:
 
 
 def _aggregate(args) -> int:
-    if not args.dry_run:
-        raise ValueError("aggregate currently requires --dry-run")
+    if not args.dry_run and not args.apply:
+        raise ValueError("aggregate requires --dry-run or --apply")
     try:
         local_date = date.fromisoformat(args.date)
     except ValueError as exc:
         raise ValueError("--date must use YYYY-MM-DD") from exc
     config = load_source_config(args.config)
     settings = parse_openhab_jdbc_config(args.jdbc_config)
+    if args.apply:
+        if args.backup_manifest is None:
+            raise BackupGateError("--backup-manifest is required with --apply")
+        load_verified_backup_manifest(args.backup_manifest, settings.dbname)
+        connection_factory = connect_write
+    else:
+        connection_factory = connect_read_only
     try:
-        connection = connect_read_only(settings)
+        connection = connection_factory(settings)
     except Exception as exc:
         raise DatabaseConfigError(
             f"database connection failed ({type(exc).__name__})"
@@ -169,11 +187,21 @@ def _aggregate(args) -> int:
         items, tables = fetch_inventory(connection)
         resolved = resolve_sources(config, items, tables)
         snapshot = build_daily_snapshot(connection, config, resolved, local_date)
+        if args.apply:
+            epochs = load_epoch_config(args.epochs)
+            epoch = select_epoch(epochs, local_date)
+            seed_reference_data(connection, config, epochs)
+            result = materialize_daily_snapshot(
+                connection, snapshot, epoch.epoch_id
+            )
+            result.update({"status": "ok", "mode": "materialized"})
+        else:
+            result = snapshot
     finally:
         close = getattr(connection, "close", None)
         if close is not None:
             close()
-    _print(snapshot)
+    _print(result)
     return 0
 
 
@@ -192,6 +220,7 @@ def main(argv: list[str] | None = None) -> int:
         BackupGateError,
         ConfigError,
         DatabaseConfigError,
+        EpochConfigError,
         MigrationDriftError,
         SourceResolutionError,
         ValueError,
