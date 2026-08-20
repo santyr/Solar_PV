@@ -1,9 +1,15 @@
 # System Defect & Battery Bank Health Analysis
+
+> **Historical only:** This report concerns the retired Fullriver AGM bank.
+> Do not apply its capacity, SOC model, charging values, or maintenance rules
+> to the Discover bank. See [AGM history](README.md) and
+> [current system](../../architecture/current-system.md).
+
 **Date:** January 3, 2026 (updated February 9, 2026)  
 **System Age:** 4 Years, 6 Months (Installed Aug 2021)  
 **Status:** **END-OF-LIFE / REPLACEMENT REQUIRED**
 
-**Canonical repo version:** https://github.com/santyr/Solar_PV/blob/main/System_Defect_Analysis.md  
+**Canonical repo version:** this historical file
 **Interactive dashboard:** https://santyr.github.io/Solar_PV/battery_dashboard.html
 
 ---
@@ -51,7 +57,7 @@ Fullriver's DC400-6 datasheet specifies (at 25 °C / 77 °F):
 - **Temperature compensation:** charge voltage should be adjusted with temperature (see datasheet for factor and basis).
 
 **Datasheet reference:**  
-- Local copy in this repo: **[Fullriver DC400-6 Datasheet (PDF)](DC400-6.pdf)**
+- Local copy in this repo: **[Fullriver DC400-6 Datasheet (PDF)](reference/fullriver-dc400-6.pdf)**
 
 ---
 
@@ -60,8 +66,8 @@ Fullriver's DC400-6 datasheet specifies (at 25 °C / 77 °F):
 ### Exhibit A: Main Conductor Splices / Junction Practices
 
 **Source files:**
-- [PXL_20220809_132948559.jpg](photos/PXL_20220809_132948559.jpg) (Exposed splice – reported 2022)
-- [PXL_20251227_151536430.jpg](photos/PXL_20251227_151536430.jpg) (Junction box splices – Dec 2025)
+- [PXL_20220809_132948559.jpg](../../../photos/PXL_20220809_132948559.jpg) (Exposed splice – reported 2022)
+- [PXL_20251227_151536430.jpg](../../../photos/PXL_20251227_151536430.jpg) (Junction box splices – Dec 2025)
 
 **Finding:** Multiple mechanical splices exist on high-current battery conductors.
 
@@ -74,7 +80,7 @@ Mechanical splices and non-ideal junction practices may increase resistance and 
 
 ### Exhibit B: Safety & Workmanship Violations
 
-**Source file:** [Terminal_Detail_Defects.jpg](photos/Terminal_Detail_Defects.jpg)
+**Source file:** [Terminal_Detail_Defects.jpg](../../../photos/Terminal_Detail_Defects.jpg)
 
 **Findings:**
 - **Unguarded live parts:** exposed terminals/lugs in a >50 V system.
@@ -93,8 +99,8 @@ Mechanical splices and non-ideal junction practices may increase resistance and 
 ### Exhibit C: Improper Commissioning (Charge Profile / Temperature Profile)
 
 **Source files:**
-1. [Commissioning_Day_One.png](photos/Commissioning_Day_One.png) (Aug 7, 2021 – first full day of operation)
-2. [Configuration_Audit_Nov2025.png](photos/Configuration_Audit_Nov2025.png) (Nov 2025 – discovery)
+1. Commissioning-day evidence in [Commissioning_Day_Zero.png](../../../photos/Commissioning_Day_Zero.png) (retained filename)
+2. [Configuration_Audit_Nov2025.png](../../../photos/Configuration_Audit_Nov2025.png) (Nov 2025 – discovery)
 3. MPPT charger telemetry CSV exports from nine dates: Aug 7/9/10 2021, Feb 1 2022, Feb 1 2023, Feb 1 2024, Feb 1 2025, Apr 11 2025, Apr 12 2025
 
 **Finding:** The system was left on Schneider XW+ factory-default charge settings at installation. Telemetry from **nine sample dates spanning 3 years and 8 months** (Aug 7, 2021 through Apr 11, 2025) confirms the absorb voltage **never once reached even the 57.6V factory-default setpoint** — let alone the Fullriver-specified 58.8V:
@@ -186,7 +192,7 @@ A spread of this magnitude indicates the bank is **chemically and electrically d
 
 ### Exhibit F: Evidence Consistent with Venting
 
-**Source file:** [Battery_Venting_Evidence.jpg](photos/Battery_Venting_Evidence.jpg)
+**Source file:** [Battery_Venting_Evidence.jpg](../../../photos/Battery_Venting_Evidence.jpg)
 
 **Finding:** discoloration/residue consistent with electrolyte mist venting.
 
@@ -199,7 +205,7 @@ Visual evidence alone is not proof, but paired with the measured high unit volta
 
 ### Exhibit G: Lifetime Battery Discharge
 
-**Source file:** [Lifetime_Energy_Use.png](photos/Lifetime_Energy_Use.png)
+**Source file:** [Lifetime_Energy_Use.png](../../../photos/Lifetime_Energy_Use.png)
 
 **Reported value:** **3.2 MWh (3,200 kWh)** lifetime discharge.
 
@@ -223,8 +229,8 @@ If the lifetime counter is correct and the capacity assumption is correct, the b
 ### Exhibit H: Solar Production & Pass-Through
 
 **Source files:**
-- [Inverter_Performance_History.png](photos/Inverter_Performance_History.png)
-- [Solar_Production_History.png](photos/Solar_Production_History.png)
+- [Inverter_Performance_History.png](../../../photos/Inverter_Performance_History.png)
+- [Solar_Production_History.png](../../../photos/Solar_Production_History.png)
 
 **Finding (reported):** total solar harvested ~8.8 MWh; apparent net surplus.
 
@@ -235,7 +241,7 @@ The system does not appear supply-starved. The failure mode is more consistent w
 
 ### Exhibit I: Diagnostic Intervention (Safety Mode)
 
-**Source file:** [Safety_Mode_Response.png](photos/Safety_Mode_Response.png)
+**Source file:** [Safety_Mode_Response.png](../../../photos/Safety_Mode_Response.png)
 
 **Finding:** Applying the manufacturer-specified absorb target (58.8V) causes the bank to spike to 60V+ within minutes; lowering the absorb to ~57.4V yields smoother operation but perpetuates the chronic undercharge that caused the damage.
 
@@ -253,8 +259,8 @@ The overvoltage trajectory is worsening over time: 59.19V (Apr 2025) → 60.20V 
 **Source:** Owner manual multimeter readings (handwritten log; transcribed)
 
 **Files:**
-- Transcription (CSV): [handwritten_voltage_readings_transcribed.csv](handwritten_voltage_readings_transcribed.csv)
-- Summary stats (CSV): [handwritten_voltage_readings_stats.csv](handwritten_voltage_readings_stats.csv)
+- Transcription (CSV): [handwritten-voltage-readings-transcribed.csv](../../../data/historical/agm/handwritten-voltage-readings-transcribed.csv)
+- Summary stats (CSV): [handwritten-voltage-readings-stats.csv](../../../data/historical/agm/handwritten-voltage-readings-stats.csv)
 
 **Context:** In Dec 2025 the owner found multiple battery lugs noticeably loose and re-torqued the battery connections. The final column in the log reflects readings **after torquing**.
 
@@ -321,7 +327,7 @@ The overvoltage trajectory is worsening over time: 59.19V (Apr 2025) → 60.20V 
 **Prognosis:**
 - **Gradual path:** Bank becomes functionally inadequate (cannot reliably cover overnight) within **2–4 months**. Essentially useless within 9–12 months.
 - **Sudden path (higher risk):** Any of the four failed batteries develops an internal short, dropping its series string and forcing the remaining parallel string to carry full load at twice the discharge current. This can cascade to total bank failure with no warning.
-- **Recommendation:** Execute lithium replacement (Discover AES 48-48-5120) by **Q2 2026**. See [Lithium Upgrade Plan](Discover-Lithium-Upgrade.md).
+- **Historical recommendation:** Execute lithium replacement (Discover AES 48-48-5120) by **Q2 2026**. The upgrade is complete; see the [upgrade record](../../projects/completed/discover-battery-upgrade.md).
 
 ---
 
@@ -378,6 +384,6 @@ Until imbalance is reduced and charging is validated:
 
 ## References
 
-- **Fullriver DC400-6 Datasheet (PDF):** [DC400-6.pdf](DC400-6.pdf)
+- **Fullriver DC400-6 Datasheet (PDF):** [fullriver-dc400-6.pdf](reference/fullriver-dc400-6.pdf)
 - **Battery Health Dashboard:** [battery_dashboard.html](https://santyr.github.io/Solar_PV/battery_dashboard.html)
-- **Lithium Upgrade Plan:** [Discover-Lithium-Upgrade.md](Discover-Lithium-Upgrade.md)
+- **Lithium Upgrade Record:** [discover-battery-upgrade.md](../../projects/completed/discover-battery-upgrade.md)

@@ -1,5 +1,9 @@
 # LYNK II Deployment Guide
 
+> **Status:** Completed commissioning record. Verify current live state and
+> current vendor guidance before changing configuration. See
+> [current system](../../architecture/current-system.md).
+
 ## Discover AES Rackmount → Schneider XW Pro 6848 + MPPT 60-150 (Xanbus)
 
 **References:**

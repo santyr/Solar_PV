@@ -1,8 +1,13 @@
 # openHAB Cutover Plan — Fullriver AGM → Discover AES Rackmount (Closed-Loop)
 
+> **Status:** Completed cutover record. The live Discover/OpenHAB system now
+> outranks planned steps below. See
+> [current system](../../architecture/current-system.md) and
+> [OpenHAB monitoring](../../operations/openhab-energy-monitoring.md).
+
 **Companion documents:**
-[Battery Upgrade Plan](battery-upgrade-plan-rev2.md) (hardware/BOM/layout) and
-[LYNK II Deployment Guide](lynk2-deployment-guide.md) (InsightLocal/BMS configuration).
+[Battery Upgrade Record](discover-battery-upgrade.md) (hardware/BOM/layout) and
+[LYNK II Deployment Record](lynk2-deployment.md) (InsightLocal/BMS configuration).
 This document covers only the **openHAB monitoring and automation layer** at
 `192.168.1.161` — what changes, when, and how to verify it.
 

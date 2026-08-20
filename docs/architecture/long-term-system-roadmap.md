@@ -6,9 +6,10 @@
 **Revision note:** Added Schneider product lifecycle / 2035 end-of-standard-service planning constraint.
 
 **Companion documents:**
-- [Battery Upgrade Plan](battery-upgrade-plan-rev2.md) — current Discover AES hardware design and installation record
-- [LYNK II Deployment Guide](lynk2-deployment-guide.md) — current Schneider/Discover closed-loop configuration
-- [openHAB Cutover Plan](openhab-cutover-plan.md) — monitoring and automation architecture
+- [Current system](current-system.md) — verified installed-system baseline
+- [Battery Upgrade Record](../projects/completed/discover-battery-upgrade.md) — Discover AES hardware design and installation record
+- [LYNK II Deployment Record](../projects/completed/lynk2-deployment.md) — Schneider/Discover closed-loop commissioning
+- [openHAB Cutover Record](../projects/completed/openhab-lithium-cutover.md) — monitoring and automation migration
 
 ---
 
@@ -76,7 +77,8 @@ This does **not** mean the Schneider equipment must be removed in 2035. If it re
 - Array tilt is intentionally optimized for **winter solar gain**
 - Snow is manually cleared promptly to preserve winter production
 - The array continues to produce useful energy under cloudy conditions, although at reduced power
-- Exact nameplate DC array rating should be re-verified from module records/nameplates before any future array redesign; historical repository references are not fully consistent
+- The documented working rating is **4.2 kW DC**; 4.8 kW was an unsupported later rewrite
+- Exact module nameplates and string configuration remain a field-verification item before any future array redesign
 
 ### Monitoring and automation
 

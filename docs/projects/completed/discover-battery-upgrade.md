@@ -1,8 +1,13 @@
 # Earthship Battery Upgrade — Project Plan (Rev 3)
 
+> **Status:** Completed project record. The Discover bank is installed. Planned
+> prices, open checkboxes, and pre-installation assumptions below are retained
+> as history, not current tasks. See
+> [current system](../../architecture/current-system.md).
+
 ## Discover AES Rackmount + Closed-Loop via LYNK II
 
-**Companion document:** [LYNK II Deployment Guide](lynk2-deployment-guide.md) — step-by-step software configuration for LYNK II, XW Pro 6848, and MPPT 60-150 (including all InsightLocal settings, current-vs-target values, and comms-loss fallback configuration).
+**Companion document:** [LYNK II Deployment Record](lynk2-deployment.md) — step-by-step software configuration for LYNK II, XW Pro 6848, and MPPT 60-150 (including all InsightLocal settings, current-vs-target values, and comms-loss fallback configuration).
 
 ---
 
@@ -264,8 +269,8 @@ The Lynx Power In has **4 front M8 studs** plus **1 side M8 busbar tab** per pol
 | 1:00–1:15 PM | Connect LYNK Network from Battery #4 to LYNK II | 15 min |
 | 1:15–1:30 PM | (Skip — no terminator needed; both ends internally terminated) | — |
 | 1:30–2:00 PM | Connect LYNK II CAN Out to Xanbus network (RJ45 patch cable) | 30 min |
-| 2:00–3:00 PM | Configure LYNK II via USB + LYNK ACCESS: select Schneider Electric - Xanbus protocol, save (see [Deployment Guide](lynk2-deployment-guide.md)) | 1 hr |
-| 3:00–3:30 PM | Verify on InsightLocal: Battery Bank = 400 Ah, SOC reporting active. Configure XW Pro and MPPT settings per [Deployment Guide](lynk2-deployment-guide.md) | 30 min |
+| 2:00–3:00 PM | Configure LYNK II via USB + LYNK ACCESS: select Schneider Electric - Xanbus protocol, save (see [Deployment Record](lynk2-deployment.md)) | 1 hr |
+| 3:00–3:30 PM | Verify on InsightLocal: Battery Bank = 400 Ah, SOC reporting active. Configure XW Pro and MPPT settings per [Deployment Record](lynk2-deployment.md) | 30 min |
 | 3:30–4:00 PM | Apply anti-oxidant to all connections, tidy cable management | 30 min |
 | 8:30 PM | Sunset — system fully charged and operational | — |
 
@@ -359,13 +364,13 @@ Coaldale, CO receives 260 sunny days/year and 6.4 peak sun hours/day. The 3.4-da
 
 | Document | Location / Link |
 |----------|----------------|
-| LYNK II Deployment Guide | [lynk2-deployment-guide.md](lynk2-deployment-guide.md) |
+| LYNK II Deployment Record | [lynk2-deployment.md](lynk2-deployment.md) |
 | LYNK II Installation and Operation Manual | Discover 805-0033 |
 | AES Rackmount Installation and Operation Manual | Discover 805-0043 REVD |
-| Fullriver DC400-6 Datasheet | [DC400-6.pdf](DC400-6.pdf) |
+| Fullriver DC400-6 Datasheet | [fullriver-dc400-6.pdf](../../history/agm/reference/fullriver-dc400-6.pdf) |
 | Quick Stack Rack Manual | Discover 805-0056 |
 | Schneider Modbus Maps | [solar.se.com](https://solar.se.com/us/wp-content/uploads/sites/7/2022/02/Conext-Gateway-InsightHome-InsightFacility-Modbus-Maps.zip) |
-| System Defect Analysis | [System_Defect_Analysis.md](System_Defect_Analysis.md) |
+| System Defect Analysis | [system-defect-analysis.md](../../history/agm/system-defect-analysis.md) |
 
 ### Supplier Links
 
