@@ -1,6 +1,6 @@
 # Stage 2 Live Energy Data Inventory
 
-**Snapshot:** 2026-08-20  
+**Snapshot:** 2026-08-20
 **Method:** authenticated/read-only OpenHAB REST, local JSONDB, protected JDBC
 configuration parsed without printing secrets, read-only PostgreSQL queries,
 systemd inventory, deployed source, and repository history.
