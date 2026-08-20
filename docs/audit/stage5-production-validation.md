@@ -11,7 +11,7 @@
 
 ## Verification
 
-- Analytics tests after gap closure: `114 passed`.
+- Analytics tests after final scenario-workflow closure: `116 passed`.
 - `pyflakes src tests`: clean.
 - All five service/timer pairs passed `systemd-analyze verify`.
 - Source validation after gap closure: 21 resolved sources plus all configured

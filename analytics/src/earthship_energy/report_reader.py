@@ -26,13 +26,16 @@ def fetch_daily_report_rows(
                       b.cumulative_efc, b.hours_above_90, b.hours_above_95,
                       b.min_temperature_c, b.max_temperature_c,
                       CASE WHEN b.quality = 'ok' AND p.quality = 'ok'
-                                AND l.quality = 'ok' THEN 'ok' ELSE 'partial' END,
+                                AND l.quality = 'ok' AND w.quality = 'ok'
+                           THEN 'ok' ELSE 'partial' END,
                       p.pv_kwh, l.load_kwh
                FROM energy_analytics.daily_battery b
                JOIN energy_analytics.daily_pv p
                  ON p.local_date = b.local_date AND p.epoch_id = b.epoch_id
                JOIN energy_analytics.daily_load l
                  ON l.local_date = b.local_date AND l.epoch_id = b.epoch_id
+               JOIN energy_analytics.daily_weather w
+                 ON w.local_date = b.local_date AND w.epoch_id = b.epoch_id
                WHERE b.epoch_id = %s AND b.local_date >= %s
                  AND b.local_date < %s
                ORDER BY b.local_date""",

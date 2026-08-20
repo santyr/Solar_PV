@@ -28,6 +28,10 @@ python3 -m earthship_energy.cli report monthly --format json
 python3 -m earthship_energy.cli report winter --format json
 python3 -m earthship_energy.cli report lifecycle --format json
 python3 -m earthship_energy.cli report modules --format json
+python3 -m earthship_energy.cli simulate \
+  --start 2026-07-19 --end 2026-08-20 \
+  --reserve-soc-pct 20 --pv-multiplier 1.0 \
+  --load-multiplier 1.0 --inverter-efficiency 0.9
 ```
 
 - **Monthly energy review:** cite the private monthly report path and SHA-256,

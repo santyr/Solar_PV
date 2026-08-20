@@ -22,6 +22,10 @@ PYTHONPATH=src python3 -m earthship_energy.cli report monthly --format json
 PYTHONPATH=src python3 -m earthship_energy.cli report lifecycle --format json
 PYTHONPATH=src python3 -m earthship_energy.cli report winter --format json
 PYTHONPATH=src python3 -m earthship_energy.cli report modules --format json
+PYTHONPATH=src python3 -m earthship_energy.cli simulate \
+  --start 2026-07-19 --end 2026-08-20 \
+  --reserve-soc-pct 20 --pv-multiplier 1.0 \
+  --load-multiplier 1.0 --inverter-efficiency 0.9
 PYTHONPATH=src python3 -m earthship_energy.cli import-lynk \
   --file /protected/operator-export.csv --dry-run
 PYTHONPATH=src python3 -m earthship_energy.cli record-snow \
@@ -85,6 +89,16 @@ confidence-bearing shade/kiva observations. Forecast selection requires
 `issued_at <= at`; unavailable forecasts remain explicitly unavailable.
 Existing output is not replaced unless `--force` is supplied. The command
 prints row count, byte count, and SHA-256 for provenance.
+
+`simulate` is a read-only deterministic replay over compact daily rows. It
+requires an explicit half-open date window, refuses any battery/PV/load/weather
+day that is not quality-approved, uses the selected epoch's nominal usable
+capacity unless overridden, and reports every assumption. The current replay
+starts at 100% SOC, so that initial state is explicit in schema
+`earthship-energy-scenario/v1`; it must not be mistaken for a forecast of the
+actual battery state. `modeled_storage_overflow_kwh` means energy above the
+scenario's storage ceiling. It is not an observed curtailment or lost-harvest
+estimate.
 
 ## Current limitations
 

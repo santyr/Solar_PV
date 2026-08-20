@@ -51,6 +51,7 @@ from .reports import (
     monthly_report,
     winter_report,
 )
+from .simulation import Scenario, replay_energy_balance
 
 
 DEFAULT_JDBC_CONFIG = "/var/lib/openhab/config/org/openhab/jdbc.config"
@@ -97,6 +98,17 @@ def _parser() -> argparse.ArgumentParser:
     report.add_argument("--epochs", type=Path)
     report.add_argument("--jdbc-config", default=DEFAULT_JDBC_CONFIG, type=Path)
     report.add_argument("--format", choices=("json", "markdown"), default="json")
+    simulate = subparsers.add_parser("simulate")
+    simulate.add_argument("--start", required=True)
+    simulate.add_argument("--end", required=True, help="Exclusive local end date")
+    simulate.add_argument("--epoch")
+    simulate.add_argument("--epochs", type=Path)
+    simulate.add_argument("--jdbc-config", default=DEFAULT_JDBC_CONFIG, type=Path)
+    simulate.add_argument("--usable-battery-kwh", type=float)
+    simulate.add_argument("--reserve-soc-pct", type=float, default=20.0)
+    simulate.add_argument("--pv-multiplier", type=float, default=1.0)
+    simulate.add_argument("--load-multiplier", type=float, default=1.0)
+    simulate.add_argument("--inverter-efficiency", type=float, default=0.9)
     lynk = subparsers.add_parser("import-lynk")
     lynk.add_argument("--file", required=True, type=Path)
     lynk.add_argument("--source-name")
@@ -320,6 +332,63 @@ def _report(args) -> int:
     return 0
 
 
+def _simulate(args) -> int:
+    epochs = load_epoch_config(args.epochs)
+    if args.epoch:
+        matches = [epoch for epoch in epochs if epoch.epoch_id == args.epoch]
+        if len(matches) != 1:
+            raise EpochConfigError(f"unknown epoch: {args.epoch}")
+        epoch = matches[0]
+    else:
+        epoch = next(epoch for epoch in epochs if epoch.current_analytics)
+    try:
+        start = date.fromisoformat(args.start)
+        end = date.fromisoformat(args.end)
+    except ValueError as exc:
+        raise ValueError("simulation dates must use YYYY-MM-DD") from exc
+    if end <= start:
+        raise ValueError("simulation --end must be after --start")
+    capacity = args.usable_battery_kwh
+    if capacity is None:
+        capacity = epoch.nominal_usable_kwh
+    if capacity is None:
+        raise ValueError("simulation requires --usable-battery-kwh")
+    scenario = Scenario(
+        usable_battery_kwh=capacity,
+        reserve_soc_pct=args.reserve_soc_pct,
+        pv_multiplier=args.pv_multiplier,
+        load_multiplier=args.load_multiplier,
+        inverter_efficiency=args.inverter_efficiency,
+    )
+    settings = parse_openhab_jdbc_config(args.jdbc_config)
+    connection = connect_read_only(settings)
+    try:
+        rows = fetch_daily_report_rows(connection, epoch.epoch_id, start, end)
+    finally:
+        connection.close()
+    if not rows:
+        raise ValueError("simulation has no daily history in the requested window")
+    if any(row.get("quality") != "ok" for row in rows):
+        raise ValueError("simulation requires quality-approved daily history")
+    result = replay_energy_balance(rows, scenario)
+    result_payload = asdict(result)
+    result_payload["modeled_storage_overflow_kwh"] = result_payload.pop(
+        "curtailed_kwh"
+    )
+    _print({
+        "schema": "earthship-energy-scenario/v1",
+        "status": "ok",
+        "mode": "read_only",
+        "epoch_id": epoch.epoch_id,
+        "window_start": start.isoformat(),
+        "window_end_exclusive": end.isoformat(),
+        "history_rows": len(rows),
+        "assumptions": {**asdict(scenario), "initial_soc_pct": 100.0},
+        "result": result_payload,
+    })
+    return 0
+
+
 def _import_lynk(args) -> int:
     try:
         content = args.file.read_bytes()
@@ -485,6 +554,8 @@ def main(argv: list[str] | None = None) -> int:
             return _aggregate(args)
         if args.command == "report":
             return _report(args)
+        if args.command == "simulate":
+            return _simulate(args)
         if args.command == "import-lynk":
             return _import_lynk(args)
         if args.command == "record-snow":

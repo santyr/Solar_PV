@@ -48,7 +48,7 @@ SOC 75 times, one comparison disagreed, and the power/SOC-delta correlation was
 
 ## Quality and regression checks
 
-- unit and contract tests after gap closure: 114 passed;
+- unit and contract tests after final scenario-workflow closure: 116 passed;
 - static Python check: clean;
 - OpenHAB service: active throughout migration and backfill;
 - REST Item inventory remained readable;

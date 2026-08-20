@@ -245,6 +245,67 @@ def test_module_report_uses_bounded_module_reader(monkeypatch, capsys):
     assert captured[0][1].isoformat() == "2026-09-01T00:00:00-06:00"
 
 
+def test_simulate_replays_quality_approved_daily_rows_read_only(monkeypatch, capsys):
+    class Connection:
+        def close(self):
+            pass
+
+    epoch = type("Epoch", (), {
+        "epoch_id": "discover_4_module_2026",
+        "start_local_date": __import__("datetime").date(2026, 7, 19),
+        "nominal_usable_kwh": 20.48,
+        "current_analytics": True,
+    })()
+    monkeypatch.setattr(cli, "load_epoch_config", lambda _: (epoch,))
+    monkeypatch.setattr(cli, "parse_openhab_jdbc_config", lambda _: object())
+    monkeypatch.setattr(cli, "connect_read_only", lambda _: Connection())
+    monkeypatch.setattr(cli, "fetch_daily_report_rows", lambda *_: [
+        {"local_date": __import__("datetime").date(2026, 8, 1),
+         "pv_kwh": 8.0, "load_kwh": 4.0, "quality": "ok"},
+        {"local_date": __import__("datetime").date(2026, 8, 2),
+         "pv_kwh": 1.0, "load_kwh": 6.0, "quality": "ok"},
+    ])
+
+    assert cli.main([
+        "simulate", "--start", "2026-08-01", "--end", "2026-08-03",
+        "--reserve-soc-pct", "20", "--pv-multiplier", "0.8",
+        "--load-multiplier", "1.1", "--inverter-efficiency", "0.9",
+    ]) == 0
+    output = json.loads(capsys.readouterr().out)
+    assert output["schema"] == "earthship-energy-scenario/v1"
+    assert output["mode"] == "read_only"
+    assert output["epoch_id"] == "discover_4_module_2026"
+    assert output["history_rows"] == 2
+    assert output["assumptions"]["usable_battery_kwh"] == 20.48
+    assert output["assumptions"]["initial_soc_pct"] == 100.0
+    assert set(output["result"]) == {
+        "modeled_storage_overflow_kwh", "ending_soc_pct", "minimum_soc_pct",
+        "sufficient", "unserved_kwh", "worst_deficit_days",
+    }
+
+
+def test_simulate_refuses_non_ok_daily_history(monkeypatch, capsys):
+    class Connection:
+        def close(self):
+            pass
+
+    epoch = type("Epoch", (), {
+        "epoch_id": "current", "start_local_date": None,
+        "nominal_usable_kwh": 20.48, "current_analytics": True,
+    })()
+    monkeypatch.setattr(cli, "load_epoch_config", lambda _: (epoch,))
+    monkeypatch.setattr(cli, "parse_openhab_jdbc_config", lambda _: object())
+    monkeypatch.setattr(cli, "connect_read_only", lambda _: Connection())
+    monkeypatch.setattr(cli, "fetch_daily_report_rows", lambda *_: [
+        {"local_date": __import__("datetime").date(2026, 8, 1),
+         "pv_kwh": 8.0, "load_kwh": 4.0, "quality": "partial"},
+    ])
+    assert cli.main([
+        "simulate", "--start", "2026-08-01", "--end", "2026-08-02",
+    ]) == 2
+    assert "quality-approved" in capsys.readouterr().err
+
+
 def test_lynk_import_dry_run_is_write_free(tmp_path, monkeypatch, capsys):
     source = tmp_path / "lynk.csv"
     source.write_bytes(b"module csv")

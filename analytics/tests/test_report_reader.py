@@ -45,6 +45,8 @@ def test_fetch_daily_report_rows_uses_bounded_join():
     assert rows[0]["hours_above_95"] == 1.0
     sql, params = connection.cursor_instance.executed
     assert "JOIN energy_analytics.daily_pv" in sql
+    assert "JOIN energy_analytics.daily_weather" in sql
+    assert "w.quality = 'ok'" in sql
     assert params == ("discover", date(2026, 8, 1), date(2026, 9, 1))
 
 
