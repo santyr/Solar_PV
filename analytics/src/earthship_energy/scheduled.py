@@ -23,7 +23,7 @@ from .inventory import fetch_inventory, resolve_sources
 from .materialize import load_epoch_config
 from .reader import ITEM_TABLE
 from .ui_publish import DEFAULT_OPENHAB_URL, publish_energy_ui_state
-from .ui_reader import build_energy_ui_snapshot
+from .ui_reader import build_energy_ui_snapshot, fetch_live_subsystem_health
 
 
 SEVERITIES = ("Routine", "Interesting", "Actionable", "Critical electrical condition")
@@ -468,9 +468,15 @@ def main(argv: list[str] | None = None) -> int:
         now = utc_now()
         connection = connect_read_only(parse_openhab_jdbc_config(args.jdbc_config))
         try:
+            source_config = load_source_config()
+            items, tables = fetch_inventory(connection)
+            resolved = resolve_sources(source_config, items, tables)
+            live_health = fetch_live_subsystem_health(
+                connection, source_config, resolved, generated_at=now
+            )
             payload = build_energy_ui_snapshot(
                 connection, load_epoch_config(args.epochs), generated_at=now,
-                timezone_name=args.timezone,
+                timezone_name=args.timezone, live_health=live_health,
             )
         finally:
             connection.close()

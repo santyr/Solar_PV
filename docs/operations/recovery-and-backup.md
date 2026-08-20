@@ -44,3 +44,18 @@ pg_restore --list /home/sat/backups/earthship-energy/2026-08-20/openhab-pre-ener
 ```
 
 Never put the protected JDBC password on the command line or in this repository.
+
+
+## Energy analytics Item restore evidence
+
+Before provisioning `Energy_Analytics_JSON`, the earthship-ui transaction tool
+captures the exact prior Item configuration or verified absence in a private
+receipt. Keep that receipt with its apply/readback/closure evidence; it is the
+only authorized source for configuration rollback. The Item carries no control
+authority and its state can be allowed to become stale after the publisher is
+disabled.
+
+The existing PostgreSQL restore point remains same-host only. The operator has
+deferred an off-host destination, so `energy-backup-check` must continue to
+report `Actionable`; neither the Item receipt nor analytics publication changes
+that disaster-recovery limitation.

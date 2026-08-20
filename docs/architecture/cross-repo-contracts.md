@@ -183,3 +183,19 @@ systemd/process/container inspection.
 
 No OpenHAB write endpoint, rule `/runnow` endpoint, database mutation, service
 state change, or physical action was used.
+
+
+## Stable energy analytics UI boundary
+
+`Solar_PV` owns PostgreSQL analytics and publishes the closed
+`earthship-energy-ui/v1` payload every five minutes. OpenHAB owns exactly one
+new observational String Item, `Energy_Analytics_JSON`. `earthship-ui` consumes
+that Item through its existing REST/SSE store, rejects payloads at or above
+16 KiB and evidence older than 15 minutes, and exposes no control from the
+analytics surface. Unknown data remains explicit rather than becoming zero.
+
+The publisher is the only state writer and may call only
+`PUT /rest/items/Energy_Analytics_JSON/state`; the separate receipt-bound UI
+tool may manage only the exact Item configuration and cannot write Item state.
+This contract does not rename or reinterpret any feeder, greywater, night-load,
+forecast, thermal, AGM-history, BMS, inverter, or charge-controller interface.

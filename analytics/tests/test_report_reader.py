@@ -77,4 +77,5 @@ def test_fetch_module_report_rows_is_time_bounded_and_keeps_batch_provenance():
     assert rows[0]["source_name"] == "lynk.csv"
     sql, params = connection.cursor_instance.executed
     assert "JOIN energy_analytics.lynk_import_batches" in sql
-    assert params == (start, end)
+    assert "LIMIT %s" in sql
+    assert params == (start, end, 4096)

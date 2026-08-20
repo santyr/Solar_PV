@@ -4,11 +4,18 @@ from types import SimpleNamespace
 from earthship_energy.ui_reader import (
     build_energy_ui_snapshot,
     fetch_ui_health_and_forecast,
+    fetch_live_subsystem_health,
 )
 
 
 UTC = timezone.utc
 NOW = datetime(2026, 8, 20, 18, 0, tzinfo=UTC)
+
+
+LIVE_OK = {
+    "bms": "ok", "schneider": "ok", "weather": "ok",
+    "collector": "ok", "publisher": "ok", "reasons": [],
+}
 
 
 class Cursor:
@@ -64,6 +71,7 @@ def test_health_and_forecast_reader_is_schema_bounded_and_time_bounded():
         through_date=date(2026, 8, 19),
         generated_at=NOW,
         timezone_name="America/Denver",
+        live_health=LIVE_OK,
     )
 
     quality_sql, quality_params = connection.instance.calls[0]
@@ -84,6 +92,7 @@ def test_health_and_forecast_reader_is_schema_bounded_and_time_bounded():
         "schneider": "ok",
         "weather": "ok",
         "collector": "ok",
+        "publisher": "ok",
         "reasons": [],
     }
 
@@ -99,16 +108,18 @@ def test_health_reader_marks_missing_groups_and_stale_forecast_explicitly():
         through_date=date(2026, 8, 19),
         generated_at=NOW,
         timezone_name="America/Denver",
+        live_health=LIVE_OK,
     )
 
     assert forecast["status"] == "stale"
     assert forecast["reason"] == "forecast_issue_older_than_6h"
     assert health["analytics"] == "degraded"
-    assert health["bms"] == "degraded"
-    assert health["schneider"] == "unavailable"
-    assert health["weather"] == "unavailable"
-    assert health["collector"] == "degraded"
-    assert "missing_schneider_quality_evidence" in health["reasons"]
+    assert health["bms"] == "ok"
+    assert health["schneider"] == "ok"
+    assert health["weather"] == "ok"
+    assert health["collector"] == "ok"
+    assert health["publisher"] == "ok"
+    assert "daily_source_quality_not_ok" in health["reasons"]
 
 
 def test_snapshot_uses_active_epoch_completed_days_and_existing_reports(monkeypatch):
@@ -150,7 +161,9 @@ def test_snapshot_uses_active_epoch_completed_days_and_existing_reports(monkeypa
         ),
     )
 
-    result = build_energy_ui_snapshot("db", epochs, generated_at=NOW)
+    result = build_energy_ui_snapshot(
+        "db", epochs, generated_at=NOW, live_health=LIVE_OK
+    )
 
     assert calls[0] == (
         "daily", "discover_4_module_2026", date(2026, 7, 19), date(2026, 8, 20)
@@ -159,3 +172,73 @@ def test_snapshot_uses_active_epoch_completed_days_and_existing_reports(monkeypa
     assert result["schema"] == "earthship-energy-ui/v1"
     assert result["throughDate"] == "2026-08-19"
     assert result["epochId"] == "discover_4_module_2026"
+
+
+class LiveConnection:
+    def __init__(self, values):
+        self.values = values
+        self.calls = []
+
+    def cursor(self):
+        connection = self
+
+        class LiveCursor:
+            sql = None
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_):
+                return False
+
+            def execute(self, sql, params):
+                self.sql = " ".join(sql.split())
+                connection.calls.append((self.sql, params))
+
+            def fetchone(self):
+                table = next(name for name in connection.values if name in self.sql)
+                value = connection.values[table]
+                return None if value is None else (value,)
+
+        return LiveCursor()
+
+
+def test_live_health_uses_current_bounded_freshness_evidence():
+    config = SimpleNamespace(sources=(
+        SimpleNamespace(canonical_name="battery.soc_pct", stale_policy="status_must_equal_OK", stale_after_seconds=None),
+        SimpleNamespace(canonical_name="pv.input_power_w", stale_policy="timestamp_threshold", stale_after_seconds=120),
+        SimpleNamespace(canonical_name="weather.irradiance_w_m2", stale_policy="status_must_equal_OK", stale_after_seconds=None),
+    ))
+    resolved = (
+        SimpleNamespace(canonical_name="battery.soc_pct", required=True, status="ok", freshness_table_name="item0001"),
+        SimpleNamespace(canonical_name="pv.input_power_w", required=True, status="ok", freshness_table_name="item0002"),
+        SimpleNamespace(canonical_name="weather.irradiance_w_m2", required=True, status="ok", freshness_table_name="item0003"),
+    )
+    connection = LiveConnection({
+        "item0001": "OK", "item0002": NOW.isoformat(), "item0003": "OK",
+    })
+
+    health = fetch_live_subsystem_health(connection, config, resolved, generated_at=NOW)
+
+    assert health == LIVE_OK
+    assert len(connection.calls) == 3
+    assert all("ORDER BY time DESC LIMIT 1" in sql for sql, _ in connection.calls)
+    assert all(params == (NOW,) for _, params in connection.calls)
+
+
+def test_live_health_reports_current_bms_fault_without_blending_yesterday():
+    config = SimpleNamespace(sources=(
+        SimpleNamespace(canonical_name="battery.soc_pct", stale_policy="status_must_equal_OK", stale_after_seconds=None),
+    ))
+    resolved = (
+        SimpleNamespace(canonical_name="battery.soc_pct", required=True, status="ok", freshness_table_name="item0001"),
+    )
+
+    health = fetch_live_subsystem_health(
+        LiveConnection({"item0001": "FAULT"}), config, resolved, generated_at=NOW
+    )
+
+    assert health["bms"] == "fault"
+    assert health["collector"] == "ok"
+    assert health["publisher"] == "ok"
+    assert "bms_live_health_not_ok" in health["reasons"]

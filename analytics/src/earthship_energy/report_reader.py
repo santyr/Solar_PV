@@ -6,6 +6,9 @@ from datetime import date
 from datetime import datetime
 
 
+MAX_MODULE_REPORT_ROWS = 4096
+
+
 FIELDS = (
     "local_date", "min_soc_pct", "reached_99", "charge_kwh",
     "discharge_kwh", "daily_efc", "cumulative_efc",
@@ -58,15 +61,19 @@ def fetch_module_report_rows(
         raise ValueError("module report end must be after start")
     with connection.cursor() as cursor:
         cursor.execute(
-            """SELECT b.batch_id, b.source_name, b.sha256, s.module_id,
-                      s.sampled_at, s.soc_pct, s.voltage_v, s.current_a,
-                      s.temperature_c, s.cell_spread_mv, s.charge_kwh,
-                      s.discharge_kwh, s.faults
-               FROM energy_analytics.battery_module_samples s
-               JOIN energy_analytics.lynk_import_batches b
-                 ON b.batch_id = s.batch_id
-               WHERE s.sampled_at >= %s AND s.sampled_at < %s
-               ORDER BY s.sampled_at, s.module_id, b.batch_id""",
-            (start, end_exclusive),
+            """SELECT * FROM (
+                   SELECT b.batch_id, b.source_name, b.sha256, s.module_id,
+                          s.sampled_at, s.soc_pct, s.voltage_v, s.current_a,
+                          s.temperature_c, s.cell_spread_mv, s.charge_kwh,
+                          s.discharge_kwh, s.faults
+                   FROM energy_analytics.battery_module_samples s
+                   JOIN energy_analytics.lynk_import_batches b
+                     ON b.batch_id = s.batch_id
+                   WHERE s.sampled_at >= %s AND s.sampled_at < %s
+                   ORDER BY s.sampled_at DESC, s.module_id, b.batch_id DESC
+                   LIMIT %s
+               ) recent
+               ORDER BY sampled_at, module_id, batch_id""",
+            (start, end_exclusive, MAX_MODULE_REPORT_ROWS),
         )
         return [dict(zip(MODULE_FIELDS, row)) for row in cursor.fetchall()]

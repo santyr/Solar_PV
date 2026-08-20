@@ -47,7 +47,7 @@ FORECAST_FIELDS = {
 }
 HEALTH_FIELDS = {
     "status", "analytics", "forecast", "bms", "schneider", "weather",
-    "collector", "reasons",
+    "collector", "publisher", "reasons",
 }
 STATUSES = {"ok", "degraded", "unavailable", "stale", "fault"}
 FORECAST_STATUSES = {"current", "stale", "unavailable", "degraded"}
@@ -274,7 +274,7 @@ def build_energy_ui_payload(
     supplied_health = health or {}
     health_values = {
         name: supplied_health.get(name, "unavailable")
-        for name in ("analytics", "forecast", "bms", "schneider", "weather", "collector")
+        for name in ("analytics", "forecast", "bms", "schneider", "weather", "collector", "publisher")
     }
     health_status = "ok" if all(value == "ok" for value in health_values.values()) else "degraded"
     health_section = {
@@ -383,9 +383,12 @@ def validate_energy_ui_payload(
     forecast = _exact(result["forecast"], FORECAST_FIELDS, "forecast")
     if forecast["status"] not in FORECAST_STATUSES:
         raise ValueError("forecast status is outside the closed vocabulary")
-    for field in ("issuedAt", "validFor"):
-        if forecast[field] is not None:
-            _aware(forecast[field], f"forecast.{field}")
+    issued = _aware(forecast["issuedAt"], "forecast.issuedAt") if forecast["issuedAt"] is not None else None
+    valid_for = _aware(forecast["validFor"], "forecast.validFor") if forecast["validFor"] is not None else None
+    if issued is not None and issued > generated:
+        raise ValueError("forecast.issuedAt cannot follow generatedAt")
+    if issued is not None and valid_for is not None and valid_for < issued:
+        raise ValueError("forecast.validFor cannot precede issuedAt")
     for field in ("pv24hKwh", "nextMorningSocPct"):
         _number(forecast[field], f"forecast.{field}")
     for field in ("fullToday", "fullTomorrow"):

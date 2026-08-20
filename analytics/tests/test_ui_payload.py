@@ -83,6 +83,7 @@ def payload():
             "schneider": "ok",
             "weather": "ok",
             "collector": "ok",
+            "publisher": "ok",
             "reasons": [],
         },
     )
@@ -126,6 +127,7 @@ def test_payload_is_deterministic_versioned_and_explicit():
     assert first["forecast"]["fullToday"] is None
     assert first["forecast"]["fullTomorrow"] is None
     assert first["lifecycle"]["stateOfHealthPct"] is None
+    assert first["health"]["publisher"] == "ok"
     assert first["status"] == "degraded"
     assert len(encode_energy_ui_payload(first)) < MAX_PAYLOAD_BYTES
 
@@ -167,6 +169,18 @@ def test_validator_rejects_shape_type_and_vocabulary_drift(mutate, message):
 
     with pytest.raises(ValueError, match=message):
         validate_energy_ui_payload(candidate, now=GENERATED + timedelta(minutes=1))
+
+
+def test_validator_rejects_forecast_chronology():
+    issued_after_generation = deepcopy(payload())
+    issued_after_generation["forecast"]["issuedAt"] = "2026-08-20T18:00:01+00:00"
+    with pytest.raises(ValueError, match="forecast"):
+        validate_energy_ui_payload(issued_after_generation, now=GENERATED)
+
+    valid_before_issue = deepcopy(payload())
+    valid_before_issue["forecast"]["validFor"] = "2026-08-20T16:59:59+00:00"
+    with pytest.raises(ValueError, match="forecast"):
+        validate_energy_ui_payload(valid_before_issue, now=GENERATED)
 
 
 def test_validator_rejects_future_generation_and_oversized_encoding():

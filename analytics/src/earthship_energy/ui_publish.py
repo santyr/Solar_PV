@@ -31,6 +31,7 @@ def _normalized_base_url(value: str) -> str:
     if (
         parsed.scheme not in {"http", "https"}
         or not parsed.hostname
+        or parsed.hostname not in {"127.0.0.1", "::1", "localhost"}
         or parsed.username is not None
         or parsed.password is not None
         or parsed.path not in {"", "/"}

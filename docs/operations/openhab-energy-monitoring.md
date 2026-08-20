@@ -19,3 +19,18 @@ Before changing an Item, rule, REST path, persistence policy, or UI proxy:
 
 The deployed UI tooling currently has an exact OpenHAB 5.2.0 guard while the
 runtime is 5.2.1. Resolve and test that guard before managed deployments.
+
+
+## Stable UI analytics publication
+
+`Solar_PV` is the quantitative owner of `earthship-energy-ui/v1`. Every five
+minutes it reads only bounded, quality-approved `energy_analytics` products,
+closes the database connection, validates and encodes a payload below 16 KiB,
+and writes exactly `PUT /rest/items/Energy_Analytics_JSON/state`. It does not
+modify Item configuration, rules, Things, links, persistence, or actuators.
+
+Provision the String Item only with the receipt-bound tool in earthship-ui and
+retain its private snapshot/readback. Verify the publisher through the UI proxy
+and treat missing, malformed, stale (over 15 minutes), or future-dated evidence
+as unavailable. Rollback begins by disabling `energy-ui-publish.timer`; Item
+configuration rollback uses only the exact closed deployment receipt.

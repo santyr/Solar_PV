@@ -63,6 +63,8 @@ def test_publisher_puts_one_exact_validated_state_with_bearer_auth():
     "http://user:pass@127.0.0.1:8080",
     "http://127.0.0.1:8080/rest",
     "http://127.0.0.1:8080?x=1",
+    "http://example.com:8080",
+    "https://example.com",
 ])
 def test_publisher_rejects_ambiguous_base_urls_without_network(base_url):
     with pytest.raises(ValueError, match="base URL"):
