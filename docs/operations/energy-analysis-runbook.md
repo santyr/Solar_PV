@@ -39,6 +39,20 @@ the initial bounded backfill require the verified backup manifest documented in
 migration is pending, then updates only compact analytics rows; it does not
 rehash the migration backup. Raw `public.itemNNNN` history is read-only.
 
+Daily PV products include input/output energy, MPPT energy ratio, productive
+window and hours, and energy on each side of observed solar noon. Solar noon
+is the midpoint of the persisted `Sun_Rise_End` and `Sun_Set_Start` events,
+not a forecast timestamp. Battery products use those same persisted astro
+events for sunrise/sunset SOC and compare the prior sunset with current
+sunrise for overnight drop. Weather includes the daily rain counter converted
+from inches to millimeters plus the latest snow event known at the day
+boundary.
+
+Dishwasher and Shurflo Items are switch states, not watt meters. Their daily
+`active_loads` entries therefore say `measurement=state_only`, report
+`state_on_hours`, and leave `energy_kwh` null. Do not infer energy use,
+reserve impact, or actual motor/appliance activity from those states alone.
+
 The winter report uses November through March rows only. It includes observed
 minimum-SOC median and fifth percentile, reserve-threshold day counts,
 consecutive no-full days, the worst contiguous PV deficit and time to the next
@@ -81,8 +95,9 @@ prints row count, byte count, and SHA-256 for provenance.
   freshness/status companion Items and live health remain part of publication
   review until historical source-quality materialization is complete.
 - Curtailment and lost-harvest estimates remain unavailable.
-- Philips illuminance/occupancy Items are now linked and persisted; inference
-  remains Stage 3 work and must begin observationally.
+- Philips illuminance, occupancy, and temperature Items are linked, persisted,
+  and present in the current 21-source provenance contract; inference remains
+  Stage 3 work and must begin observationally.
 
 Never mix retired AGM SOC estimates or dormant miner signals into Discover-bank
 analysis.

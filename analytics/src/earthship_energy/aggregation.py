@@ -34,6 +34,9 @@ class SignCalibration:
 class PowerAggregate:
     energy_kwh: float
     peak_w: float | None
+    productive_hours: float
+    first_productive_at: datetime | None
+    last_productive_at: datetime | None
     coverage: float
     quality: str
 
@@ -45,6 +48,7 @@ class WeatherAggregate:
     mean_temperature_c: float | None
     irradiance_wh_m2: float
     peak_irradiance_w_m2: float | None
+    precipitation_mm: float | None
     coverage: float
     quality: str
 
@@ -141,6 +145,10 @@ def _value_at(points: list[Point], at: datetime) -> float | None:
     return ordered[-1][1] if at == ordered[-1][0] else None
 
 
+def value_at(points: list[Point], at: datetime) -> float | None:
+    return _value_at(points, at)
+
+
 def _quality(coverage: float) -> str:
     if coverage >= 0.9:
         return "ok"
@@ -155,14 +163,24 @@ def aggregate_power(
     window_end: datetime,
     *,
     max_gap: timedelta,
+    productive_threshold_w: float = 10.0,
 ) -> PowerAggregate:
     window_seconds = (window_end - window_start).total_seconds()
     nonnegative = [(at, max(0.0, value)) for at, value in power_points]
     integration = integrate_trapezoid(nonnegative, max_gap)
     coverage = coverage_ratio(integration.covered_seconds, window_seconds)
+    productive = [
+        (at, value) for at, value in nonnegative
+        if value > productive_threshold_w
+    ]
     return PowerAggregate(
         energy_kwh=integration.value_hours / 1000.0,
         peak_w=max((value for _, value in nonnegative), default=None),
+        productive_hours=(
+            duration_above(nonnegative, productive_threshold_w, max_gap) / 3600.0
+        ),
+        first_productive_at=productive[0][0] if productive else None,
+        last_productive_at=productive[-1][0] if productive else None,
         coverage=coverage,
         quality=_quality(coverage),
     )
@@ -175,6 +193,7 @@ def aggregate_weather(
     window_end: datetime,
     *,
     max_gap: timedelta,
+    precipitation_mm_points: list[Point] | None = None,
 ) -> WeatherAggregate:
     window_seconds = (window_end - window_start).total_seconds()
     temperature = integrate_trapezoid(temperature_c_points, max_gap)
@@ -193,6 +212,10 @@ def aggregate_weather(
         mean_temperature_c=time_weighted_mean(temperature),
         irradiance_wh_m2=irradiance.value_hours,
         peak_irradiance_w_m2=max(irradiance_values, default=None),
+        precipitation_mm=(
+            max(0.0, precipitation_mm_points[-1][1])
+            if precipitation_mm_points else None
+        ),
         coverage=coverage,
         quality=_quality(coverage),
     )

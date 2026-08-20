@@ -43,7 +43,9 @@ OpenHAB JDBC history, the focused `thermal_intel` schema, and version 1 of the
 `energy_analytics` schema are deployed. The analytics CLI resolves current Item
 tables dynamically, materializes compact daily battery/PV/load/weather rows,
 and produces monthly, lifecycle, and winter-scenario JSON or Markdown reports.
-The first current-epoch backfill covers 2026-07-19 through 2026-08-19.
+The first current-epoch backfill covers 2026-07-19 through 2026-08-19. The
+current provenance contract resolves 21 sources, including persisted astro
+events, daily rain, and the three receipt-owned Philips observation Items.
 
 Forecast capture and scenario math are deployed. LYNK file ingestion now has
 an idempotent dry-run/apply CLI and a provenance-preserving module-health

@@ -2,7 +2,14 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from earthship_energy.reader import fetch_numeric_series, normalize_window_series
+from earthship_energy.reader import (
+    datetime_state_for_local_date,
+    fetch_numeric_series,
+    fetch_text_series,
+    normalize_window_series,
+    normalize_window_text_series,
+    state_duration_seconds,
+)
 
 
 UTC = timezone.utc
@@ -62,3 +69,45 @@ def test_fetch_numeric_series_uses_validated_table_and_numeric_values():
     ]
     with pytest.raises(ValueError, match="table"):
         fetch_numeric_series(Connection(), "item0550; DROP TABLE x", START, END)
+
+
+def test_text_series_supports_datetime_selection_and_state_duration():
+    rows = normalize_window_text_series(
+        (START - timedelta(hours=1), "OFF"),
+        [(START + timedelta(minutes=30), "ON"), (START + timedelta(hours=1), "OFF")],
+        START,
+        END,
+    )
+    assert rows == [
+        (START, "OFF"),
+        (START + timedelta(minutes=30), "ON"),
+        (START + timedelta(hours=1), "OFF"),
+        (END, "OFF"),
+    ]
+    assert state_duration_seconds(rows, "ON") == 1800
+    astro = [
+        (START, "2026-01-01T06:30:00-0700"),
+        (END, "2026-01-02T06:30:00-0700"),
+    ]
+    assert datetime_state_for_local_date(
+        astro, __import__("datetime").date(2026, 1, 1), "America/Denver"
+    ).isoformat() == "2026-01-01T06:30:00-07:00"
+
+
+def test_fetch_text_series_uses_same_bounded_validated_query():
+    class TextCursor(Cursor):
+        def fetchone(self):
+            return (START - timedelta(hours=1), "OFF")
+
+        def fetchall(self):
+            return [(START + timedelta(hours=1), "ON")]
+
+    class TextConnection:
+        def cursor(self):
+            return TextCursor()
+
+    assert fetch_text_series(TextConnection(), "item0550", START, END) == [
+        (START, "OFF"),
+        (START + timedelta(hours=1), "ON"),
+        (END, "ON"),
+    ]

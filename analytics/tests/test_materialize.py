@@ -6,6 +6,7 @@ import pytest
 from earthship_energy.config import load_source_config
 from earthship_energy.materialize import (
     EpochConfigError,
+    _recompute_battery_rollups,
     load_epoch_config,
     materialize_daily_snapshot,
     seed_reference_data,
@@ -28,9 +29,16 @@ class FakeCursor:
         self.connection.statements.append((statement, params))
         if statement.startswith("SELECT COALESCE"):
             self._rows = [(1.25, date(2026, 8, 18))]
+        elif "SELECT local_date, daily_efc, reached_99" in statement:
+            self._rows = [(date(2026, 8, 19), 0.125, True)]
 
     def fetchone(self):
         return self._rows.pop(0)
+
+    def fetchall(self):
+        rows = self._rows
+        self._rows = []
+        return rows
 
 
 class FakeConnection:
@@ -82,7 +90,7 @@ def test_seed_reference_data_is_idempotent_upsert():
     sources = load_source_config()
     epochs = load_epoch_config()
     result = seed_reference_data(connection, sources, epochs)
-    assert result == {"metric_sources": 15, "system_epochs": 3}
+    assert result == {"metric_sources": 21, "system_epochs": 3}
     assert connection.commits == 1
     sql = "\n".join(statement for statement, _ in connection.statements)
     assert "ON CONFLICT (canonical_name) DO UPDATE" in sql
@@ -104,18 +112,85 @@ def test_materialize_daily_snapshot_upserts_all_daily_tables():
             "reached_95": True, "reached_99": True, "reached_100": True,
             "first_reached_99_at": None, "coverage": .99, "quality": "ok",
         },
-        "pv": {"energy_kwh": 7, "peak_w": 3000, "coverage": .98, "quality": "ok"},
-        "load": {"energy_kwh": 5, "peak_w": 1200, "coverage": .97, "quality": "ok"},
+        "pv": {
+            "energy_kwh": 7, "peak_w": 3000, "productive_hours": 8.5,
+            "first_productive_at": "2026-08-19T13:00:00+00:00",
+            "last_productive_at": "2026-08-19T23:00:00+00:00",
+            "before_solar_noon_kwh": None, "after_solar_noon_kwh": None,
+            "output_energy_kwh": 6.5, "mppt_efficiency": 0.928571,
+            "coverage": .98, "quality": "ok",
+        },
+        "load": {
+            "energy_kwh": 5, "peak_w": 1200,
+            "active_loads": {"dishwasher": {
+                "state_on_hours": 1.5,
+                "measurement": "switch_state_only",
+                "energy_kwh": None,
+            }},
+            "coverage": .97, "quality": "ok",
+        },
         "weather": {"min_temperature_c": 10, "max_temperature_c": 25,
                     "mean_temperature_c": 18, "irradiance_wh_m2": 5000,
-                    "peak_irradiance_w_m2": 800, "coverage": .96, "quality": "ok"},
+                    "peak_irradiance_w_m2": 800, "precipitation_mm": 2.5,
+                    "snow_state": None, "coverage": .96, "quality": "ok"},
         "balance": {"pv_load_ratio": 1.4, "surplus_deficit_kwh": 2},
     }
     result = materialize_daily_snapshot(connection, snapshot, "discover_4_module_2026")
     assert result["tables_written"] == 4
-    assert result["cumulative_efc"] == 1.375
+    assert result["cumulative_efc"] == 0.125
     assert connection.commits == 1
     sql = "\n".join(statement for statement, _ in connection.statements)
     for table in ("daily_battery", "daily_pv", "daily_load", "daily_weather"):
         assert f"energy_analytics.{table}" in sql
         assert "ON CONFLICT" in sql
+    pv_statement = next(
+        (statement, params) for statement, params in connection.statements
+        if "INSERT INTO energy_analytics.daily_pv" in statement
+    )
+    assert "productive_hours" in pv_statement[0]
+    assert "mppt_efficiency" in pv_statement[0]
+    assert 0.928571 in pv_statement[1]
+    load_statement = next(
+        (statement, params) for statement, params in connection.statements
+        if "INSERT INTO energy_analytics.daily_load" in statement
+    )
+    assert "active_loads" in load_statement[0]
+    weather_statement = next(
+        (statement, params) for statement, params in connection.statements
+        if "INSERT INTO energy_analytics.daily_weather" in statement
+    )
+    assert "precipitation_mm" in weather_statement[0]
+
+
+def test_recomputes_cumulative_efc_and_true_contiguous_no_full_streaks():
+    class RollupCursor:
+        def __init__(self):
+            self.updates = []
+
+        def execute(self, statement, params=None):
+            if statement.startswith("SELECT local_date"):
+                return
+            self.updates.append(params)
+
+        def fetchall(self):
+            return [
+                (date(2026, 8, 1), 0.1, False),
+                (date(2026, 8, 2), 0.2, True),
+                (date(2026, 8, 4), 0.1, False),
+                (date(2026, 8, 5), 0.1, False),
+            ]
+
+    cursor = RollupCursor()
+    cumulative = _recompute_battery_rollups(cursor, "discover")
+    assert cumulative == {
+        date(2026, 8, 1): 0.1,
+        date(2026, 8, 2): 0.3,
+        date(2026, 8, 4): 0.4,
+        date(2026, 8, 5): 0.5,
+    }
+    assert cursor.updates == [
+        (0.1, None, 1, "discover", date(2026, 8, 1)),
+        (0.3, 0, 0, "discover", date(2026, 8, 2)),
+        (0.4, 2, 1, "discover", date(2026, 8, 4)),
+        (0.5, 3, 2, "discover", date(2026, 8, 5)),
+    ]

@@ -89,6 +89,9 @@ def test_power_aggregation_reports_energy_peak_and_gap_quality():
     )
     assert result.energy_kwh == pytest.approx(2.0)
     assert result.peak_w == 2000
+    assert result.productive_hours == pytest.approx(1.99)
+    assert result.first_productive_at == START + timedelta(hours=1)
+    assert result.last_productive_at == START + timedelta(hours=2)
     assert result.coverage == 1.0
     assert result.quality == "ok"
 
@@ -97,6 +100,7 @@ def test_weather_aggregation_uses_canonical_units():
     result = aggregate_weather(
         temperature_c_points=points(0, 10, 20),
         irradiance_points=points(0, 500, 0),
+        precipitation_mm_points=points(0, 2, 4),
         window_start=START,
         window_end=START + timedelta(hours=2),
         max_gap=timedelta(hours=1),
@@ -106,4 +110,5 @@ def test_weather_aggregation_uses_canonical_units():
     assert result.mean_temperature_c == pytest.approx(10)
     assert result.irradiance_wh_m2 == pytest.approx(500)
     assert result.peak_irradiance_w_m2 == 500
+    assert result.precipitation_mm == 4
     assert result.coverage == 1.0

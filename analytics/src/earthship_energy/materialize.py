@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
-from datetime import date
+from datetime import date, timedelta
 import json
 from pathlib import Path
 from typing import Any
@@ -159,6 +159,53 @@ def _upsert(cursor, table: str, columns: tuple[str, ...], values: tuple[object, 
     )
 
 
+def _recompute_battery_rollups(cursor, epoch_id: str) -> dict[date, float]:
+    cursor.execute(
+        "SELECT local_date, daily_efc, reached_99 "
+        "FROM energy_analytics.daily_battery "
+        "WHERE epoch_id = %s ORDER BY local_date",
+        (epoch_id,),
+    )
+    rows = cursor.fetchall()
+    cumulative = 0.0
+    last_full = None
+    previous_date = None
+    previous_reached_full = False
+    consecutive = 0
+    by_date = {}
+    for local_date, daily_efc, reached_99 in rows:
+        cumulative = round(cumulative + float(daily_efc), 12)
+        if reached_99:
+            last_full = local_date
+            days_since_99 = 0
+            consecutive = 0
+        else:
+            days_since_99 = (
+                (local_date - last_full).days if last_full is not None else None
+            )
+            if (
+                previous_date is not None
+                and local_date == previous_date + timedelta(days=1)
+                and not previous_reached_full
+            ):
+                consecutive += 1
+            else:
+                consecutive = 1
+        cursor.execute(
+            """UPDATE energy_analytics.daily_battery
+               SET cumulative_efc = %s, days_since_99 = %s,
+                   consecutive_days_without_99 = %s
+               WHERE epoch_id = %s AND local_date = %s""",
+            (
+                cumulative, days_since_99, consecutive, epoch_id, local_date,
+            ),
+        )
+        by_date[local_date] = cumulative
+        previous_date = local_date
+        previous_reached_full = bool(reached_99)
+    return by_date
+
+
 def materialize_daily_snapshot(connection, snapshot: dict[str, object], epoch_id: str) -> dict[str, object]:
     if snapshot.get("status") != "ok" or snapshot.get("mode") != "read_only_dry_run":
         raise ValueError("only a successful read-only snapshot may be materialized")
@@ -170,18 +217,6 @@ def materialize_daily_snapshot(connection, snapshot: dict[str, object], epoch_id
     balance = snapshot["balance"]
     try:
         with connection.cursor() as cursor:
-            cursor.execute(
-                """SELECT COALESCE(SUM(daily_efc), 0),
-                          MAX(local_date) FILTER (WHERE reached_99)
-                   FROM energy_analytics.daily_battery
-                   WHERE epoch_id = %s AND local_date < %s""",
-                (epoch_id, local_date),
-            )
-            prior_efc, last_99 = cursor.fetchone()
-            cumulative_efc = float(prior_efc) + float(battery["daily_efc"])
-            days_since_99 = 0 if battery["reached_99"] else (
-                (local_date - last_99).days if last_99 else None
-            )
             battery_columns = (
                 "local_date", "epoch_id", "min_soc_pct", "max_soc_pct",
                 "mean_soc_pct", "sunrise_soc_pct", "sunset_soc_pct",
@@ -195,26 +230,37 @@ def materialize_daily_snapshot(connection, snapshot: dict[str, object], epoch_id
             )
             _upsert(cursor, "daily_battery", battery_columns, (
                 local_date, epoch_id,
-                *(battery[key] for key in battery_columns[2:17]), cumulative_efc,
+                *(battery[key] for key in battery_columns[2:17]), 0.0,
                 *(battery[key] for key in battery_columns[18:25]),
-                days_since_99, days_since_99, battery["coverage"], battery["quality"],
+                None, 0, battery["coverage"], battery["quality"],
             ))
+            cumulative_efc = _recompute_battery_rollups(cursor, epoch_id)[local_date]
             _upsert(cursor, "daily_pv", (
-                "local_date", "epoch_id", "pv_kwh", "peak_w", "coverage", "quality"
-            ), (local_date, epoch_id, pv["energy_kwh"], pv["peak_w"], pv["coverage"], pv["quality"]))
+                "local_date", "epoch_id", "pv_kwh", "peak_w",
+                "productive_hours", "first_productive_at", "last_productive_at",
+                "before_solar_noon_kwh", "after_solar_noon_kwh",
+                "mppt_output_kwh", "mppt_efficiency", "coverage", "quality"
+            ), (
+                local_date, epoch_id, pv["energy_kwh"], pv["peak_w"],
+                pv["productive_hours"], pv["first_productive_at"],
+                pv["last_productive_at"], pv["before_solar_noon_kwh"],
+                pv["after_solar_noon_kwh"], pv["output_energy_kwh"],
+                pv["mppt_efficiency"], pv["coverage"], pv["quality"],
+            ))
             _upsert(cursor, "daily_load", (
                 "local_date", "epoch_id", "load_kwh", "peak_w", "pv_load_ratio",
-                "surplus_deficit_kwh", "coverage", "quality"
+                "surplus_deficit_kwh", "active_loads", "coverage", "quality"
             ), (local_date, epoch_id, load["energy_kwh"], load["peak_w"],
                 balance["pv_load_ratio"], balance["surplus_deficit_kwh"],
-                load["coverage"], load["quality"]))
+                Json(load["active_loads"]), load["coverage"], load["quality"]))
             _upsert(cursor, "daily_weather", (
                 "local_date", "epoch_id", "min_temperature_c", "max_temperature_c",
                 "mean_temperature_c", "irradiance_wh_m2", "peak_irradiance_w_m2",
-                "coverage", "quality"
+                "precipitation_mm", "snow_state", "coverage", "quality"
             ), (local_date, epoch_id, weather["min_temperature_c"],
                 weather["max_temperature_c"], weather["mean_temperature_c"],
                 weather["irradiance_wh_m2"], weather["peak_irradiance_w_m2"],
+                weather["precipitation_mm"], weather["snow_state"],
                 weather["coverage"], weather["quality"]))
         connection.commit()
     except Exception:

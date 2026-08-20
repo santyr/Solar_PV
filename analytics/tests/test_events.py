@@ -5,6 +5,7 @@ import pytest
 from earthship_energy.events import (
     ObservationalEvent,
     SnowEvent,
+    fetch_snow_state_as_of,
     persist_observational_event,
     persist_snow_event,
 )
@@ -105,3 +106,25 @@ def test_duplicate_observational_event_is_successful_noop():
     assert "INSERT INTO energy_analytics.system_events" in sql
     assert "ON CONFLICT" in sql
     assert connection.commits == 1
+
+
+def test_fetches_latest_snow_state_strictly_as_of_boundary():
+    class ReadCursor(Cursor):
+        def execute(self, sql, params):
+            self.executed.append((sql, params))
+
+        def fetchone(self):
+            return ("snow_cleared",)
+
+    class ReadConnection:
+        def __init__(self):
+            self.cursor_instance = ReadCursor()
+
+        def cursor(self):
+            return self.cursor_instance
+
+    connection = ReadConnection()
+    assert fetch_snow_state_as_of(connection, START) == "snow_cleared"
+    sql, params = connection.cursor_instance.executed[0]
+    assert "occurred_at < %s" in sql
+    assert params == (START,)

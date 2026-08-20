@@ -191,6 +191,96 @@
       "required": true
     },
     {
+      "canonical_name": "weather.precipitation_mm",
+      "item_name": "AmbientWeatherWS2902A_RainFallDay",
+      "device": "Ambient Weather WS-2902A",
+      "protocol": "local HTTP weather feed",
+      "raw_unit": "in",
+      "canonical_unit": "mm",
+      "conversion": "inches_to_millimeters",
+      "scale": 1.0,
+      "sign": "unsigned",
+      "stale_policy": "source_quality",
+      "kind": "device_reported_daily_counter",
+      "confidence": 0.95,
+      "required": false
+    },
+    {
+      "canonical_name": "solar.sunrise_at",
+      "item_name": "Sun_Rise_End",
+      "device": "OpenHAB Astro binding",
+      "protocol": "local deterministic astro calculation",
+      "raw_unit": "datetime",
+      "canonical_unit": "timestamptz",
+      "scale": 1.0,
+      "sign": "not_applicable",
+      "stale_policy": "local_date_must_match",
+      "kind": "derived",
+      "confidence": 1.0,
+      "required": false
+    },
+    {
+      "canonical_name": "solar.sunset_at",
+      "item_name": "Sun_Set_Start",
+      "device": "OpenHAB Astro binding",
+      "protocol": "local deterministic astro calculation",
+      "raw_unit": "datetime",
+      "canonical_unit": "timestamptz",
+      "scale": 1.0,
+      "sign": "not_applicable",
+      "stale_policy": "local_date_must_match",
+      "kind": "derived",
+      "confidence": 1.0,
+      "required": false
+    },
+    {
+      "canonical_name": "thermal.indoor_illuminance",
+      "item_name": "LivingOffice_Shade_Illuminance",
+      "device": "Philips Zigbee motion/light sensor",
+      "protocol": "local Zigbee binding",
+      "raw_unit": "illuminance",
+      "canonical_unit": "lux",
+      "scale": 1.0,
+      "sign": "unsigned",
+      "stale_policy": "source_quality",
+      "kind": "measured",
+      "confidence": 0.95,
+      "required": false,
+      "role": "future_shade_inference"
+    },
+    {
+      "canonical_name": "thermal.room_occupancy",
+      "item_name": "LivingOffice_Shade_Occupancy",
+      "device": "Philips Zigbee motion/light sensor",
+      "protocol": "local Zigbee binding",
+      "raw_unit": "switch",
+      "canonical_unit": "boolean",
+      "conversion": "switch_to_boolean",
+      "scale": 1.0,
+      "sign": "not_applicable",
+      "stale_policy": "source_quality",
+      "kind": "reported_state",
+      "confidence": 0.9,
+      "required": false,
+      "role": "future_shade_inference"
+    },
+    {
+      "canonical_name": "thermal.room_temperature_c",
+      "item_name": "LivingOffice_Shade_Temperature",
+      "device": "Philips Zigbee motion/light sensor",
+      "protocol": "local Zigbee binding",
+      "raw_unit": "degF",
+      "canonical_unit": "degC",
+      "conversion": "fahrenheit_to_celsius",
+      "scale": 1.0,
+      "sign": "signed",
+      "stale_policy": "source_quality",
+      "kind": "measured",
+      "confidence": 0.95,
+      "required": false,
+      "role": "future_shade_inference"
+    },
+    {
       "canonical_name": "thermal.north_wall_temperature_c",
       "item_name": "AmbientWeatherWS2902A_WH31E_193_Temperature",
       "device": "Ambient Weather WH31E North Wall sensor",
@@ -237,22 +327,7 @@
       "required": false
     }
   ],
-  "planned_sources": [
-    {
-      "canonical_name": "thermal.indoor_illuminance",
-      "thing_uid": "zigbee:device:a7351eb531:001788011024c307",
-      "channel_suffix": "illuminance",
-      "status": "channel_present_item_link_missing",
-      "authority": "observational_only"
-    },
-    {
-      "canonical_name": "thermal.room_occupancy",
-      "thing_uid": "zigbee:device:a7351eb531:001788011024c307",
-      "channel_suffix": "occupancy",
-      "status": "channel_present_item_link_missing",
-      "authority": "observational_only"
-    }
-  ],
+  "planned_sources": [],
   "denied_name_patterns": [
     "^BatterySoC_",
     "^Battery_",

@@ -106,3 +106,19 @@ def persist_observational_event(
             event.operator_confirmed, Json(event.evidence),
         ),
     )
+
+
+def fetch_snow_state_as_of(connection, at: datetime) -> str | None:
+    if at.tzinfo is None or at.utcoffset() is None:
+        raise ValueError("snow-state boundary must be timezone-aware")
+    with connection.cursor() as cursor:
+        cursor.execute(
+            """SELECT state
+               FROM energy_analytics.snow_events
+               WHERE occurred_at < %s
+               ORDER BY occurred_at DESC, event_id DESC
+               LIMIT 1""",
+            (at,),
+        )
+        row = cursor.fetchone()
+    return str(row[0]) if row is not None else None
