@@ -149,11 +149,11 @@ work remains observational and requires no shade actuator.
 ```bash
 cd analytics
 python3 -m pytest -q
-python3 -m earthship_energy.cli validate-config
-python3 -m earthship_energy.cli validate-sources --read-only
-python3 -m earthship_energy.cli migrate --dry-run
-python3 -m earthship_energy.cli aggregate --date YYYY-MM-DD --dry-run
-python3 -m earthship_energy.cli report winter --format json
+PYTHONPATH=src python3 -m earthship_energy.cli validate-config
+PYTHONPATH=src python3 -m earthship_energy.cli validate-sources --read-only
+PYTHONPATH=src python3 -m earthship_energy.cli migrate --dry-run
+PYTHONPATH=src python3 -m earthship_energy.cli aggregate --date YYYY-MM-DD --dry-run
+PYTHONPATH=src python3 -m earthship_energy.cli report winter --format json
 ```
 
 Before every completion claim, also run repository link checks,
