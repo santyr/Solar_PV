@@ -59,6 +59,18 @@ enabled/active restoration.
 - Existing `openhab-sanity.timer` and `forecast-json.timer` remain the owners
   of live OpenHAB health and UI forecast refresh respectively.
 
+## Long-term calendar checkpoints
+
+- Existing calendar coverage was verified for the annual system-health review,
+  the 2030 architecture review, 2034 migration readiness, and the 2038
+  battery-technology/whole-system review.
+- Added private, transparent checkpoint
+  `dpn8gvm83jl81hc01h94kheuqs` for 2033-01-15: select the preferred migration
+  architecture.
+- Added private, transparent checkpoint
+  `h4g6fr5r45l9heq49r1oo99018` for 2035-04-04: Schneider support-horizon
+  readiness. Both new checkpoints use a one-week popup reminder.
+
 ## Open item requiring operator input
 
 The backup scheduler is operational but intentionally reports Actionable.
