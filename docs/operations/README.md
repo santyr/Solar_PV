@@ -4,6 +4,7 @@
 - [Energy analysis runbook](energy-analysis-runbook.md)
 - [Codex energy review workflows](codex-review-workflows.md)
 - [Scheduled energy jobs](scheduled-jobs.md)
+- [Stage 5 production validation](../audit/stage5-production-validation.md)
 - [Maintenance](maintenance.md)
 - [Recovery and backup](recovery-and-backup.md)
 
