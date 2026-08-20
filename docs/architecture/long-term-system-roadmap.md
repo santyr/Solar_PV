@@ -73,12 +73,13 @@ This does **not** mean the Schneider equipment must be removed in 2035. If it re
 
 ### Solar array
 
-- Existing PV array installed approximately **2021**
+- **12 × Qcells 350 W modules, 4.2 kW DC**, from the original quote as
+  transcribed by the operator
+- PV array, XW Pro, and MPPT installed **2021-08-06**
 - Array tilt is intentionally optimized for **winter solar gain**
 - Snow is manually cleared promptly to preserve winter production
 - The array continues to produce useful energy under cloudy conditions, although at reduced power
-- The documented working rating is **4.2 kW DC**; 4.8 kW was an unsupported later rewrite
-- Exact module nameplates and string configuration remain a field-verification item before any future array redesign
+- The exact Qcells model and string configuration remain a field-verification item before any future array redesign
 
 ### Monitoring and automation
 

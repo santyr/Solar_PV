@@ -57,10 +57,11 @@ The PV discrepancy is resolved as follows:
 - 4.8 kW first appeared in commit `18f6f03` during a broad README rewrite.
 - No module schedule, nameplate photograph, invoice, or string diagram in this
   repository supports 4.8 kW.
-- Therefore 4.8 kW is rejected as unsupported. The canonical document uses
-  **4.2 kW documented rating**, while explicitly marking module count,
-  module-level nameplate, and string configuration as unverified pending a
-  field record.
+- Therefore 4.8 kW is rejected as unsupported.
+- Later on 2026-08-20, the operator checked the original quote and supplied
+  12 Qcells 350 W modules, which independently totals **4.2 kW**, and the
+  2021-08-06 installation date for the array, inverter, and charge controller.
+  The exact Qcells model and string configuration remain unverified.
 
 This resolves which value may be used operationally without manufacturing
 precision that the evidence does not contain.

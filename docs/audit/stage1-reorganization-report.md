@@ -72,8 +72,10 @@ older deleted designs that were already absent from `HEAD`.
   completed records, not active plans.
 - **PV rating:** 4.2 kW is retained as the documented working rating. The 4.8
   kW value first appeared without supporting evidence in commit `18f6f03`
-  and is rejected. Module nameplates and string configuration remain a named
-  field-verification gap.
+  and is rejected. Later on 2026-08-20, the operator checked the original quote
+  and supplied 12 Qcells 350 W modules (4.2 kW) plus the 2021-08-06 array,
+  inverter, and charge-controller installation date. Exact module model and
+  string configuration remain field-verification gaps.
 - **Mining:** Avalon/Bitaxe work is dormant and excluded from current policy.
 - **AGM persistence:** historical PostgreSQL mappings are evidence, not current
   battery authority.
@@ -118,7 +120,7 @@ systemd/process inventory, deployed-source hashes, and link/hash/tree checks.
 
 ## Remaining active work and handoffs
 
-1. Field-capture PV module nameplates and string topology.
+1. Capture the original PV quote or module nameplates and string topology.
 2. Re-verify firmware through current device interfaces when firmware matters.
 3. Implement the reversible PostgreSQL analytics platform in Stage 2.
 4. Resolve the earthship-ui OpenHAB version guard before managed deployments.

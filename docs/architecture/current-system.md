@@ -27,6 +27,7 @@ protection, and local telemetry.
 | BMS gateway | LYNK II, AEbus battery side, Xanbus Schneider side | Commissioning record and live telemetry |
 | Inverter | Schneider XW Pro 6848 NA, split phase | Live Thing/telemetry and repository record |
 | Charge controller | Schneider MPPT 60-150 | Live Thing/telemetry and repository record |
+| PV array | 12 × Qcells 350 W modules, 4.2 kW DC | Operator transcription from original quote, 2026-08-20 |
 | Gateway | InsightHome / InsightLocal | Live Schneider integration |
 | Automation | OpenHAB 5.2.1 | Authenticated live REST, 2026-08-20 |
 | Persistence | PostgreSQL 16.14, database timezone UTC | Read-only live query, 2026-08-20 |
@@ -39,21 +40,23 @@ these values before firmware-dependent work.
 
 ## PV array
 
-- Installed approximately 2021.
+- Twelve Qcells 350 W modules: **4.2 kW DC**.
+- The array, XW Pro inverter, and MPPT charge controller were installed on
+  **2021-08-06**.
 - Tilt is intentionally optimized for winter solar gain.
 - Snow is manually cleared promptly.
-- **Documented working rating: 4.2 kW DC.**
 
 The repository used 4.2 kW consistently from its first README through early
 2026. Commit `18f6f03` changed it to 4.8 kW as part of a broad prose rewrite,
-without a module schedule, nameplate photo, invoice, or string diagram.
-Accordingly, 4.8 kW is rejected as unsupported.
+without supporting evidence. The operator subsequently checked the original
+quote and transcribed 12 Qcells modules at 350 W each, independently resolving
+the total to 4.2 kW. Accordingly, 4.8 kW is rejected as unsupported.
 
-The exact module model/count, module-level nameplate sum, series/parallel string
-configuration, conductor details, and cold-voltage calculation remain
-**unverified evidence gaps**. Until an installation record or field survey is
-captured, use 4.2 kW only as the documented planning rating—not as a verified
-nameplate value.
+The exact Qcells module model, series/parallel string configuration, conductor
+details, and cold-voltage calculation remain **unverified evidence gaps**. The
+count, per-module quote rating, total rating, and installation date are
+operator-sourced original-quote facts; they have not been checked against a
+quote image or field nameplate in this repository.
 
 ## Telemetry and automation
 
@@ -83,7 +86,8 @@ telemetry, controls, policy, or UI.
 
 ## Known current gaps
 
-- Field-verify PV modules, nameplate total, and string configuration.
+- Capture the original PV quote or field nameplates; verify the exact Qcells
+  model and string configuration.
 - Re-verify firmware before firmware-sensitive maintenance.
 - Build the general energy analytics schema and reproducible reports in Stage 2.
 - Reconcile the deployed earthship-ui commits with its remote before shared

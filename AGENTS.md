@@ -6,6 +6,9 @@
   parallel: 400 Ah and 20.48 kWh nominal.
 - Discover LYNK II provides closed-loop Xanbus integration to a Schneider XW
   Pro 6848, MPPT 60-150, and InsightHome/InsightLocal.
+- The PV array is 12 Qcells 350 W modules (4.2 kW DC), installed with the XW
+  Pro and MPPT on 2021-08-06. Exact module model and string topology are not
+  yet documented.
 - OpenHAB owns live integration and bounded deterministic automation.
 - PostgreSQL owns quantitative history.
 - Codex is the supervisory analysis and engineering agent.
