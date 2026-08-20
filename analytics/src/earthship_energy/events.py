@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime
 
+from psycopg2.extras import Json
+
 
 def _validate_confidence(confidence: float) -> None:
     if not 0.0 <= float(confidence) <= 1.0:
@@ -54,3 +56,53 @@ class SnowEvent:
         _validate_confidence(self.confidence)
         if self.occurred_at.tzinfo is None or self.occurred_at.utcoffset() is None:
             raise ValueError("occurred_at must be timezone-aware")
+
+
+def _persist(connection, sql: str, params: tuple[object, ...]) -> dict[str, object]:
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(sql, params)
+            inserted = cursor.fetchone()
+        connection.commit()
+    except Exception:
+        connection.rollback()
+        raise
+    return {
+        "status": "inserted" if inserted is not None else "duplicate",
+        "event_id": int(inserted[0]) if inserted is not None else None,
+    }
+
+
+def persist_snow_event(connection, event: SnowEvent) -> dict[str, object]:
+    return _persist(
+        connection,
+        """INSERT INTO energy_analytics.snow_events
+           (occurred_at, state, method, confidence, note, evidence)
+           VALUES (%s, %s, %s, %s, %s, %s)
+           ON CONFLICT (occurred_at, state, method) DO NOTHING
+           RETURNING event_id""",
+        (
+            event.occurred_at, event.state, event.method, event.confidence,
+            event.note, Json(event.evidence),
+        ),
+    )
+
+
+def persist_observational_event(
+    connection, event: ObservationalEvent
+) -> dict[str, object]:
+    return _persist(
+        connection,
+        """INSERT INTO energy_analytics.system_events
+           (event_kind, state, started_at, ended_at, method, method_version,
+            confidence, operator_confirmed, evidence)
+           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+           ON CONFLICT (event_kind, started_at, method, method_version)
+           DO NOTHING
+           RETURNING event_id""",
+        (
+            event.event_kind, event.state, event.started_at, event.ended_at,
+            event.method, event.method_version, event.confidence,
+            event.operator_confirmed, Json(event.evidence),
+        ),
+    )

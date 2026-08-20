@@ -47,9 +47,11 @@ The first current-epoch backfill covers 2026-07-19 through 2026-08-19.
 
 Forecast capture and scenario math are deployed. LYNK file ingestion now has
 an idempotent dry-run/apply CLI and a provenance-preserving module-health
-report; it does not touch the closed-loop battery network. Event contracts and
-portable feature exports currently remain test-backed library surfaces rather
-than complete operator CLI workflows. Stage 3 owns the stable UI-facing
+report; it does not touch the closed-loop battery network. Snow events have an
+idempotent operator dry-run/apply CLI, and inferred events have a transactional
+observational persistence API. Portable feature exports currently remain a
+test-backed library surface rather than a complete operator CLI workflow.
+Stage 3 owns the stable UI-facing
 OpenHAB analytics contract; its Philips observation Items are linked and
 persisted. Stage 5 owns scheduling and separately mounted/off-host backups.
 

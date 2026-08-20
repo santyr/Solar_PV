@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+from dataclasses import asdict
 from datetime import date, datetime, time, timedelta
 import json
 from pathlib import Path
@@ -18,6 +19,7 @@ from .db import (
     parse_openhab_jdbc_config,
 )
 from .inventory import SourceResolutionError, fetch_inventory, resolve_sources
+from .events import SnowEvent, persist_snow_event
 from .imports import (
     fetch_existing_import_hashes,
     persist_lynk_import,
@@ -99,6 +101,17 @@ def _parser() -> argparse.ArgumentParser:
     lynk_mode = lynk.add_mutually_exclusive_group(required=True)
     lynk_mode.add_argument("--dry-run", action="store_true")
     lynk_mode.add_argument("--apply", action="store_true")
+    snow = subparsers.add_parser("record-snow")
+    snow.add_argument("--state", required=True, choices=("snow_covered", "snow_cleared"))
+    snow.add_argument("--occurred-at", required=True)
+    snow.add_argument("--method", required=True)
+    snow.add_argument("--confidence", required=True, type=float)
+    snow.add_argument("--note")
+    snow.add_argument("--evidence-json", default="{}")
+    snow.add_argument("--jdbc-config", default=DEFAULT_JDBC_CONFIG, type=Path)
+    snow_mode = snow.add_mutually_exclusive_group(required=True)
+    snow_mode.add_argument("--dry-run", action="store_true")
+    snow_mode.add_argument("--apply", action="store_true")
     return parser
 
 
@@ -338,6 +351,65 @@ def _import_lynk(args) -> int:
     return 0
 
 
+def _aware_datetime(raw: str, field: str) -> datetime:
+    try:
+        value = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise ValueError(f"{field} must be ISO-8601") from exc
+    if value.tzinfo is None or value.utcoffset() is None:
+        raise ValueError(f"{field} must include timezone information")
+    return value
+
+
+def _record_snow(args) -> int:
+    try:
+        evidence = json.loads(args.evidence_json)
+    except json.JSONDecodeError as exc:
+        raise ValueError("--evidence-json must be valid JSON") from exc
+    if not isinstance(evidence, dict):
+        raise ValueError("--evidence-json must be an object")
+    event = SnowEvent(
+        occurred_at=_aware_datetime(args.occurred_at, "--occurred-at"),
+        state=args.state,
+        method=args.method,
+        confidence=args.confidence,
+        note=args.note,
+        evidence=evidence,
+    )
+    if not args.apply:
+        payload = {
+            "status": "ready",
+            "mode": "dry_run",
+            "event": {
+                **asdict(event),
+                "authority": "observational_only",
+            },
+        }
+        _print(payload)
+        return 0
+    settings = parse_openhab_jdbc_config(args.jdbc_config)
+    try:
+        connection = connect_write(settings)
+    except Exception as exc:
+        raise DatabaseConfigError(
+            f"database connection failed ({type(exc).__name__})"
+        ) from exc
+    try:
+        pending = plan_migrations(
+            discover_migrations(), get_applied_migrations(connection)
+        )
+        if pending:
+            raise MigrationDriftError(
+                "pending migrations must be applied before recording snow event"
+            )
+        result = persist_snow_event(connection, event)
+    finally:
+        connection.close()
+    result["mode"] = "materialized"
+    _print(result)
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     try:
@@ -353,6 +425,8 @@ def main(argv: list[str] | None = None) -> int:
             return _report(args)
         if args.command == "import-lynk":
             return _import_lynk(args)
+        if args.command == "record-snow":
+            return _record_snow(args)
     except (
         BackupGateError,
         ConfigError,

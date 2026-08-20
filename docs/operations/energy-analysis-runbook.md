@@ -24,6 +24,9 @@ PYTHONPATH=src python3 -m earthship_energy.cli report winter --format json
 PYTHONPATH=src python3 -m earthship_energy.cli report modules --format json
 PYTHONPATH=src python3 -m earthship_energy.cli import-lynk \
   --file /protected/operator-export.csv --dry-run
+PYTHONPATH=src python3 -m earthship_energy.cli record-snow \
+  --state snow_cleared --occurred-at 2026-12-01T10:30:00-07:00 \
+  --method operator --confidence 1.0 --note "array cleared" --dry-run
 ```
 
 Daily writes are idempotent and confined to `energy_analytics`. Migration and
@@ -46,6 +49,14 @@ in one transaction. A byte-identical export is a successful write-free
 duplicate. `report modules` then reports per-module current-sharing
 deviation, cell spread, temperature, throughput deltas, faults, and exact
 import-batch provenance.
+
+`record-snow` validates an aware timestamp, closed state vocabulary,
+confidence, and optional JSON evidence in dry-run mode. After operator review,
+repeat the exact command with `--apply`. The insert is idempotent and confined
+to `energy_analytics.snow_events`; it has no OpenHAB or electrical-control
+authority. Inferred shade and kiva producers use the corresponding
+observational-event persistence API with method version, confidence, bounded
+evidence, and optional operator confirmation.
 
 ## Current limitations
 

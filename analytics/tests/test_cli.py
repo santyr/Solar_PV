@@ -296,3 +296,40 @@ def test_lynk_import_apply_persists_with_current_schema(tmp_path, monkeypatch, c
     assert output["mode"] == "materialized"
     assert output["batch_id"] == 7
     assert calls == ["close"]
+
+
+def test_record_snow_dry_run_validates_without_database_write(monkeypatch, capsys):
+    assert cli.main([
+        "record-snow", "--state", "snow_cleared",
+        "--occurred-at", "2026-01-01T10:00:00-07:00",
+        "--method", "operator", "--confidence", "1.0",
+        "--note", "panels cleared", "--dry-run",
+    ]) == 0
+    output = json.loads(capsys.readouterr().out)
+    assert output["mode"] == "dry_run"
+    assert output["event"]["state"] == "snow_cleared"
+    assert output["event"]["occurred_at"] == "2026-01-01T10:00:00-07:00"
+    assert output["event"]["authority"] == "observational_only"
+
+
+def test_record_snow_apply_is_schema_gated(monkeypatch, capsys):
+    class Connection:
+        def close(self):
+            pass
+
+    monkeypatch.setattr(cli, "parse_openhab_jdbc_config", lambda _: object())
+    monkeypatch.setattr(cli, "connect_write", lambda _: Connection())
+    monkeypatch.setattr(cli, "discover_migrations", lambda: [object()])
+    monkeypatch.setattr(cli, "get_applied_migrations", lambda _: {1: "sha"})
+    monkeypatch.setattr(cli, "plan_migrations", lambda *_: [])
+    monkeypatch.setattr(
+        cli, "persist_snow_event",
+        lambda _connection, _event: {"status": "inserted", "event_id": 9},
+    )
+    assert cli.main([
+        "record-snow", "--state", "snow_covered",
+        "--occurred-at", "2026-01-01T10:00:00Z",
+        "--method", "operator", "--confidence", "0.9", "--apply",
+    ]) == 0
+    output = json.loads(capsys.readouterr().out)
+    assert output == {"event_id": 9, "mode": "materialized", "status": "inserted"}
