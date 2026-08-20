@@ -10,7 +10,7 @@
 **Status:** **END-OF-LIFE / REPLACEMENT REQUIRED**
 
 **Canonical repo version:** this historical file
-**Interactive dashboard:** https://santyr.github.io/Solar_PV/battery_dashboard.html
+**Archived dashboard:** [battery-dashboard.html](battery-dashboard.html)
 
 ---
 
@@ -281,7 +281,7 @@ The overvoltage trajectory is worsening over time: 59.19V (Apr 2025) → 60.20V 
 **Source:** Owner manual multimeter readings (Feb 3, 2026)  
 **Conditions:** Float (~54.6 V bank) after ≥2 hours idle. Same method as Dec 2025 readings.
 
-**Interactive dashboard:** [Battery Health Dashboard](https://santyr.github.io/Solar_PV/battery_dashboard.html)
+**Archived dashboard:** [Battery Health Dashboard](battery-dashboard.html)
 
 **Per-battery readings (all at float):**
 
@@ -385,5 +385,5 @@ Until imbalance is reduced and charging is validated:
 ## References
 
 - **Fullriver DC400-6 Datasheet (PDF):** [fullriver-dc400-6.pdf](reference/fullriver-dc400-6.pdf)
-- **Battery Health Dashboard:** [battery_dashboard.html](https://santyr.github.io/Solar_PV/battery_dashboard.html)
+- **Battery Health Dashboard:** [battery-dashboard.html](battery-dashboard.html)
 - **Lithium Upgrade Record:** [discover-battery-upgrade.md](../../projects/completed/discover-battery-upgrade.md)

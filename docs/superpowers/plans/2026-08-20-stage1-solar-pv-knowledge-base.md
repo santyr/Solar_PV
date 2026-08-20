@@ -12,8 +12,9 @@ explicit authorization.
 ### Task 1: Preserve and classify
 
 - [x] Record the before tree and file migration map.
-- [x] Preserve `battery_dashboard.html` at the root and keep `photos/`
-  paths stable.
+- [x] Preserve the dashboard bytes and keep `photos/` paths stable. The
+  operator later superseded the root-path requirement: the dashboard is
+  archived under `docs/history/agm/` and Pages is disabled.
 - [x] Move AGM reports/data/manuals into explicit historical locations.
 - [x] Move completed upgrade/cutover documents into
   `docs/projects/completed/`.

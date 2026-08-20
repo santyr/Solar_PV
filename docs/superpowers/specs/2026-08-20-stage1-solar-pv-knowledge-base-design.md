@@ -1,7 +1,8 @@
 # Stage 1 Solar_PV Knowledge-Base Design
 
 **Status:** Approved by the Earthship Energy AI handoff and the operator's
-2026-08-20 instruction to proceed.
+2026-08-20 instruction to proceed. The root-dashboard compatibility decision
+was superseded later that day; see the note below.
 
 ## Objective
 
@@ -39,8 +40,10 @@ keeping history auditable.
 - `docs/history/agm/` and `data/historical/agm/` quarantine AGM assumptions
   and evidence.
 - `docs/reference/<vendor>/` owns manuals.
-- `battery_dashboard.html` remains at the repository root so the established
-  GitHub Pages URL does not change.
+- The initial design kept `battery_dashboard.html` at the repository root.
+  The operator later directed that the completed AGM project be unpublished;
+  the file now lives at `docs/history/agm/battery-dashboard.html` and Pages
+  is disabled.
 - `photos/` remains stable because historical reports link to those paths.
 
 ## Current-fact policy
@@ -72,14 +75,15 @@ precision that the evidence does not contain.
   tail-current rules are historical only.
 - Dormant mining code remains outside the current system.
 - External feeder contracts identified in Stage 0 remain unchanged.
-- Root dashboard and photo paths remain compatible.
+- Photo paths remain compatible. The obsolete dashboard URL is intentionally
+  retired.
 
 ## Verification
 
 Stage 1 is accepted only after:
 
 - every Markdown link resolves locally or is an intentional external URL;
-- the dashboard remains byte-identical at `battery_dashboard.html`;
+- the dashboard remains byte-identical at its archived path;
 - all original tracked files are present at a canonical or historical path;
 - current documents contain no active AGM or mining policy;
 - the required ownership/safety/source-of-truth rules are present;

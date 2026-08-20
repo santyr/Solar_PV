@@ -32,12 +32,11 @@ operations.
 - [AGM history](docs/history/agm/README.md)
 - [Stage 1 reorganization report](docs/audit/stage1-reorganization-report.md)
 
-## Compatibility
+## Historical AGM dashboard
 
-The historical
-[battery dashboard](https://santyr.github.io/Solar_PV/battery_dashboard.html)
-remains at the repository root for GitHub Pages compatibility. It describes the
-retired AGM bank and is not a current battery dashboard.
+The retired bank's [battery dashboard](docs/history/agm/battery-dashboard.html)
+is archived with the AGM evidence. The obsolete GitHub Pages site was
+unpublished on 2026-08-20.
 
 ## Safety
 

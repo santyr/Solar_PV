@@ -15,4 +15,8 @@ configuration for the current lithium system.
 - [Fullriver DC400-6 datasheet](reference/fullriver-dc400-6.pdf)
 - [Transcribed readings](../../../data/historical/agm/handwritten-voltage-readings-transcribed.csv)
 - [Summary statistics](../../../data/historical/agm/handwritten-voltage-readings-stats.csv)
-- [Published historical dashboard](https://santyr.github.io/Solar_PV/battery_dashboard.html)
+- [Archived battery dashboard](battery-dashboard.html)
+
+The dashboard is retained as local historical evidence only. The repository's
+GitHub Pages site was unpublished on 2026-08-20 because the AGM project is
+complete and the battery bank is no longer in service.

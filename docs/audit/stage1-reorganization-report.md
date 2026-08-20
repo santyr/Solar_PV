@@ -24,7 +24,6 @@ After:
 Solar_PV/
 ├── README.md
 ├── AGENTS.md
-├── battery_dashboard.html
 ├── data/historical/agm/
 ├── docs/
 │   ├── README.md
@@ -92,10 +91,12 @@ older deleted designs that were already absent from `HEAD`.
   OpenHAB is 5.2.1; this remains a cross-repository blocker, not a Stage 1
   documentation change.
 
-## Compatibility
+## Compatibility and later archival decision
 
-- `battery_dashboard.html` remains at the root, preserving
-  `https://santyr.github.io/Solar_PV/battery_dashboard.html`.
+- Stage 1 initially preserved `battery_dashboard.html` at the root.
+- On 2026-08-20, the operator superseded that decision because the AGM project
+  is complete. The dashboard moved to
+  `docs/history/agm/battery-dashboard.html`, and GitHub Pages was unpublished.
 - `photos/` paths remain stable.
 - OpenHAB Items, rule IDs, REST paths, persistence, and services were not
   changed.

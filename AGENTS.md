@@ -45,8 +45,9 @@ Never promote a plan, memory, UI label, or historical rule above live evidence.
 
 ## Historical AGM warning
 
-Files under `docs/history/agm/`, `data/historical/agm/`, the root historical
-dashboard, and related photos describe the retired 830 Ah Fullriver AGM bank.
+Files under `docs/history/agm/`, `data/historical/agm/`, the archived
+historical dashboard, and related photos describe the retired 830 Ah Fullriver
+AGM bank.
 Do not apply Peukert corrections, AGM voltage-SOC curves, tail-current rules,
 temperature compensation, float/absorption values, or safety-mode settings to
 the Discover bank.
