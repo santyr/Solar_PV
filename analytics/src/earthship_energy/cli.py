@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import argparse
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 import json
 from pathlib import Path
 import sys
@@ -33,6 +33,8 @@ from .migrations import (
     load_verified_backup_manifest,
     plan_migrations,
 )
+from .report_reader import fetch_daily_report_rows
+from .reports import lifecycle_report, monthly_report, winter_report
 
 
 DEFAULT_JDBC_CONFIG = "/var/lib/openhab/config/org/openhab/jdbc.config"
@@ -70,6 +72,14 @@ def _parser() -> argparse.ArgumentParser:
     aggregate_mode.add_argument("--dry-run", action="store_true")
     aggregate_mode.add_argument("--apply", action="store_true")
     aggregate.add_argument("--backup-manifest", type=Path)
+    report = subparsers.add_parser("report")
+    report.add_argument("kind", choices=("monthly", "winter", "lifecycle"))
+    report.add_argument("--start")
+    report.add_argument("--end", help="Exclusive local end date")
+    report.add_argument("--epoch")
+    report.add_argument("--epochs", type=Path)
+    report.add_argument("--jdbc-config", default=DEFAULT_JDBC_CONFIG, type=Path)
+    report.add_argument("--format", choices=("json", "markdown"), default="json")
     return parser
 
 
@@ -205,6 +215,53 @@ def _aggregate(args) -> int:
     return 0
 
 
+def _report(args) -> int:
+    epochs = load_epoch_config(args.epochs)
+    if args.epoch:
+        matches = [epoch for epoch in epochs if epoch.epoch_id == args.epoch]
+        if len(matches) != 1:
+            raise EpochConfigError(f"unknown epoch: {args.epoch}")
+        epoch = matches[0]
+    else:
+        epoch = next(epoch for epoch in epochs if epoch.current_analytics)
+    try:
+        start = date.fromisoformat(args.start) if args.start else epoch.start_local_date
+        end = date.fromisoformat(args.end) if args.end else date.today()
+    except ValueError as exc:
+        raise ValueError("report dates must use YYYY-MM-DD") from exc
+    if start is None:
+        raise ValueError("--start is required for an open-ended historical epoch")
+    settings = parse_openhab_jdbc_config(args.jdbc_config)
+    connection = connect_read_only(settings)
+    try:
+        rows = fetch_daily_report_rows(connection, epoch.epoch_id, start, end)
+    finally:
+        connection.close()
+    if args.kind == "monthly":
+        payload = monthly_report(rows, epoch_id=epoch.epoch_id)
+    elif args.kind == "lifecycle":
+        payload = lifecycle_report(rows)
+        payload["epoch_id"] = epoch.epoch_id
+    else:
+        if epoch.nominal_usable_kwh is None:
+            raise ValueError("winter report requires epoch nominal_usable_kwh")
+        payload = winter_report(
+            rows, nominal_usable_kwh=epoch.nominal_usable_kwh,
+            reserve_soc_pct=20.0,
+        )
+        payload["epoch_id"] = epoch.epoch_id
+    if args.format == "json":
+        _print(payload)
+    else:
+        print(f"# {payload['report'].replace('_', ' ').title()}\n")
+        print(f"- Epoch: `{epoch.epoch_id}`")
+        print(f"- Window: `{start.isoformat()}` through `{(end - timedelta(days=1)).isoformat()}`")
+        print("\n```json")
+        print(json.dumps(payload, indent=2, sort_keys=True, default=str))
+        print("```")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     try:
@@ -216,6 +273,8 @@ def main(argv: list[str] | None = None) -> int:
             return _migrate(args)
         if args.command == "aggregate":
             return _aggregate(args)
+        if args.command == "report":
+            return _report(args)
     except (
         BackupGateError,
         ConfigError,

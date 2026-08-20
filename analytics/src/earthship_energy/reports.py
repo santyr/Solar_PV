@@ -59,6 +59,8 @@ def winter_report(
     inverter_efficiency: float = 0.92,
 ) -> dict[str, object]:
     rows = _ordered(daily_rows)
+    winter_months = {11, 12, 1, 2, 3}
+    winter_days = sum(row["local_date"].month in winter_months for row in rows)
     scenarios = {}
     for capacity_pct in (100, 90, 80, 70, 60):
         result = replay_energy_balance(
@@ -76,6 +78,12 @@ def winter_report(
         "report": "winter_sufficiency",
         "schema_version": SCHEMA_VERSION,
         "question": "Are four Discover modules still sufficient?",
+        "winter_observation_days": winter_days,
+        "conclusion": (
+            "scenario_results_available"
+            if winter_days
+            else "insufficient_winter_observations"
+        ),
         "window_start": rows[0]["local_date"].isoformat(),
         "window_end": rows[-1]["local_date"].isoformat(),
         "reserve_soc_pct": reserve_soc_pct,

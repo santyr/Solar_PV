@@ -42,6 +42,15 @@ def test_winter_report_runs_required_capacity_scenarios():
     report = winter_report(DAILY, nominal_usable_kwh=20.48, reserve_soc_pct=20)
     assert list(report["capacity_scenarios_pct"]) == ["100", "90", "80", "70", "60"]
     assert report["question"] == "Are four Discover modules still sufficient?"
+    assert report["winter_observation_days"] == 2
+    assert report["conclusion"] == "scenario_results_available"
+
+
+def test_winter_report_does_not_present_summer_as_winter_evidence():
+    summer = [{**DAILY[0], "local_date": date(2026, 8, 1)}]
+    report = winter_report(summer, nominal_usable_kwh=20.48, reserve_soc_pct=20)
+    assert report["winter_observation_days"] == 0
+    assert report["conclusion"] == "insufficient_winter_observations"
 
 
 def test_lifecycle_report_preserves_throughput_and_efc():

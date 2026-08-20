@@ -180,3 +180,25 @@ def test_aggregate_apply_seeds_and_materializes(tmp_path, monkeypatch, capsys):
     assert output["mode"] == "materialized"
     assert output["tables_written"] == 4
     assert calls == ["seed", "close"]
+
+
+def test_report_reads_compact_products_and_prints_json(monkeypatch, capsys):
+    class Connection:
+        def close(self):
+            pass
+
+    monkeypatch.setattr(cli, "parse_openhab_jdbc_config", lambda _: object())
+    monkeypatch.setattr(cli, "connect_read_only", lambda _: Connection())
+    monkeypatch.setattr(cli, "fetch_daily_report_rows", lambda *_: [{
+        "local_date": __import__("datetime").date(2026, 8, 1),
+        "pv_kwh": 7, "load_kwh": 5, "min_soc_pct": 80,
+        "reached_99": True, "charge_kwh": 3, "discharge_kwh": 2,
+        "daily_efc": .12, "quality": "ok",
+    }])
+    assert cli.main([
+        "report", "monthly", "--start", "2026-08-01", "--end", "2026-09-01",
+        "--epoch", "discover_4_module_2026", "--format", "json",
+    ]) == 0
+    output = json.loads(capsys.readouterr().out)
+    assert output["report"] == "monthly"
+    assert output["metrics"]["pv_kwh"] == 7
