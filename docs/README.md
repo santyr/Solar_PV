@@ -23,6 +23,9 @@
 
 - [Stage 0 dependency inventory](audit/cross-repo-dependency-inventory.csv)
 - [Stage 1 reorganization report](audit/stage1-reorganization-report.md)
+- [Stage 2 production validation](audit/stage2-production-validation.md)
+- [Stage 3 production validation](audit/stage3-production-validation.md)
+- [Stage 5 production validation](audit/stage5-production-validation.md)
 - [Stages 2–5 completion audit](audit/stages2-5-completion-audit.md)
 - [Completed projects](projects/completed/README.md)
 - [Retired AGM system](history/agm/README.md)

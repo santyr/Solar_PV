@@ -5,14 +5,14 @@
 This is the canonical completion audit for the Stage 2–5 handoff. A passing
 test or plausible implementation is not treated as completion unless the
 required artifact and, where applicable, production readback exist. Statuses
-are `met`, `partial`, `time-gated`, or `operator-gated`.
+are `met`, `partial`, `time-gated`, `operator-gated`, or `operator-deferred`.
 
 Evidence was refreshed from:
 
-- `Solar_PV` local `main`, tracking `origin/main`, and remote
-  `refs/heads/main`, all at `7c08e60cc89080578226f89939f323a727d62dd0`;
+- `Solar_PV` local `main` and `origin/main`, both at
+  `c636d15efebd6c103ed9bd1d9f00a856d1f568a2`;
 - `earthship-ui` local `main` and `origin/main`, both at
-  `32c9538f3567bb4ac8376204f6ea3ceef29122fa`;
+  `cb9ac07b02c3d5e0ab7415174b61a9e3932df66b`;
 - read-only OpenHAB Item inventory through the deployed Vite proxy;
 - PostgreSQL `energy_analytics` readback;
 - user-level systemd timer/service state and journald;
@@ -21,11 +21,13 @@ Evidence was refreshed from:
 - the handoff prompts and `docs/acceptance-checklist.md` in the supplied
   handoff package.
 
-Final analytics verification for this audit is `116 passed`, plus clean
-`pyflakes`, `compileall`, and diff checks. The read-only scenario canary
-successfully replayed all 32 quality-approved current-epoch days with its
-capacity, reserve, PV/load multipliers, inverter efficiency, and 100% initial
-SOC assumption exposed in the output.
+Final analytics verification for this audit is `143 passed`, plus clean
+`pyflakes`, `compileall`, and diff checks. Final `earthship-ui` verification is
+`998 passed`, a successful production build, and `18 passed` Playwright tests
+covering both 1340x800 and 1280x720. The read-only scenario canary successfully
+replayed all 32 quality-approved current-epoch days with its capacity, reserve,
+PV/load multipliers, inverter efficiency, and 100% initial SOC assumption
+exposed in the output.
 
 ## Stage 2 — PostgreSQL energy data platform
 
@@ -41,18 +43,18 @@ SOC assumption exposed in the output.
 | Winter and capacity scenarios | met as capability | Winter-only report implements reserve thresholds, percentiles, no-full streaks, deficit replay, 100/90/80/70/60% capacity, and PV/storage matrix | Current data correctly reports `insufficient_winter_observations` until November–March evidence exists |
 | Discover module telemetry | partial | Closed-loop probing was rejected; checksum-pinned, idempotent LYNK CSV import and module-health reports exist | No operator LYNK export has been imported, so current-sharing/cell-spread trends contain no live samples |
 | Portable future-model interface | met | Version-2 5/15-minute CSV export includes epoch, current and lagged state, as-of forecasts, states, and confidence-bearing observational features | Parquet is optional, not required for portability |
-| Database recovery | met for migration rollback | PostgreSQL archive checksum and complete isolated restore were verified | Off-host disaster recovery remains Stage 5 operator-gated |
+| Database recovery | met for migration rollback | PostgreSQL archive checksum and complete isolated restore were verified | Off-host disaster recovery is explicitly operator-deferred; keep the limitation visible |
 
 ## Stage 3 — `earthship-ui` integration
 
 | Requirement group | Status | Evidence | Remaining work |
 | --- | --- | --- | --- |
-| Existing console and controls | met for current UI | Deployed service is active; local and remote revisions agree; current Energy page uses OpenHAB REST/SSE/history and bounded controls retain their owner contracts | Re-run the full UI/viewport regression after Stage 3 changes |
+| Existing console and controls | met | Deployed service is active; local and remote revisions agree; the Energy page uses OpenHAB REST/SSE/history and bounded controls retain their owner contracts; full unit/build/browser regression passed | Preserve owner contracts and re-run regressions after future changes |
 | No browser database, Hexmem, SSH, or private credentials | met | Current browser code uses the OpenHAB proxy/API and has no PostgreSQL or Hexmem client | Preserve this boundary |
-| Stable long-term analytics contract | **operator-gated** | Live Item inventory has no lifecycle/winter/daily analytics Item; repository search finds no consumer of `energy_analytics` products | Approve a versioned server-side PostgreSQL-to-OpenHAB JSON contract before implementation |
-| Battery lifecycle and winter visibility | **operator-gated** | Current Energy page shows live SOC, predicted trough, vendor cycle counter, temperature, remaining Ah, and BMS state, but not analytics EFC, days-since-full, winter minima, or no-full streaks | Implement from the approved stable contract; do not relabel vendor cycles as analytics EFC |
-| Forecast and analytics freshness UI | partial | Existing forecast/BMS indicators exist; no analytics payload exists whose freshness or quality can be rendered | Add explicit generated-at, through-date, quality, and unavailable states with the contract |
-| Tablet viewport and drill-downs | partial | Existing 1340×800 Energy layout and history interactions have tests; the required new lifecycle/winter content has not been designed or tested | Approve compact layout, then test 1340×800, 1280×720, missing data, stale data, and reconnect |
+| Stable long-term analytics contract | met | `earthship-energy-ui/v1` is assembled server-side from bounded PostgreSQL products, published every five minutes to the sole observational `Energy_Analytics_JSON` String Item, and consumed through OpenHAB REST/SSE | Version any incompatible future contract rather than mutating v1 semantics |
+| Battery lifecycle and winter visibility | met | The Energy page renders analytics EFC, days since full, no-full streak, winter minimum/median, observation count, forecast status, and explicit unavailable states; vendor cycles remain separately labelled | Winter values correctly remain unavailable until winter observations exist |
+| Forecast and analytics freshness UI | met | Payload and UI carry `generatedAt`, `throughDate`, source health, forecast issue/valid timestamps, current/stale/unavailable status, and fail-closed parsing | Preserve the 15-minute stale boundary and future-date refusal |
+| Tablet viewport and drill-downs | met | Current analytics layout passed unit tests and Playwright at 1340x800 and 1280x720, including observational detail and missing/stale states | Re-test both viewports after layout changes |
 | Mining exclusion | met | No mining cards, controls, or miner-derived analytics are present | Preserve exclusion |
 
 The default architecture remains:
@@ -75,20 +77,20 @@ be observational and fail closed; it cannot add a control path.
 | Session lifecycle and authority boundary | met | `docs/architecture/codex-energy-management.md`, `AGENTS.md`, and the review runbook require Hexmem context, live verification, explicit authority, rollback, verification, and durable post-work capture | Continue applying the workflow |
 | Named reproducible reviews | met | CLI provides monthly, winter, lifecycle, module, read-only scenario, import, event, validation, and feature-export workflows | None |
 | Provider-neutral semantic memory | met | Hexmem stores conclusions/decisions with provenance and sensitivity; docs prohibit raw telemetry, secrets, and memory-authorized side effects | Supersede stale records when discovered |
-| Future in-house AI portability | met | PostgreSQL schema, source/epoch contracts, report CLI, portable features, OpenHAB boundary, and Hexmem workflow are model-independent | Stage 3 payload semantics must also remain provider-neutral |
+| Future in-house AI portability | met | PostgreSQL schema, source/epoch contracts, report CLI, portable features, versioned OpenHAB payload, and Hexmem workflow are model-independent | Preserve provider-neutral contracts |
 | Codex is not a scheduler | met | Deterministic timers invoke Python/SQL only; monthly and actionable artifacts wait for attended reasoning | None |
 
 ## Stage 5 — scheduling and review cadence
 
 | Requirement group | Status | Evidence | Remaining work |
 | --- | --- | --- | --- |
-| Existing scheduler audit and non-duplication | met | Existing OpenHAB/forecast/Hexmem timers were inventoried before deployment; five energy jobs have distinct ownership | Re-audit before adding another timer |
-| Required timer/service set | met | All five user timers are enabled/active: hourly quality, two-hour forecast, daily aggregate, weekly backup check, monthly report | None |
+| Existing scheduler audit and non-duplication | met | Existing OpenHAB/forecast/Hexmem timers were inventoried before deployment; six energy jobs have distinct ownership | Re-audit before adding another timer |
+| Required timer/service set | met | All six user timers are enabled/active: hourly quality, two-hour forecast, daily aggregate, weekly backup check, monthly report, and five-minute UI publication | None |
 | Idempotence, locking, timeouts, logs, severity | met | Unit tests and manual canaries cover `flock`, bounded runtime, structured journald output, closed severity vocabulary, and idempotent database/report writes | Continue monitoring failures in journald |
 | Actionable-event handoff | met | Private deduplicated pending events exist for backup and monthly review; routine healthy output stays in journald/PostgreSQL and never invokes Codex | Investigate attended events rather than adding polling AI |
 | Calendar milestones | met | Annual, 2030, 2033, 2034, 2035, and 2038 strategic checkpoints were checked/reconciled; Calendar is not used for machine execution | First-winter conclusions remain data-timed, not invented in advance |
-| Backup verification | partial / **operator-gated** | Archive is readable and restore-verified; weekly checker correctly reports Actionable | Operator must select an encrypted off-host or separately mounted destination, retention, and restore-test cadence |
-| Elapsed automatic production evidence | **time-gated** | Manual canaries and a 32-day deterministic backfill pass; hourly quality and two-hour forecast timers have fired | Daily, weekly, and monthly timers were installed on 2026-08-20 and have not yet accumulated several naturally scheduled successful runs |
+| Backup verification | met for approved local scope / **operator-deferred** off-host | Archive is checksum- and restore-verified; weekly checker correctly reports Actionable because the operator explicitly deferred an off-host/separate-mount backup for now | Keep the limitation visible; select a destination only on new operator direction |
+| Elapsed automatic production evidence | **time-gated** | Manual canaries and a 32-day deterministic backfill pass; natural hourly quality, two-hour forecast, and five-minute UI publisher runs have succeeded | Daily, weekly, and monthly timers were installed on 2026-08-20 and have not yet accumulated natural scheduled runs, let alone several days of evidence |
 
 ## Compatibility and safety
 
@@ -102,26 +104,26 @@ be observational and fail closed; it cannot add a control path.
 
 ## Thermal shadow extension
 
-The thermal shadow is an additional Stage 3 program, not evidence that the
-long-term electrical analytics UI is complete. Philips illuminance, occupancy,
-and temperature Items are linked and persisted. The rolling 400-day fit still
-has no accepted artifact: the current mass equation can select zero air/mass
-coupling, leaving transition spectral radius `1.0`. `Thermal_Model_JSON` and
-all thermal systemd units remain absent. The next physics change is
-operator-gated and must not weaken stability, backtest, publication, or
-no-actuation gates.
+The thermal shadow is an additional program and does not block completion of
+the Stage 2-5 electrical analytics handoff. Philips illuminance, occupancy,
+and temperature Items are linked and persisted. Multihorizon schema v3 passed
+physics, finite-metric, fold-count, provenance, and objective checks, but its
+400-day candidate was refused because 24-hour air MAE was `2.520775 F` versus
+`1.675 F` for persistence. No accepted artifact exists. `Thermal_Model_JSON`
+and all thermal systemd units remain absent. Any future candidate must pass the
+same fail-closed promotion and separately approved Gate B publication gates.
 
 ## Exact remaining gates
 
-1. Approve the Stage 3 versioned aggregate OpenHAB JSON contract and compact
-   Energy-page layout.
-2. Approve or reject the thermal mass-to-outdoor exchange redesign. This is a
-   separate schema-versioned physics change.
-3. Select the off-host/separate-mount backup destination, retention, and
-   restore-test cadence.
-4. Provide a LYNK CSV export if live per-module trend population is desired.
-5. Allow elapsed daily/weekly/monthly schedules to accumulate production
-   evidence, then run the final validation audit.
+1. Allow the daily, weekly, and monthly timers to run naturally and accumulate
+   several days of production evidence, then run the final validation audit.
+2. Provide a LYNK CSV export only if live per-module trend population is
+   desired; safe import and reporting capability already exists.
+3. Revisit off-host backup only on new operator direction; it is explicitly
+   deferred and the current checker must continue reporting the limitation.
+4. Treat thermal promotion and Gate B as a separate extension, not as a reason
+   to weaken or relabel the completed electrical analytics path.
 
-The program is not complete until these gates are resolved and their deployed
-outcomes are verified and published.
+The Stage 2-5 implementation is deployed and published. Full production
+completion remains unproven only because the required elapsed natural
+daily/weekly/monthly evidence cannot exist on the installation date.
