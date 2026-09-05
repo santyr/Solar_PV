@@ -36,7 +36,11 @@ def assess_source_quality(
     freshness_item: str | None,
     freshness_points: list[tuple[datetime, str]],
 ) -> dict[str, object]:
-    """Measure how much of a window is authorized by explicit health evidence."""
+    """Measure coverage from (original_observed_at, raw_value) health evidence.
+
+    The final observation lasts until window_end, subject to its policy.
+    Historical callers must retain original times, especially for carry-in.
+    """
 
     for label, value in (("window_start", window_start), ("window_end", window_end)):
         if value.tzinfo is None or value.utcoffset() is None:
@@ -62,7 +66,7 @@ def assess_source_quality(
 
     valid_seconds = 0.0
     stale_intervals = 0
-    ordered = sorted(freshness_points)
+    ordered = sorted(freshness_points, key=lambda point: point[0])
     for observed_at, _ in ordered:
         if observed_at.tzinfo is None or observed_at.utcoffset() is None:
             raise ValueError("freshness observation timestamps must be timezone-aware")

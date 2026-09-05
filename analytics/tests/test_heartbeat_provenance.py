@@ -66,6 +66,14 @@ def test_later_invalid_observation_stops_previous_authorization():
     assert result["stale_intervals"] == 2
 
 
+@pytest.mark.parametrize("points,expected_seconds", [
+    ([(START, "UNDEF"), (START, START.isoformat())], 120),
+    ([(START, START.isoformat()), (START, "UNDEF")], 0),
+])
+def test_equal_timestamp_observations_preserve_input_order(points, expected_seconds):
+    assert assess(points)["detail"]["valid_seconds"] == expected_seconds
+
+
 def test_no_observation_means_no_coverage():
     assert assess([])["coverage"] == 0
 
