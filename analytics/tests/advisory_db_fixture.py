@@ -1,5 +1,6 @@
 """Disposable-only PostgreSQL fixture: no external DSN input or fallback."""
 from contextlib import closing
+from dataclasses import dataclass
 import os
 import secrets
 import subprocess
@@ -15,6 +16,31 @@ import pytest
 from earthship_energy.migrations import (
     apply_migrations, discover_migrations, get_applied_migrations, plan_migrations,
 )
+
+
+@dataclass(frozen=True)
+class FixtureEndpoint:
+    host: str
+    port: int
+    dbname: str
+    user: str
+    password: str
+
+    @property
+    def dsn(self):
+        return make_dsn(
+            host=self.host, port=self.port, dbname=self.dbname,
+            user=self.user, password=self.password,
+        )
+
+    def connect(self, *, connect_timeout=3):
+        if os.environ.get("PGSERVICE") or os.environ.get("PGSERVICEFILE"):
+            raise RuntimeError("unsafe disposable database environment")
+        return psycopg2.connect(
+            host=self.host, hostaddr=self.host, port=self.port,
+            dbname=self.dbname, user=self.user, password=self.password,
+            connect_timeout=connect_timeout, sslmode="disable",
+        )
 
 
 def docker(args, env=None):
@@ -45,13 +71,14 @@ def advisory_db():
         binding = docker(["port", name, "5432/tcp"])
         assert binding.startswith("127.0.0.1:") and "\n" not in binding
         port = int(binding.rsplit(":", 1)[1])
-        owner_dsn = make_dsn(host="127.0.0.1", port=port,
-                             dbname="advisory_test", user="postgres",
-                             password=owner_password)
+        owner = FixtureEndpoint(
+            host="127.0.0.1", port=port, dbname="advisory_test",
+            user="postgres", password=owner_password,
+        )
         deadline = time.monotonic() + 30
         while True:
             try:
-                connection = psycopg2.connect(owner_dsn, connect_timeout=1)
+                connection = owner.connect(connect_timeout=1)
                 break
             except psycopg2.Error:
                 if time.monotonic() >= deadline:
@@ -71,10 +98,17 @@ def advisory_db():
                 cursor.execute("""GRANT INSERT, SELECT ON
                     energy_analytics.advisory_decisions,
                     energy_analytics.advisory_results TO advisory_writer""")
-        writer_dsn = make_dsn(host="127.0.0.1", port=port,
-                              dbname="advisory_test", user="advisory_writer",
-                              password=writer_password)
-        yield SimpleNamespace(owner=owner_dsn, writer=writer_dsn)
+        writer = FixtureEndpoint(
+            host="127.0.0.1", port=port, dbname="advisory_test",
+            user="advisory_writer", password=writer_password,
+        )
+        yield SimpleNamespace(
+            host=owner.host, port=owner.port, dbname=owner.dbname,
+            owner_user=owner.user, owner_password=owner.password,
+            writer_user=writer.user, writer_password=writer.password,
+            owner=owner.dsn, writer=writer.dsn,
+            connect_owner=owner.connect, connect_writer=writer.connect,
+        )
     finally:
         if created:
             docker(["rm", "--force", name])

@@ -10,7 +10,7 @@
 
 ## Global Constraints
 
-- Approved specification: `/home/sat/earthship-ui/.worktrees/advisory-outcome-foundation/docs/superpowers/specs/2026-09-05-advisory-outcomes-design.md`.
+- Approved specification: `/home/sat/earthship-ui/docs/superpowers/specs/2026-09-05-advisory-outcomes-design.md`.
 - Work only in `/home/sat/earthship-ui/.worktrees/advisory-outcome-storage`, Solar_PV base `9565f8f`; inspect status before editing and preserve unrelated work.
 - Earthship-ui owns the forecast script's capture integration and pure record builders. Solar_PV owns new energy_analytics tables, migrations, bounded reads, outcome assessment, and report generation.
 - Production migrations and activation require an attended release approval after tests and review; this design is not that deployment approval.
@@ -35,7 +35,7 @@ The existing migration owner remains `earthship_energy.migrations.discover_migra
 Development import command, from the storage worktree:
 
 ```bash
-PYTHONPATH=/home/sat/earthship-ui/.worktrees/advisory-outcome-foundation/openhab/scripts:$PWD/analytics/src python3 -m pytest analytics/tests -q
+PYTHONPATH=/home/sat/earthship-ui/openhab/scripts:$PWD/analytics/src python3 -m pytest analytics/tests -q
 ```
 
 During a later attended release, install the reviewed shared modules beside the installed forecast script and explicitly include that directory in the consuming Python path; install the Solar_PV analytics package separately. Do not copy builders into Solar_PV or import the forecast script itself. Deploy schema/dependencies and verify least privileges before enabling the later default-off producer adapter. This plan supplies no activation command.
@@ -66,6 +66,7 @@ Create `analytics/tests/advisory_db_fixture.py` with this complete content. Dock
 ```python
 """Disposable-only PostgreSQL fixture: no external DSN input or fallback."""
 from contextlib import closing
+from dataclasses import dataclass
 import os
 import secrets
 import subprocess
@@ -81,6 +82,31 @@ import pytest
 from earthship_energy.migrations import (
     apply_migrations, discover_migrations, get_applied_migrations, plan_migrations,
 )
+
+
+@dataclass(frozen=True)
+class FixtureEndpoint:
+    host: str
+    port: int
+    dbname: str
+    user: str
+    password: str
+
+    @property
+    def dsn(self):
+        return make_dsn(
+            host=self.host, port=self.port, dbname=self.dbname,
+            user=self.user, password=self.password,
+        )
+
+    def connect(self, *, connect_timeout=3):
+        if os.environ.get("PGSERVICE") or os.environ.get("PGSERVICEFILE"):
+            raise RuntimeError("unsafe disposable database environment")
+        return psycopg2.connect(
+            host=self.host, hostaddr=self.host, port=self.port,
+            dbname=self.dbname, user=self.user, password=self.password,
+            connect_timeout=connect_timeout, sslmode="disable",
+        )
 
 
 def docker(args, env=None):
@@ -111,13 +137,14 @@ def advisory_db():
         binding = docker(["port", name, "5432/tcp"])
         assert binding.startswith("127.0.0.1:") and "\n" not in binding
         port = int(binding.rsplit(":", 1)[1])
-        owner_dsn = make_dsn(host="127.0.0.1", port=port,
-                             dbname="advisory_test", user="postgres",
-                             password=owner_password)
+        owner = FixtureEndpoint(
+            host="127.0.0.1", port=port, dbname="advisory_test",
+            user="postgres", password=owner_password,
+        )
         deadline = time.monotonic() + 30
         while True:
             try:
-                connection = psycopg2.connect(owner_dsn, connect_timeout=1)
+                connection = owner.connect(connect_timeout=1)
                 break
             except psycopg2.Error:
                 if time.monotonic() >= deadline:
@@ -137,10 +164,17 @@ def advisory_db():
                 cursor.execute("""GRANT INSERT, SELECT ON
                     energy_analytics.advisory_decisions,
                     energy_analytics.advisory_results TO advisory_writer""")
-        writer_dsn = make_dsn(host="127.0.0.1", port=port,
-                              dbname="advisory_test", user="advisory_writer",
-                              password=writer_password)
-        yield SimpleNamespace(owner=owner_dsn, writer=writer_dsn)
+        writer = FixtureEndpoint(
+            host="127.0.0.1", port=port, dbname="advisory_test",
+            user="advisory_writer", password=writer_password,
+        )
+        yield SimpleNamespace(
+            host=owner.host, port=owner.port, dbname=owner.dbname,
+            owner_user=owner.user, owner_password=owner.password,
+            writer_user=writer.user, writer_password=writer.password,
+            owner=owner.dsn, writer=writer.dsn,
+            connect_owner=owner.connect, connect_writer=writer.connect,
+        )
     finally:
         if created:
             docker(["rm", "--force", name])
@@ -164,7 +198,8 @@ from psycopg2 import sql
 import pytest
 
 from advisory_records import build_decision_record, build_result_record
-from advisory_db_fixture import advisory_db
+import advisory_db_fixture as db_fixture
+from advisory_db_fixture import FixtureEndpoint, advisory_db
 from earthship_energy import advisory_store as module
 from earthship_energy.advisory_store import (
     AdvisoryStore, AdvisoryConflictError, AdvisoryStorageError, InvalidAdvisoryRecord,
@@ -217,7 +252,7 @@ def test_round_trip_and_retries(advisory_db):
         store.put_decision(changed(origin, advisory="vent_tonight"))
     with pytest.raises(AdvisoryConflictError, match="advisory identity conflict"):
         store.put_result(changed(observed, status="failed"))
-    with closing(psycopg2.connect(advisory_db.writer)) as connection:
+    with closing(advisory_db.connect_writer()) as connection:
         with connection.cursor() as cursor:
             for table, key, encoded in [
                 ("advisory_decisions", "decision_id", origin),
@@ -245,25 +280,130 @@ def test_references_and_chronology(advisory_db):
 
 
 def test_concurrent_identical_and_conflicting_retries(advisory_db):
-    store = AdvisoryStore(advisory_db.writer)
     origin = decision()
+    stores = [AdvisoryStore(advisory_db.writer) for _ in range(6)]
+
+    def put_with(store, payload, kind):
+        put = store.put_decision if kind == "decision" else store.put_result
+        try:
+            return put(payload)
+        except AdvisoryStorageError:
+            return "bounded-storage-error"
+
     with ThreadPoolExecutor(max_workers=6) as pool:
-        assert list(pool.map(store.put_decision, [origin] * 6)).count(True) == 1
+        outcomes = list(pool.map(
+            lambda store: put_with(store, origin, "decision"), stores,
+        ))
+        assert outcomes.count(True) == 1
+        assert set(outcomes) <= {True, False, "bounded-storage-error"}
+        assert AdvisoryStore(advisory_db.writer).put_decision(origin) is False
         observed = result(origin)
-        assert list(pool.map(store.put_result, [observed] * 6)).count(True) == 1
+        outcomes = list(pool.map(
+            lambda store: put_with(store, observed, "result"), stores,
+        ))
+        assert outcomes.count(True) == 1
+        assert set(outcomes) <= {True, False, "bounded-storage-error"}
+        assert AdvisoryStore(advisory_db.writer).put_result(observed) is False
     for kind in ("decision", "result"):
         original = decision() if kind == "decision" else result(origin)
         alternative = changed(original, **({"advisory": "vent_tonight"}
                                            if kind == "decision" else {"status": "failed"}))
-        put = store.put_decision if kind == "decision" else store.put_result
-        def attempt(payload):
+        def attempt(store, payload):
+            put = store.put_decision if kind == "decision" else store.put_result
             try:
                 return put(payload)
             except AdvisoryConflictError:
                 return "conflict"
+            except AdvisoryStorageError:
+                return "bounded-storage-error"
         with ThreadPoolExecutor(max_workers=2) as pool:
-            outcomes = list(pool.map(attempt, [original, alternative]))
-        assert outcomes.count(True) == outcomes.count("conflict") == 1
+            outcomes = list(pool.map(
+                attempt,
+                [AdvisoryStore(advisory_db.writer), AdvisoryStore(advisory_db.writer)],
+                [original, alternative],
+            ))
+        assert outcomes.count(True) == 1
+        assert set(outcomes) <= {True, "conflict", "bounded-storage-error"}
+        settled = []
+        for payload in (original, alternative):
+            put = (AdvisoryStore(advisory_db.writer).put_decision if kind == "decision"
+                   else AdvisoryStore(advisory_db.writer).put_result)
+            try:
+                settled.append(put(payload))
+            except AdvisoryConflictError:
+                settled.append("conflict")
+        assert settled.count(False) == settled.count("conflict") == 1
+
+
+@pytest.mark.parametrize("variable", ["PGSERVICE", "PGSERVICEFILE"])
+def test_fixture_endpoint_rejects_unsafe_ambient_configuration_before_connect(
+        variable, monkeypatch):
+    endpoint = FixtureEndpoint(
+        host="127.0.0.1", port=15432, dbname="generated_db",
+        user="generated_user", password="generated_password",
+    )
+    monkeypatch.setenv(variable, "unsafe-ambient-value")
+    def forbidden(*args, **kwargs):
+        pytest.fail("unsafe fixture environment attempted a database connection")
+    monkeypatch.setattr(db_fixture.psycopg2, "connect", forbidden)
+    with pytest.raises(RuntimeError, match="unsafe disposable database environment"):
+        endpoint.connect(connect_timeout=1)
+
+
+def test_fixture_connections_pin_the_generated_endpoint(advisory_db, monkeypatch):
+    real_connect = psycopg2.connect
+    calls = []
+    def tracked(*args, **kwargs):
+        calls.append((args, kwargs))
+        return real_connect(*args, **kwargs)
+    monkeypatch.setattr(db_fixture.psycopg2, "connect", tracked)
+    with closing(advisory_db.connect_owner()) as connection:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT current_database(), current_user")
+            assert cursor.fetchone() == (advisory_db.dbname, advisory_db.owner_user)
+    assert calls[0][0] == ()
+    assert calls[0][1] == {
+        "host": advisory_db.host, "hostaddr": advisory_db.host,
+        "port": advisory_db.port, "dbname": advisory_db.dbname,
+        "user": advisory_db.owner_user, "password": advisory_db.owner_password,
+        "connect_timeout": 3, "sslmode": "disable",
+    }
+
+
+def test_same_record_contention_is_bounded_and_retry_compares_committed_winner(advisory_db):
+    origin = decision()
+    payload = json.loads(origin)
+    with closing(advisory_db.connect_writer()) as winner:
+        with winner.cursor() as cursor:
+            cursor.execute(
+                """INSERT INTO energy_analytics.advisory_decisions
+                   (decision_id, issued_at, bank_epoch, payload)
+                   VALUES (%s, %s, %s, %s::jsonb)""",
+                (payload["decision_id"], payload["issued_at"], payload["bank_epoch"], origin),
+            )
+        started = time.monotonic()
+        with pytest.raises(AdvisoryStorageError) as caught:
+            AdvisoryStore(advisory_db.writer).put_decision(origin)
+        assert str(caught.value) == "advisory storage unavailable"
+        assert 0.7 <= time.monotonic() - started < 4
+        winner.commit()
+    assert AdvisoryStore(advisory_db.writer).put_decision(origin) is False
+
+
+def test_fixture_endpoint_pins_hostaddr_over_ambient_value(monkeypatch):
+    endpoint = FixtureEndpoint(
+        host="127.0.0.1", port=15432, dbname="generated_db",
+        user="generated_user", password="generated_password",
+    )
+    calls = []
+    monkeypatch.setenv("PGHOSTADDR", "192.0.2.1")
+    monkeypatch.setattr(
+        db_fixture.psycopg2, "connect",
+        lambda *args, **kwargs: calls.append((args, kwargs)),
+    )
+    endpoint.connect(connect_timeout=1)
+    assert calls[0][0] == ()
+    assert calls[0][1]["host"] == calls[0][1]["hostaddr"] == "127.0.0.1"
 
 
 @pytest.mark.parametrize("kind", ["decision", "result"])
@@ -333,15 +473,15 @@ def test_runtime_cannot_mutate(advisory_db, table, verb):
     statement = {"UPDATE": "UPDATE energy_analytics.{} SET payload=payload",
                  "DELETE": "DELETE FROM energy_analytics.{}",
                  "TRUNCATE": "TRUNCATE energy_analytics.{}"}[verb]
-    for dsn in (advisory_db.writer, advisory_db.owner):
-        with closing(psycopg2.connect(dsn)) as connection:
+    for connect in (advisory_db.connect_writer, advisory_db.connect_owner):
+        with closing(connect()) as connection:
             with connection.cursor() as cursor:
                 with pytest.raises(psycopg2.Error):
                     cursor.execute(sql.SQL(statement).format(sql.Identifier(table)))
 
 
 def test_runtime_privileges_are_minimal(advisory_db):
-    with closing(psycopg2.connect(advisory_db.writer)) as connection:
+    with closing(advisory_db.connect_writer()) as connection:
         with connection.cursor() as cursor:
             for table in ("advisory_decisions", "advisory_results"):
                 for privilege in ("INSERT", "SELECT", "UPDATE", "DELETE", "TRUNCATE",
@@ -439,7 +579,7 @@ def test_direct_sql_rejects_missing_or_null_identity(advisory_db, table, field, 
             VALUES (%s, %s, %s, %s, %s::jsonb)"""
         parameters = (original["result_id"], original["decision_id"], parent["issued_at"],
                       original["observed_at"], json.dumps(payload))
-    with closing(psycopg2.connect(advisory_db.writer)) as connection:
+    with closing(advisory_db.connect_writer()) as connection:
         with connection.cursor() as cursor:
             with pytest.raises(psycopg2.errors.CheckViolation):
                 cursor.execute(statement, parameters)
@@ -448,7 +588,7 @@ def test_direct_sql_rejects_missing_or_null_identity(advisory_db, table, field, 
 def test_real_lock_timeout_and_cleanup(advisory_db, monkeypatch):
     real_connect = psycopg2.connect
     captured = []
-    with closing(real_connect(advisory_db.owner)) as blocker:
+    with closing(advisory_db.connect_owner()) as blocker:
         with blocker.cursor() as cursor:
             cursor.execute("LOCK energy_analytics.advisory_decisions IN ACCESS EXCLUSIVE MODE")
         def tracked(*args, **kwargs):
@@ -466,7 +606,7 @@ def test_real_lock_timeout_and_cleanup(advisory_db, monkeypatch):
 
 def test_real_statement_timeout_and_cleanup(advisory_db, monkeypatch):
     real_connect = psycopg2.connect
-    with closing(real_connect(advisory_db.owner)) as setup, setup:
+    with closing(advisory_db.connect_owner()) as setup, setup:
         with setup.cursor() as cursor:
             cursor.execute("""CREATE FUNCTION energy_analytics.test_delay() RETURNS trigger
                 LANGUAGE plpgsql AS $$ BEGIN PERFORM pg_sleep(4); RETURN NEW; END $$""")
@@ -486,7 +626,7 @@ def test_real_statement_timeout_and_cleanup(advisory_db, monkeypatch):
         assert 1.7 <= time.monotonic() - started < 4
         assert captured and all(connection.closed for connection in captured)
     finally:
-        with closing(real_connect(advisory_db.owner)) as connection, connection:
+        with closing(advisory_db.connect_owner()) as connection, connection:
             with connection.cursor() as cursor:
                 cursor.execute("DROP TRIGGER test_delay ON energy_analytics.advisory_decisions")
                 cursor.execute("DROP FUNCTION energy_analytics.test_delay()")
@@ -505,7 +645,7 @@ def test_connection_errors_are_sanitized(monkeypatch):
 - [ ] **Step 3: Run the new tests to establish the red result.**
 
 ```bash
-PYTHONPATH=/home/sat/earthship-ui/.worktrees/advisory-outcome-foundation/openhab/scripts:$PWD/analytics/src python3 -m pytest analytics/tests/test_advisory_store.py -q
+PYTHONPATH=/home/sat/earthship-ui/openhab/scripts:$PWD/analytics/src python3 -m pytest analytics/tests/test_advisory_store.py -q
 ```
 
 Expected: collection fails because `earthship_energy.advisory_store` does not exist. Do not mistake a missing Docker installation or shared-builder import for the intended red result.
@@ -740,16 +880,18 @@ class AdvisoryStore:
 
 Review correction: libpq can consult ambient `PGSERVICE`/`PGSERVICEFILE` despite a `service=''` keyword, so an empty service argument does not suppress fallback. Fail closed on either nonempty variable instead of editing global environment, introducing subprocesses, or generating service/credential files. The check and libpq environment read are not atomic: a foreign thread or native extension mutating these process variables during connection setup can race the guard. Deployment must keep process environment fixed for the adapter's lifetime; this small in-process adapter cannot guarantee isolation from concurrent foreign environment mutation. Calls made after a variable changes are checked again and reject. No suppression guarantee under such concurrent mutation is claimed.
 
+Approved correction (2026-09-05): fixture-owned owner/writer connections use generated endpoint objects that pass numeric loopback as both `host` and `hostaddr`, plus explicit generated port/database/user/password, and reject ambient `PGSERVICE` or `PGSERVICEFILE` before calling libpq. Concurrent acceptance uses independent `AdvisoryStore` instances. Under unresolved contention a constant sanitized `AdvisoryStorageError` within the fixed timeout is valid; every successful outcome is exactly one `True` plus identical `False` results or a conflicting error, and a caller-controlled same-ID retry after the winner commits must perform the deterministic persisted comparison. No process-local lock, internal retry loop, or unbounded wait is permitted.
+
 - [ ] **Step 6: Run focused and full verification.**
 
 ```bash
-PYTHONPATH=/home/sat/earthship-ui/.worktrees/advisory-outcome-foundation/openhab/scripts:$PWD/analytics/src python3 -m pytest analytics/tests/test_advisory_store.py -q
-PYTHONPATH=/home/sat/earthship-ui/.worktrees/advisory-outcome-foundation/openhab/scripts:$PWD/analytics/src python3 -m pytest analytics/tests -q
+PYTHONPATH=/home/sat/earthship-ui/openhab/scripts:$PWD/analytics/src python3 -m pytest analytics/tests/test_advisory_store.py -q
+PYTHONPATH=/home/sat/earthship-ui/openhab/scripts:$PWD/analytics/src python3 -m pytest analytics/tests -q
 git diff --check
 git status --short
 ```
 
-Expected: focused tests all pass against disposable PostgreSQL 16, full suite retains the existing 203 passing tests and passes all additions, diff check is clean, and only the intended plan/implementation files appear. The fixture's `finally` removes its exact generated container on normal test success/failure. If the process is forcibly killed, identify its exact `advisory-test-<uuid>` name from that test invocation before manually removing it; never use a broad Docker prune.
+Expected: focused tests all pass against disposable PostgreSQL 16, including generated-endpoint pinning, pre-connect ambient-service rejection, committed idempotency, independent-store uniqueness/conflict behavior, bounded contention failure, and caller-controlled post-commit retry. Full analytics passes all additions, diff check is clean, and only intended files appear. The fixture's `finally` removes its exact generated container on normal test success/failure. If the process is forcibly killed, identify its exact `advisory-test-<uuid>` name from that test invocation before manually removing it; never use a broad Docker prune.
 
 - [ ] **Step 7: Review and commit the independently testable storage increment.**
 
