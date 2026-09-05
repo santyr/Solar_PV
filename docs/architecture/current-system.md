@@ -89,7 +89,11 @@ telemetry, controls, policy, or UI.
 - Capture the original PV quote or field nameplates; verify the exact Qcells
   model and string configuration.
 - Re-verify firmware before firmware-sensitive maintenance.
-- Build the general energy analytics schema and reproducible reports in Stage 2.
+- As of 2026-09-05, the general `energy_analytics` schema and reproducible daily
+  products are established. Read-only production verification found 48
+  `daily_battery` rows from 2026-07-19 through 2026-09-04 with minimum/maximum
+  SoC, daily SoC range, daily EFC, and cumulative EFC. Publication of the two
+  additional daily-use fields in the v2 UI payload remains pending deployment.
 - Reconcile the deployed earthship-ui commits with its remote before shared
   contract work.
 - Verify whether any external legacy Lightning Goats deployment remains.

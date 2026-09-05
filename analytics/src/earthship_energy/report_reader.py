@@ -14,6 +14,7 @@ FIELDS = (
     "discharge_kwh", "daily_efc", "cumulative_efc",
     "hours_above_90", "hours_above_95", "min_temperature_c",
     "max_temperature_c", "quality", "pv_kwh", "load_kwh",
+    "depth_of_discharge_pct", "battery_quality",
 )
 
 
@@ -31,7 +32,8 @@ def fetch_daily_report_rows(
                       CASE WHEN b.quality = 'ok' AND p.quality = 'ok'
                                 AND l.quality = 'ok' AND w.quality = 'ok'
                            THEN 'ok' ELSE 'partial' END,
-                      p.pv_kwh, l.load_kwh
+                      p.pv_kwh, l.load_kwh,
+                      b.depth_of_discharge_pct, b.quality
                FROM energy_analytics.daily_battery b
                JOIN energy_analytics.daily_pv p
                  ON p.local_date = b.local_date AND p.epoch_id = b.epoch_id

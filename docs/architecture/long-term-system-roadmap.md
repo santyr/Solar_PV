@@ -478,7 +478,10 @@ Trigger review for:
 - Quantify multi-day deficit frequency
 - Preserve per-module LYNK data where practical
 - Continue refining openHAB battery telemetry
-- Establish daily EFC and recharge-completeness metrics
+- Maintain and validate the established daily EFC and recharge-completeness
+  metrics. As of 2026-09-05, the backend has 48 `daily_battery` rows from
+  2026-07-19 through 2026-09-04 containing minimum/maximum SoC, daily SoC
+  range, daily EFC, and cumulative EFC; v2 UI publication remains pending.
 
 ### 2027–2030 — Observe, preserve, and avoid unnecessary upgrades
 

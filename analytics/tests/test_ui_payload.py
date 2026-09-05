@@ -21,6 +21,8 @@ DAILY = [
         "charge_kwh": 3.0,
         "discharge_kwh": 4.0,
         "daily_efc": 0.17,
+        "depth_of_discharge_pct": 18.0,
+        "battery_quality": "ok",
         "cumulative_efc": 4.2,
         "hours_above_90": 2.0,
         "hours_above_95": 0.5,
@@ -35,6 +37,8 @@ DAILY = [
         "charge_kwh": 4.0,
         "discharge_kwh": 3.0,
         "daily_efc": 0.16,
+        "depth_of_discharge_pct": 16.0,
+        "battery_quality": "ok",
         "cumulative_efc": 4.36,
         "hours_above_90": 4.0,
         "hours_above_95": 1.0,
@@ -94,7 +98,7 @@ def test_payload_is_deterministic_versioned_and_explicit():
     second = payload()
 
     assert first == second
-    assert first["schema"] == "earthship-energy-ui/v1"
+    assert first["schema"] == "earthship-energy-ui/v2"
     assert set(first) == {
         "schema", "generatedAt", "timezone", "epochId", "throughDate",
         "status", "battery", "energy", "winter", "lifecycle", "forecast",
@@ -105,6 +109,8 @@ def test_payload_is_deterministic_versioned_and_explicit():
         "status": "ok",
         "latestMinSocPct": 67.0,
         "latestReached99": True,
+        "latestDepthOfDischargePct": 16.0,
+        "latestEfc": 0.16,
         "endingCumulativeEfc": 4.36,
         "currentNoFullDays": 0,
         "daysSinceFull": 0,
@@ -147,6 +153,8 @@ def test_payload_reports_no_quality_approved_rows_without_fake_zeroes():
 
     assert result["throughDate"] is None
     assert result["battery"]["latestMinSocPct"] is None
+    assert result["battery"]["latestDepthOfDischargePct"] is None
+    assert result["battery"]["latestEfc"] is None
     assert result["energy"]["latest"] is None
     assert result["health"]["analytics"] == "unavailable"
     assert result["status"] == "unavailable"
@@ -156,7 +164,7 @@ def test_payload_reports_no_quality_approved_rows_without_fake_zeroes():
     ("mutate", "message"),
     [
         (lambda value: value.update(extra=True), "unknown fields"),
-        (lambda value: value.__setitem__("schema", "earthship-energy-ui/v2"), "schema"),
+        (lambda value: value.__setitem__("schema", "earthship-energy-ui/v1"), "schema"),
         (lambda value: value.__setitem__("generatedAt", "2026-08-20T18:00:00"), "aware"),
         (lambda value: value["battery"].__setitem__("latestMinSocPct", True), "finite number"),
         (lambda value: value["energy"]["latest"].__setitem__("pvKwh", float("nan")), "finite number"),
@@ -181,6 +189,57 @@ def test_validator_rejects_forecast_chronology():
     valid_before_issue["forecast"]["validFor"] = "2026-08-20T16:59:59+00:00"
     with pytest.raises(ValueError, match="forecast"):
         validate_energy_ui_payload(valid_before_issue, now=GENERATED)
+
+
+def test_daily_battery_fields_use_persisted_evidence(monkeypatch):
+    monkeypatch.setitem(DAILY[-1], "depth_of_discharge_pct", 16.0)
+    monkeypatch.setitem(DAILY[-1], "battery_quality", "ok")
+
+    result = payload()
+
+    assert result["schema"] == "earthship-energy-ui/v2"
+    assert result["battery"]["latestDepthOfDischargePct"] == 16.0
+    assert result["battery"]["latestEfc"] == DAILY[-1]["daily_efc"]
+
+
+@pytest.mark.parametrize("quality", ["partial", None])
+def test_incomplete_battery_day_does_not_claim_daily_use(monkeypatch, quality):
+    monkeypatch.setitem(DAILY[-1], "battery_quality", quality)
+
+    result = payload()
+
+    assert result["battery"]["latestDepthOfDischargePct"] is None
+    assert result["battery"]["latestEfc"] is None
+    assert result["battery"]["status"] == "degraded"
+    assert result["status"] == "degraded"
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("latestDepthOfDischargePct", -0.1),
+        ("latestDepthOfDischargePct", 100.1),
+        ("latestDepthOfDischargePct", float("inf")),
+        ("latestDepthOfDischargePct", True),
+        ("latestEfc", -0.1),
+        ("latestEfc", float("nan")),
+        ("latestEfc", False),
+    ],
+)
+def test_validator_rejects_invalid_daily_battery_values(field, value):
+    candidate = deepcopy(payload())
+    candidate["battery"][field] = value
+
+    with pytest.raises(ValueError, match=f"battery.{field}"):
+        validate_energy_ui_payload(candidate, now=GENERATED)
+
+
+def test_validator_accepts_null_and_legitimate_zero_daily_battery_values():
+    for value in (None, 0):
+        candidate = deepcopy(payload())
+        candidate["battery"]["latestDepthOfDischargePct"] = value
+        candidate["battery"]["latestEfc"] = value
+        assert validate_energy_ui_payload(candidate, now=GENERATED) is candidate
 
 
 def test_validator_rejects_future_generation_and_oversized_encoding():

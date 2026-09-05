@@ -21,6 +21,13 @@ rule, algorithm, and persistence health. The existing `forecast-json.timer`
 continues to refresh the OpenHAB/UI forecast every two hours. The analytics
 snapshot runs afterward and does not replace either job.
 
+The `energy-ui-publish` job emits `earthship-energy-ui/v2`. Its two daily-use
+fields come from the latest persisted battery row and remain null unless that
+row's battery quality is `ok`; a partial day must not be presented as a trusted
+daily total. Before activating this publisher version, deploy and verify the UI
+reader that accepts both exact v1 and v2 payloads. This reader-first order keeps
+the observational Item readable throughout the transition.
+
 The hourly health check resolves every required source and its persisted
 companion. BMS status/device-present states must be healthy, Schneider update
 timestamps must be no more than 120 seconds old, and the weather health state
@@ -81,6 +88,11 @@ provided and verified. It does not claim disaster recovery and does not copy
 data to an operator-unapproved destination.
 
 ## Disable and rollback
+
+For a contract-only rollback, restore the publisher to v1 first and verify
+`Energy_Analytics_JSON` contains a valid v1 payload. The dual-version reader
+can remain deployed safely; remove its v2 support only after publisher
+rollback is confirmed. Keep daily rows and publication evidence intact.
 
 ```bash
 systemctl --user disable --now energy-data-quality.timer \

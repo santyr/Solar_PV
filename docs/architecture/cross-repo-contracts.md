@@ -188,11 +188,25 @@ state change, or physical action was used.
 ## Stable energy analytics UI boundary
 
 `Solar_PV` owns PostgreSQL analytics and publishes the closed
-`earthship-energy-ui/v1` payload every five minutes. OpenHAB owns exactly one
+`earthship-energy-ui/v2` payload every five minutes. OpenHAB owns exactly one
 new observational String Item, `Energy_Analytics_JSON`. `earthship-ui` consumes
 that Item through its existing REST/SSE store, rejects payloads at or above
 16 KiB and evidence older than 15 minutes, and exposes no control from the
 analytics surface. Unknown data remains explicit rather than becoming zero.
+
+Version 2 preserves every version 1 field and meaning, and adds two nullable
+battery fields sourced from the latest persisted `daily_battery` row:
+`latestDepthOfDischargePct` is the 0--100 daily SoC range, and `latestEfc` is
+the nonnegative daily energy-throughput EFC. Both are populated only when that
+battery row has `quality=ok`; otherwise they are null and battery status is
+degraded (or unavailable when there is no daily row). This remains
+observational evidence, not a health measurement or an action authority.
+
+Deploy a UI reader that accepts both exact v1 and v2 shapes before enabling the
+v2 analytics publisher. Roll back in the reverse safety order: restore the
+publisher to v1 first, verify the old payload is visible, and only then remove
+v2 reader support if desired. Never delete persisted daily evidence as part of
+contract rollback.
 
 The publisher is the only state writer and may call only
 `PUT /rest/items/Energy_Analytics_JSON/state`; the separate receipt-bound UI

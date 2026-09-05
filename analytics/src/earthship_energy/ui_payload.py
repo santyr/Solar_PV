@@ -8,7 +8,7 @@ import math
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 
-SCHEMA = "earthship-energy-ui/v1"
+SCHEMA = "earthship-energy-ui/v2"
 MAX_PAYLOAD_BYTES = 16 * 1024
 TOP_LEVEL_FIELDS = {
     "schema", "generatedAt", "timezone", "epochId", "throughDate", "status",
@@ -17,6 +17,7 @@ TOP_LEVEL_FIELDS = {
 BATTERY_FIELDS = {
     "status", "latestMinSocPct", "latestReached99", "endingCumulativeEfc",
     "currentNoFullDays", "daysSinceFull",
+    "latestDepthOfDischargePct", "latestEfc",
 }
 ENERGY_FIELDS = {
     "status", "latest", "activeLoads", "observedCurtailmentKwh",
@@ -216,12 +217,17 @@ def build_energy_ui_payload(
         raise ValueError("epoch_id is required")
     rows = _ordered_rows(daily_rows)
     latest = rows[-1] if rows else None
+    battery_ok = latest is not None and latest.get("battery_quality") == "ok"
     current_no_full, days_since_full = _no_full_evidence(rows)
 
     battery = {
-        "status": "ok" if latest else "unavailable",
+        "status": "ok" if battery_ok else "degraded" if latest else "unavailable",
         "latestMinSocPct": latest.get("min_soc_pct") if latest else None,
         "latestReached99": bool(latest["reached_99"]) if latest else None,
+        "latestDepthOfDischargePct": (
+            latest.get("depth_of_discharge_pct") if battery_ok else None
+        ),
+        "latestEfc": latest.get("daily_efc") if battery_ok else None,
         "endingCumulativeEfc": latest.get("cumulative_efc") if latest else None,
         "currentNoFullDays": current_no_full if latest else None,
         "daysSinceFull": days_since_full,
@@ -311,7 +317,7 @@ def validate_energy_ui_payload(
 ) -> dict[str, object]:
     result = _exact(payload, TOP_LEVEL_FIELDS, "payload")
     if result["schema"] != SCHEMA:
-        raise ValueError("energy UI schema must be earthship-energy-ui/v1")
+        raise ValueError("energy UI schema must be earthship-energy-ui/v2")
     generated = _aware(result["generatedAt"], "generatedAt")
     if now is not None:
         if now.tzinfo is None or now.utcoffset() is None:
@@ -333,6 +339,16 @@ def validate_energy_ui_payload(
     _status(battery["status"], "battery")
     for field in ("latestMinSocPct", "endingCumulativeEfc"):
         _number(battery[field], f"battery.{field}")
+    for field, maximum in (
+        ("latestDepthOfDischargePct", 100),
+        ("latestEfc", None),
+    ):
+        value = battery[field]
+        _number(value, f"battery.{field}")
+        if value is not None and (
+            value < 0 or (maximum is not None and value > maximum)
+        ):
+            raise ValueError(f"battery.{field} outside range")
     _boolean(battery["latestReached99"], "battery.latestReached99")
     _integer(battery["currentNoFullDays"], "battery.currentNoFullDays")
     _integer(battery["daysSinceFull"], "battery.daysSinceFull")

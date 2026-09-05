@@ -23,6 +23,7 @@ class Cursor:
         return [(
             date(2026, 8, 1), 80.0, True, 1.0, 0.5, .04, 4.04,
             3.0, 1.0, 12.0, 27.0, "ok", 7.0, 5.0,
+            20.0, "ok",
         )]
 
 
@@ -43,6 +44,8 @@ def test_fetch_daily_report_rows_uses_bounded_join():
     assert rows[0]["load_kwh"] == 5
     assert rows[0]["cumulative_efc"] == 4.04
     assert rows[0]["hours_above_95"] == 1.0
+    assert rows[0]["depth_of_discharge_pct"] == 20.0
+    assert rows[0]["battery_quality"] == "ok"
     sql, params = connection.cursor_instance.executed
     assert "JOIN energy_analytics.daily_pv" in sql
     assert "JOIN energy_analytics.daily_weather" in sql

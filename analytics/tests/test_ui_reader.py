@@ -136,6 +136,7 @@ def test_snapshot_uses_active_epoch_completed_days_and_existing_reports(monkeypa
         "local_date": date(2026, 8, 19), "quality": "ok",
         "min_soc_pct": 70.0, "reached_99": False,
         "charge_kwh": 3.0, "discharge_kwh": 4.0, "daily_efc": 0.1,
+        "depth_of_discharge_pct": 30.0, "battery_quality": "ok",
         "cumulative_efc": 2.1, "hours_above_90": 1.0,
         "hours_above_95": 0.0, "min_temperature_c": 20.0,
         "max_temperature_c": 25.0, "pv_kwh": 5.0, "load_kwh": 6.0,
@@ -169,7 +170,9 @@ def test_snapshot_uses_active_epoch_completed_days_and_existing_reports(monkeypa
         "daily", "discover_4_module_2026", date(2026, 7, 19), date(2026, 8, 20)
     )
     assert calls[1][0] == "modules"
-    assert result["schema"] == "earthship-energy-ui/v1"
+    assert result["schema"] == "earthship-energy-ui/v2"
+    assert result["battery"]["latestDepthOfDischargePct"] == 30.0
+    assert result["battery"]["latestEfc"] == 0.1
     assert result["throughDate"] == "2026-08-19"
     assert result["epochId"] == "discover_4_module_2026"
 
