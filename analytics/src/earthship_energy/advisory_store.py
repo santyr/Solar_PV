@@ -3,6 +3,7 @@ from datetime import date, datetime
 from ipaddress import ip_address
 import json
 import os
+from threading import Lock
 
 import psycopg2
 from psycopg2.extensions import parse_dsn
@@ -11,18 +12,23 @@ from advisory_records import build_decision_record, build_result_record
 
 MAX_BYTES = 16 * 1024
 
+
 class InvalidAdvisoryRecord(ValueError):
     pass
+
 
 class AdvisoryConflictError(RuntimeError):
     pass
 
+
 class AdvisoryStorageError(RuntimeError):
     pass
+
 
 def _reject_ambient_service():
     if os.environ.get("PGSERVICE") or os.environ.get("PGSERVICEFILE"):
         raise AdvisoryStorageError("ambient advisory service configuration forbidden")
+
 
 def _object(pairs):
     result = {}
@@ -32,11 +38,14 @@ def _object(pairs):
         result[key] = value
     return result
 
+
 def _constant(value):
     raise ValueError("nonfinite number")
 
+
 def _canonical(value):
     return json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False)
+
 
 def _decode(encoded, kind):
     try:
@@ -49,25 +58,31 @@ def _decode(encoded, kind):
             raise ValueError("kind/version")
         if kind == "decision":
             canonical = build_decision_record(
-                decision_id=payload["decision_id"], issued_at=datetime.fromisoformat(payload["issued_at"]),
-                site_timezone=payload["site_timezone"], source_revision=payload["source_revision"],
+                decision_id=payload["decision_id"],
+                issued_at=datetime.fromisoformat(payload["issued_at"]),
+                site_timezone=payload["site_timezone"],
+                source_revision=payload["source_revision"],
                 policy_version=payload["policy_version"], bank_epoch=payload["bank_epoch"],
-                prediction_day=date.fromisoformat(payload["prediction_day"]), advisory=payload["advisory"],
-                inputs=payload["inputs"], thresholds=payload["thresholds"],
+                prediction_day=date.fromisoformat(payload["prediction_day"]),
+                advisory=payload["advisory"], inputs=payload["inputs"],
+                thresholds=payload["thresholds"],
                 notification_eligible=payload["notification"]["eligible"],
                 notification_suppressed=payload["notification"]["suppressed"],
             )
         else:
             canonical = build_result_record(
                 result_id=payload["result_id"], decision_id=payload["decision_id"],
-                observed_at=datetime.fromisoformat(payload["observed_at"]), kind=payload["kind"],
-                target=payload["target"], status=payload["status"],
+                observed_at=datetime.fromisoformat(payload["observed_at"]),
+                kind=payload["kind"], target=payload["target"], status=payload["status"],
             )
+        # String comparison distinguishes booleans from numbers and rejects
+        # extras, forged targets, and noncanonical dates/UUIDs at every level.
         if _canonical(payload) != canonical or len(canonical.encode("utf-8")) > MAX_BYTES:
             raise ValueError("schema mismatch")
         return payload, canonical
     except (ValueError, TypeError, KeyError, OverflowError, RecursionError):
         raise InvalidAdvisoryRecord("invalid advisory record") from None
+
 
 class AdvisoryStore:
     def __init__(self, dsn: str):
@@ -83,50 +98,69 @@ class AdvisoryStore:
                 raise ValueError("endpoint")
             self._dsn = dsn
             self._hostaddr = fields["host"]
+            self._write_lock = Lock()
         except (ValueError, TypeError, psycopg2.Error):
             raise ValueError("explicit advisory DSN required") from None
 
-    def put_decision(self, encoded):
+    def put_decision(self, encoded: str) -> bool:
         payload, canonical = _decode(encoded, "decision")
         return self._put(payload, canonical, "decision")
 
-    def put_result(self, encoded):
+    def put_result(self, encoded: str) -> bool:
         payload, canonical = _decode(encoded, "result")
         return self._put(payload, canonical, "result")
 
     def _put(self, payload, canonical, kind):
         _reject_ambient_service()
+        with self._write_lock:
+            return self._put_serialized(payload, canonical, kind)
+
+    def _put_serialized(self, payload, canonical, kind):
         connection = None
         try:
-            connection = psycopg2.connect(self._dsn, connect_timeout=3, hostaddr=self._hostaddr,
-                sslmode="disable", options="-c statement_timeout=2000 -c lock_timeout=1000 -c idle_in_transaction_session_timeout=5000")
+            connection = psycopg2.connect(
+                self._dsn, connect_timeout=3,
+                hostaddr=self._hostaddr, sslmode="disable",
+                options="-c statement_timeout=2000 -c lock_timeout=1000 "
+                        "-c idle_in_transaction_session_timeout=5000",
+            )
+            # Explicit READ COMMITTED gives the retry comparison a fresh
+            # snapshot after INSERT waits on another transaction's unique key.
             connection.set_session(isolation_level="READ COMMITTED", autocommit=False)
             with connection:
                 with connection.cursor() as cursor:
                     if kind == "decision":
                         cursor.execute("""INSERT INTO energy_analytics.advisory_decisions
-                            (decision_id, issued_at, bank_epoch, payload) VALUES (%s, %s, %s, %s::jsonb)
+                            (decision_id, issued_at, bank_epoch, payload)
+                            VALUES (%s, %s, %s, %s::jsonb)
                             ON CONFLICT (decision_id) DO NOTHING RETURNING decision_id""",
-                            (payload["decision_id"], payload["issued_at"], payload["bank_epoch"], canonical))
-                        lookup = "SELECT payload = %s::jsonb FROM energy_analytics.advisory_decisions WHERE decision_id = %s"
+                            (payload["decision_id"], payload["issued_at"],
+                             payload["bank_epoch"], canonical))
+                        lookup = """SELECT payload = %s::jsonb FROM
+                            energy_analytics.advisory_decisions WHERE decision_id = %s"""
                         identity = payload["decision_id"]
                     else:
                         cursor.execute("""INSERT INTO energy_analytics.advisory_results
                             (result_id, decision_id, parent_issued_at, observed_at, payload)
-                            SELECT %s, decision_id, issued_at, %s, %s::jsonb FROM energy_analytics.advisory_decisions
-                            WHERE decision_id = %s ON CONFLICT (result_id) DO NOTHING RETURNING result_id""",
-                            (payload["result_id"], payload["observed_at"], canonical, payload["decision_id"]))
-                        lookup = "SELECT payload = %s::jsonb FROM energy_analytics.advisory_results WHERE result_id = %s"
+                            SELECT %s, decision_id, issued_at, %s, %s::jsonb
+                            FROM energy_analytics.advisory_decisions WHERE decision_id = %s
+                            ON CONFLICT (result_id) DO NOTHING RETURNING result_id""",
+                            (payload["result_id"], payload["observed_at"], canonical,
+                             payload["decision_id"]))
+                        lookup = """SELECT payload = %s::jsonb FROM
+                            energy_analytics.advisory_results WHERE result_id = %s"""
                         identity = payload["result_id"]
                     if cursor.fetchone() is not None:
-                        return True
-                    cursor.execute(lookup, (canonical, identity))
-                    existing = cursor.fetchone()
-                    if existing is None:
-                        raise AdvisoryStorageError("advisory storage unavailable")
-                    if not existing[0]:
-                        raise AdvisoryConflictError("advisory identity conflict")
-                    return False
+                        inserted = True
+                    else:
+                        cursor.execute(lookup, (canonical, identity))
+                        existing = cursor.fetchone()
+                        if existing is None:
+                            raise AdvisoryStorageError("advisory storage unavailable")
+                        if not existing[0]:
+                            raise AdvisoryConflictError("advisory identity conflict")
+                        inserted = False
+            return inserted
         except psycopg2.Error:
             raise AdvisoryStorageError("advisory storage unavailable") from None
         finally:
