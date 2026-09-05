@@ -21,12 +21,13 @@ rule, algorithm, and persistence health. The existing `forecast-json.timer`
 continues to refresh the OpenHAB/UI forecast every two hours. The analytics
 snapshot runs afterward and does not replace either job.
 
-The `energy-ui-publish` job emits `earthship-energy-ui/v2`. Its two daily-use
-fields come from the latest persisted battery row and remain null unless that
-row's battery quality is `ok`; a partial day must not be presented as a trusted
-daily total. Before activating this publisher version, deploy and verify the UI
-reader that accepts both exact v1 and v2 payloads. This reader-first order keeps
-the observational Item readable throughout the transition.
+The `energy-ui-publish` job currently emits `earthship-energy-ui/v1`. After the
+dual-version UI reader is deployed and verified, the reviewed publisher change
+will emit `earthship-energy-ui/v2`. Its two daily-use fields come from the
+latest persisted battery row and remain null unless that row's battery quality
+is `ok`; a partial day must not be presented as a trusted daily total. This
+reader-first order keeps the observational Item readable throughout the
+transition.
 
 The hourly health check resolves every required source and its persisted
 companion. BMS status/device-present states must be healthy, Schneider update
