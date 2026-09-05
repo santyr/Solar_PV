@@ -23,7 +23,10 @@ def normalize_window_series(
         raise ValueError("window_end must be after window_start")
     values: dict[datetime, float] = {}
     if carry_in is not None and carry_in[0] < window_start:
-        values[window_start] = float(carry_in[1])
+        value = float(carry_in[1])
+        if not isfinite(value):
+            raise ValueError("series values must be finite")
+        values[window_start] = value
     for at, raw_value in rows:
         if window_start <= at <= window_end:
             value = float(raw_value)

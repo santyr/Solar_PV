@@ -2,6 +2,7 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
+from earthship_energy.aggregation import aggregate_power
 from earthship_energy.reader import (
     datetime_state_for_local_date,
     fetch_numeric_series,
@@ -126,3 +127,44 @@ def test_fetch_observation_stats_counts_only_raw_rows_in_window():
     assert fetch_observation_stats(
         StatsConnection(), "item0550", START, END
     ) == (2, START + timedelta(minutes=1), END - timedelta(minutes=1))
+
+
+@pytest.mark.parametrize("value", [float("nan"), float("inf"), float("-inf"), "NaN", "Infinity", "-Infinity"])
+@pytest.mark.parametrize("rows", [[], [(START, 90.0)]])
+def test_rejects_nonfinite_selected_carry_before_normalization(value, rows):
+    with pytest.raises(ValueError, match="^series values must be finite$"):
+        normalize_window_series((START - timedelta(minutes=1), value), rows, START, END)
+
+
+@pytest.mark.parametrize("value", [float("nan"), float("-inf")])
+def test_nonfinite_carry_cannot_be_clipped_to_healthy_zero_power(value):
+    with pytest.raises(ValueError, match="^series values must be finite$"):
+        points = normalize_window_series((START - timedelta(minutes=1), value), [], START, END)
+        aggregate_power(points, START, END, max_gap=END - START)
+
+
+@pytest.mark.parametrize("value", [float("nan"), float("inf"), float("-inf")])
+def test_fetch_numeric_series_rejects_nonfinite_carry(value):
+    class NonfiniteCursor(Cursor):
+        def fetchone(self):
+            return (START - timedelta(minutes=1), value)
+
+    class NonfiniteConnection:
+        def cursor(self):
+            return NonfiniteCursor()
+
+    with pytest.raises(ValueError, match="^series values must be finite$"):
+        fetch_numeric_series(NonfiniteConnection(), "item0550", START, END)
+
+
+@pytest.mark.parametrize("value", [0, -10.0, "80.5"])
+def test_finite_unchanged_carry_still_covers_window(value):
+    assert normalize_window_series((START - timedelta(days=2), value), [], START, END) == [
+        (START, float(value)), (END, float(value))
+    ]
+
+
+def test_unused_out_of_range_carry_is_not_interpreted_as_evidence():
+    assert normalize_window_series((END, float("nan")), [(START, 80.0)], START, END) == [
+        (START, 80.0), (END, 80.0)
+    ]
