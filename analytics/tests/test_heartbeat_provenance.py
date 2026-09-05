@@ -83,6 +83,15 @@ def test_naive_observation_is_rejected_without_timezone_guess():
         assess([(START.replace(tzinfo=None), START.isoformat())])
 
 
+@pytest.mark.parametrize("points", [
+    [(START, START.isoformat()), (START.replace(tzinfo=None), START.isoformat())],
+    [(START.replace(tzinfo=None), START.isoformat()), (START, START.isoformat())],
+])
+def test_mixed_aware_and_naive_observations_are_rejected_before_sort(points):
+    with pytest.raises(ValueError, match="freshness observation timestamps must be timezone-aware"):
+        assess(points)
+
+
 @pytest.mark.parametrize("policy,value", [("status_must_equal_OK", "ok"), ("numeric_must_equal_1", "1")])
 def test_existing_status_and_numeric_companion_contracts(policy, value):
     points = [(START, value), (END, value)]

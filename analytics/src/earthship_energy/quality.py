@@ -66,10 +66,10 @@ def assess_source_quality(
 
     valid_seconds = 0.0
     stale_intervals = 0
-    ordered = sorted(freshness_points, key=lambda point: point[0])
-    for observed_at, _ in ordered:
+    for observed_at, _ in freshness_points:
         if observed_at.tzinfo is None or observed_at.utcoffset() is None:
             raise ValueError("freshness observation timestamps must be timezone-aware")
+    ordered = sorted(freshness_points, key=lambda point: point[0])
     for index, (observed_at, raw_value) in enumerate(ordered):
         interval_start = max(window_start, observed_at)
         next_at = ordered[index + 1][0] if index + 1 < len(ordered) else window_end
