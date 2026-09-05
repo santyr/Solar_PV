@@ -481,7 +481,8 @@ Trigger review for:
 - Maintain and validate the established daily EFC and recharge-completeness
   metrics. As of 2026-09-05, the backend has 48 `daily_battery` rows from
   2026-07-19 through 2026-09-04 containing minimum/maximum SoC, daily SoC
-  range, daily EFC, and cumulative EFC; v2 UI publication remains pending.
+  range, daily EFC, and cumulative EFC; v2 UI publication was verified against
+  the persisted day and bank epoch after reader-first deployment on September 5.
 
 ### 2027–2030 — Observe, preserve, and avoid unnecessary upgrades
 

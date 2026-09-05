@@ -187,10 +187,10 @@ state change, or physical action was used.
 
 ## Stable energy analytics UI boundary
 
-`Solar_PV` owns PostgreSQL analytics and currently publishes the closed
-`earthship-energy-ui/v1` payload every five minutes. The reviewed producer
-change prepares `earthship-energy-ui/v2`, but v2 publication remains pending
-reader-first deployment. OpenHAB owns exactly one new observational String
+`Solar_PV` owns PostgreSQL analytics and publishes the closed
+`earthship-energy-ui/v2` payload every five minutes. Reader-first deployment
+was verified on 2026-09-05: the dual-version UI was live before the publisher,
+and the new fields matched the persisted day and bank epoch. OpenHAB owns one observational String
 Item, `Energy_Analytics_JSON`. `earthship-ui` consumes that Item through its
 existing REST/SSE store, rejects payloads at or above 16 KiB and evidence older
 than 15 minutes, and exposes no control from the analytics surface. Unknown

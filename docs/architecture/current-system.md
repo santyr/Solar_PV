@@ -93,7 +93,8 @@ telemetry, controls, policy, or UI.
   products are established. Read-only production verification found 48
   `daily_battery` rows from 2026-07-19 through 2026-09-04 with minimum/maximum
   SoC, daily SoC range, daily EFC, and cumulative EFC. Publication of the two
-  additional daily-use fields in the v2 UI payload remains pending deployment.
-- Reconcile the deployed earthship-ui commits with its remote before shared
-  contract work.
+  additional daily-use fields in the v2 UI payload was verified after
+  reader-first deployment on 2026-09-05; values match the persisted day/epoch.
+- Keep deployed earthship-ui commits reconciled with its remote before shared
+  contract work; both repositories were merged and pushed for the September 5 release.
 - Verify whether any external legacy Lightning Goats deployment remains.
