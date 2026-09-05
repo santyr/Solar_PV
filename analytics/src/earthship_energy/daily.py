@@ -15,6 +15,7 @@ from .config import SourceConfig
 from .events import fetch_snow_state_as_of
 from .reader import (
     datetime_state_for_local_date,
+    fetch_freshness_observations,
     fetch_numeric_series,
     fetch_observation_stats,
     fetch_text_series,
@@ -202,7 +203,7 @@ def build_daily_snapshot(
         )
         freshness_table = getattr(resolved, "freshness_table_name", None)
         freshness_points = (
-            fetch_text_series(connection, freshness_table, start, end)
+            fetch_freshness_observations(connection, freshness_table, start, end)
             if freshness_table is not None else []
         )
         source_quality.append(assess_source_quality(

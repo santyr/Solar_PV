@@ -123,6 +123,45 @@ def fetch_text_series(
     return normalize_window_text_series(carry_in, rows, window_start, window_end)
 
 
+def fetch_freshness_observations(
+    connection,
+    table_name: str,
+    window_start: datetime,
+    window_end: datetime,
+) -> list[tuple[datetime, str]]:
+    """Return original freshness observations, preserving their timestamps."""
+    if not ITEM_TABLE.fullmatch(table_name):
+        raise ValueError("invalid OpenHAB Item table name")
+    if (
+        window_start.tzinfo is None or window_start.utcoffset() is None
+        or window_end.tzinfo is None or window_end.utcoffset() is None
+    ):
+        raise ValueError("freshness window timestamps must be timezone-aware")
+    if window_end <= window_start:
+        raise ValueError("window_end must be after window_start")
+    with connection.cursor() as cursor:
+        cursor.execute(
+            f"""SELECT time, value FROM public.{table_name}
+                WHERE time < %s ORDER BY time DESC LIMIT 1""",
+            (window_start,),
+        )
+        carry_in = cursor.fetchone()
+        cursor.execute(
+            f"""SELECT time, value FROM public.{table_name}
+                WHERE time >= %s AND time < %s ORDER BY time""",
+            (window_start, window_end),
+        )
+        rows = cursor.fetchall()
+    observations = []
+    if carry_in is not None:
+        observations.append((carry_in[0], str(carry_in[1])))
+    observations.extend(
+        (at, str(value)) for at, value in rows
+        if window_start <= at < window_end
+    )
+    return observations
+
+
 def state_duration_seconds(
     points: list[tuple[datetime, str]], target_state: str
 ) -> float:
