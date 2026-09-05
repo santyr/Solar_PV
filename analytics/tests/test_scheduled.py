@@ -3,6 +3,8 @@ import json
 import os
 from pathlib import Path
 
+import pytest
+
 from earthship_energy.scheduled import (
     assess_backup,
     build_quality_report,
@@ -84,6 +86,20 @@ def test_capture_forecast_reports_idempotent_insert_count(monkeypatch):
     result = capture_forecast(payload, "db")
 
     assert result == {"status": "ok", "snapshots": 1, "inserted": 0}
+
+
+def test_capture_forecast_rejects_invalid_payload_before_touching_connection():
+    class RecordingConnection:
+        touched = False
+
+        def cursor(self):
+            self.touched = True
+            raise AssertionError("persistence must not be touched")
+
+    connection = RecordingConnection()
+    with pytest.raises(ValueError, match="version must be 1 or 2"):
+        capture_forecast({"version": 3}, connection)
+    assert connection.touched is False
 
 
 def test_quality_report_escalates_missing_yesterday_aggregate():

@@ -199,3 +199,21 @@ The publisher is the only state writer and may call only
 tool may manage only the exact Item configuration and cannot write Item state.
 This contract does not rename or reinterpret any feeder, greywater, night-load,
 forecast, thermal, AGM-history, BMS, inverter, or charge-controller interface.
+
+
+## Forecast detail input boundary
+
+`Solar_PV` forecast snapshot capture supports exactly integer versions 1 and 2
+of the OpenHAB forecast-detail payload. Version 1 snapshots retain
+`forecast_version: 1` provenance. Version 2 snapshots retain
+`forecast_version: 2` plus a validated, independent copy of
+`temperatureAdjustment`; their metric values are the published corrected
+forecast and must not be treated as raw Open-Meteo values or corrected again.
+
+Both versions preserve `generatedAt` as the forecast issue time, the published
+target timestamp as its validity time, and the existing snapshot persistence
+key `(source, issued_at, valid_for, metric)`. Capture rejects malformed versions,
+metadata, timestamps, and non-finite or nonnumeric recognized metric values
+before persistence. The evidence inventory above remains the historical
+2026-08-20 snapshot; this supported-input statement makes no deployment or
+fresh-history claim.

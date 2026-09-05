@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+from copy import deepcopy
 from dataclasses import dataclass
 from datetime import date, datetime, time
+from math import isfinite
 from typing import Iterable
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -84,10 +86,61 @@ def _timestamp(value: object, name: str) -> datetime:
     return parsed
 
 
+def _metric_value(value: object) -> float | None:
+    if value is None:
+        return None
+    if type(value) not in (int, float):
+        raise ValueError("forecast metric must be finite numeric or null")
+    try:
+        result = float(value)
+    except (ValueError, OverflowError) as exc:
+        raise ValueError("forecast metric must be finite numeric or null") from exc
+    if not isfinite(result):
+        raise ValueError("forecast metric must be finite numeric or null")
+    return result
+
+
+def _provenance(payload: object) -> dict[str, object]:
+    version = payload.get("version") if isinstance(payload, dict) else None
+    if type(version) is not int or version not in (1, 2):
+        raise ValueError("forecast detail version must be 1 or 2")
+    result: dict[str, object] = {"forecast_version": version}
+    if version == 1:
+        return result
+    adjustment = payload.get("temperatureAdjustment")
+    if not isinstance(adjustment, dict):
+        raise ValueError("temperatureAdjustment is required")
+    for key in ("highCorrectionF", "lowCorrectionF"):
+        if _metric_value(adjustment.get(key)) is None:
+            raise ValueError("temperatureAdjustment corrections are required")
+    if adjustment.get("hourlyMethod") not in ("daily-fallback", "hourly-blend"):
+        raise ValueError("temperatureAdjustment method is invalid")
+    buckets = adjustment.get("hourBuckets")
+    if not isinstance(buckets, list) or len(buckets) != 24:
+        raise ValueError("temperatureAdjustment requires 24 buckets")
+    for hour, bucket in enumerate(buckets):
+        if (
+            not isinstance(bucket, dict)
+            or type(bucket.get("hour")) is not int
+            or bucket["hour"] != hour
+        ):
+            raise ValueError("temperatureAdjustment buckets must be ordered")
+        count = bucket.get("count")
+        weight = _metric_value(bucket.get("weight"))
+        if (
+            type(count) is not int
+            or count < 0
+            or weight is None
+            or not 0 <= weight <= 1
+        ):
+            raise ValueError("temperatureAdjustment bucket count/weight invalid")
+    result["temperatureAdjustment"] = deepcopy(adjustment)
+    return result
+
+
 def snapshots_from_openhab_detail(payload: dict[str, object]) -> list[ForecastSnapshot]:
     """Normalize the additive OpenHAB forecast-detail Item without losing origin."""
-    if not isinstance(payload, dict) or payload.get("version") != 1:
-        raise ValueError("forecast detail version must be 1")
+    provenance = _provenance(payload)
     issued_at = _timestamp(payload.get("generatedAt"), "generatedAt")
     try:
         zone = ZoneInfo(str(payload["timezone"]))
@@ -97,7 +150,6 @@ def snapshots_from_openhab_detail(payload: dict[str, object]) -> list[ForecastSn
     if not isinstance(days, list):
         raise ValueError("forecast days must be an array")
     snapshots = []
-    provenance = {"forecast_version": 1}
     for day in days:
         if not isinstance(day, dict):
             raise ValueError("forecast day must be an object")
@@ -109,15 +161,20 @@ def snapshots_from_openhab_detail(payload: dict[str, object]) -> list[ForecastSn
         hours = day.get("hours", [])
         if not isinstance(summary, dict) or not isinstance(hours, list):
             raise ValueError("forecast day summary/hours are invalid")
-        for field, (metric, unit) in DAILY_METRICS.items():
-            if valid_day >= issued_at and field in summary:
-                value = summary[field]
+        daily_values = {
+            field: _metric_value(summary[field])
+            for field in DAILY_METRICS
+            if field in summary
+        }
+        if valid_day >= issued_at:
+            for field, value in daily_values.items():
+                metric, unit = DAILY_METRICS[field]
                 snapshots.append(ForecastSnapshot(
                     source="open_meteo_openhab",
                     issued_at=issued_at,
                     valid_for=valid_day,
                     metric=metric,
-                    value=float(value) if value is not None else None,
+                    value=value,
                     unit=unit,
                     payload=provenance,
                 ))
@@ -125,20 +182,24 @@ def snapshots_from_openhab_detail(payload: dict[str, object]) -> list[ForecastSn
             if not isinstance(hour, dict):
                 raise ValueError("forecast hour must be an object")
             valid_for = _timestamp(hour.get("at"), "hour at")
+            hourly_values = {
+                field: _metric_value(hour[field])
+                for field in HOURLY_METRICS
+                if field in hour
+            }
             if valid_for < issued_at:
                 continue
-            for field, (metric, unit) in HOURLY_METRICS.items():
-                if field in hour:
-                    value = hour[field]
-                    snapshots.append(ForecastSnapshot(
-                        source="open_meteo_openhab",
-                        issued_at=issued_at,
-                        valid_for=valid_for,
-                        metric=metric,
-                        value=float(value) if value is not None else None,
-                        unit=unit,
-                        payload=provenance,
-                    ))
+            for field, value in hourly_values.items():
+                metric, unit = HOURLY_METRICS[field]
+                snapshots.append(ForecastSnapshot(
+                    source="open_meteo_openhab",
+                    issued_at=issued_at,
+                    valid_for=valid_for,
+                    metric=metric,
+                    value=value,
+                    unit=unit,
+                    payload=provenance,
+                ))
     return snapshots
 
 
