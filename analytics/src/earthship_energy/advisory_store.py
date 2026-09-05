@@ -3,7 +3,6 @@ from datetime import date, datetime
 from ipaddress import ip_address
 import json
 import os
-from threading import Lock
 
 import psycopg2
 from psycopg2.extensions import parse_dsn
@@ -98,7 +97,6 @@ class AdvisoryStore:
                 raise ValueError("endpoint")
             self._dsn = dsn
             self._hostaddr = fields["host"]
-            self._write_lock = Lock()
         except (ValueError, TypeError, psycopg2.Error):
             raise ValueError("explicit advisory DSN required") from None
 
@@ -112,10 +110,6 @@ class AdvisoryStore:
 
     def _put(self, payload, canonical, kind):
         _reject_ambient_service()
-        with self._write_lock:
-            return self._put_serialized(payload, canonical, kind)
-
-    def _put_serialized(self, payload, canonical, kind):
         connection = None
         try:
             connection = psycopg2.connect(
