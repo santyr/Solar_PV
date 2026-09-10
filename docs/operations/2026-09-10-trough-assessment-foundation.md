@@ -45,3 +45,34 @@ are not inferred, and bandit eligibility remains false.
 
 Seven focused tests cover this association. This adds no persistence, frozen
 publication selection, projection or runtime activation; those remain required.
+
+## Append-only outcome storage
+
+Migration0003 and `AdvisoryStore.put_trough_outcome` now persist completed,
+bounded measured/insufficient outcomes. The adapter constructs the outcome from
+the validated origin and evidence, then compares the entire canonical parent
+with the stored decision. Identity is decision/version/evidence-digest. A retry
+with unchanged evidence is a no-op, ignoring only the reassessment clock; changed
+evidence creates an explicit revision. Existing rows are never updated/deleted.
+Pending and over-limit inputs are reportable but not persisted as revisions.
+
+An adversarial regression first exposed a retry gap: changing an origin field
+not copied into the outcome could be mistaken for a replay. The retry lookup
+now checks the complete parent too; the regression passes. Separate disposable
+roles prove that capture cannot insert outcomes and assessment cannot insert
+decisions. The new table has no PUBLIC grants and rejects UPDATE/DELETE/TRUNCATE
+even from the owner through the existing append-only trigger.
+
+Eleven new persistence cases cover exact and concurrent replay, revisions,
+parent mismatch, separate privileges, mutation refusal, pending no-connect,
+insufficient-data retention, and bounded lock timeout/rollback with no partial
+row. Fullsuite:411passed in11.57seconds. PostgreSQL verification remains confined
+to disposable test databases. Read-only production readback still shows only
+migrations[1,2], and production code remains409630e. Migration0003 is deliberately
+feature-branch-only: merging a pending migration prematurely would block the
+existing daily aggregate job. No production migration or capture activation occurred.
+
+Still required: frozen first-accepted publication selection and current-revision
+queries, bounded backlog, deterministic diagnostic projection and legacy-state
+preservation, remaining quantity/action evidence, runtime wiring/reviewed release,
+and actual completed post-activation evidence. No outcome is bandit eligible.

@@ -113,6 +113,71 @@ class AdvisoryStore:
         payload, canonical = _decode(encoded, "result")
         return self._put(payload, canonical, "result")
 
+    def put_trough_outcome(self, encoded_decision, *, observations, assessed_at, bank_epoch):
+        """Assess and append; exact evidence replay ignores only assessment clock.
+
+        The stored parent must match the entire canonical decision. Runtime must
+        use the separate assessor role, not broaden the capture role's grants.
+        Pending/oversized evidence is reportable but is not a persisted revision.
+        """
+        from .trough_outcomes import assess_trough_decision
+
+        parent, canonical_parent = _decode(encoded_decision, "decision")
+        outcome = assess_trough_decision(encoded_decision, observations=observations,
+                                         assessed_at=assessed_at, bank_epoch=bank_epoch)
+        measurement = outcome["measurement"]
+        if measurement["status"] == "pending" or measurement["evidence_digest"] is None:
+            raise InvalidAdvisoryRecord("completed bounded outcome evidence required")
+        canonical = _canonical(outcome)
+        if len(canonical.encode("utf-8")) > MAX_BYTES:
+            raise InvalidAdvisoryRecord("outcome record exceeds size limit")
+        identity = (parent["decision_id"], measurement["assessment_version"], measurement["evidence_digest"])
+        _reject_ambient_service()
+        connection = None
+        try:
+            connection = psycopg2.connect(
+                self._dsn, connect_timeout=3, hostaddr=self._hostaddr, sslmode="disable",
+                options="-c statement_timeout=2000 -c lock_timeout=1000 "
+                        "-c idle_in_transaction_session_timeout=5000",
+            )
+            connection.set_session(isolation_level="READ COMMITTED", autocommit=False)
+            with connection:
+                with connection.cursor() as cursor:
+                    cursor.execute("""INSERT INTO energy_analytics.advisory_trough_outcomes
+                        (decision_id, assessment_version, evidence_digest, assessed_at,
+                         target_start, target_end, status, payload)
+                        SELECT decision_id, %s, %s, %s, %s, %s, %s, %s::jsonb
+                        FROM energy_analytics.advisory_decisions
+                        WHERE decision_id = %s AND payload = %s::jsonb
+                        ON CONFLICT (decision_id, assessment_version, evidence_digest)
+                        DO NOTHING RETURNING decision_id""",
+                        (identity[1], identity[2], measurement["assessed_at"],
+                         measurement["window_start"], measurement["window_end"],
+                         measurement["status"], canonical, identity[0], canonical_parent))
+                    if cursor.fetchone() is not None:
+                        inserted = True
+                    else:
+                        cursor.execute("""SELECT
+                            (o.payload #- '{measurement,assessed_at}') =
+                            (%s::jsonb #- '{measurement,assessed_at}')
+                            AND d.payload = %s::jsonb
+                            FROM energy_analytics.advisory_trough_outcomes o
+                            JOIN energy_analytics.advisory_decisions d USING (decision_id)
+                            WHERE o.decision_id = %s AND o.assessment_version = %s AND o.evidence_digest = %s""",
+                            (canonical, canonical_parent, *identity))
+                        existing = cursor.fetchone()
+                        if existing is None:
+                            raise AdvisoryStorageError("advisory outcome storage unavailable")
+                        if not existing[0]:
+                            raise AdvisoryConflictError("advisory outcome identity conflict")
+                        inserted = False
+            return inserted
+        except psycopg2.Error:
+            raise AdvisoryStorageError("advisory outcome storage unavailable") from None
+        finally:
+            if connection is not None:
+                connection.close()
+
     def _put(self, payload, canonical, kind):
         _reject_ambient_service()
         connection = None

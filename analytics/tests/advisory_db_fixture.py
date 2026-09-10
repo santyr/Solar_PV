@@ -87,8 +87,8 @@ def advisory_db():
         with closing(connection), connection:
             pending = plan_migrations(discover_migrations(),
                                       get_applied_migrations(connection))
-            assert [m.version for m in pending] == [1, 2]
-            assert apply_migrations(connection, pending) == [1, 2]
+            assert [m.version for m in pending] == [1, 2, 3]
+            assert apply_migrations(connection, pending) == [1, 2, 3]
             with connection.cursor() as cursor:
                 cursor.execute("""INSERT INTO energy_analytics.system_epochs
                     (epoch_id, current_analytics) VALUES ('test_bank', true)""")
@@ -98,16 +98,24 @@ def advisory_db():
                 cursor.execute("""GRANT INSERT, SELECT ON
                     energy_analytics.advisory_decisions,
                     energy_analytics.advisory_results TO advisory_writer""")
+                cursor.execute(sql.SQL("CREATE ROLE advisory_assessor LOGIN PASSWORD {}")
+                               .format(sql.Literal(writer_password)))
+                cursor.execute("GRANT USAGE ON SCHEMA energy_analytics TO advisory_assessor")
+                cursor.execute("GRANT SELECT ON energy_analytics.advisory_decisions TO advisory_assessor")
+                cursor.execute("GRANT INSERT, SELECT ON energy_analytics.advisory_trough_outcomes TO advisory_assessor")
         writer = FixtureEndpoint(
             host="127.0.0.1", port=port, dbname="advisory_test",
             user="advisory_writer", password=writer_password,
         )
+        assessor = FixtureEndpoint(host=owner.host, port=owner.port, dbname=owner.dbname,
+                                   user="advisory_assessor", password=writer_password)
         yield SimpleNamespace(
             host=owner.host, port=owner.port, dbname=owner.dbname,
             owner_user=owner.user, owner_password=owner.password,
             writer_user=writer.user, writer_password=writer.password,
             owner=owner.dsn, writer=writer.dsn,
             connect_owner=owner.connect, connect_writer=writer.connect,
+            assessor=assessor.dsn, connect_assessor=assessor.connect,
         )
     finally:
         if created:
