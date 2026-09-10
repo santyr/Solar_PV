@@ -16,7 +16,7 @@ from urllib.request import Request, urlopen
 from zoneinfo import ZoneInfo
 
 from . import cli as energy_cli
-from .config import load_source_config
+from .config import load_source_config, live_health_source_config
 from .db import connect_read_only, connect_write, parse_openhab_jdbc_config
 from .forecasts import persist_forecast_snapshots, snapshots_from_openhab_detail
 from .inventory import fetch_inventory, resolve_sources
@@ -282,7 +282,7 @@ def read_quality_state(
     connection = connect_read_only(settings)
     try:
         items, tables = fetch_inventory(connection)
-        config = load_source_config()
+        config = live_health_source_config(load_source_config())
         resolved = resolve_sources(config, items, tables)
         live_sources_ok = _live_sources_ok(connection, config, resolved, now)
         with connection.cursor() as cursor:
@@ -468,7 +468,7 @@ def main(argv: list[str] | None = None) -> int:
         now = utc_now()
         connection = connect_read_only(parse_openhab_jdbc_config(args.jdbc_config))
         try:
-            source_config = load_source_config()
+            source_config = live_health_source_config(load_source_config())
             items, tables = fetch_inventory(connection)
             resolved = resolve_sources(source_config, items, tables)
             live_health = fetch_live_subsystem_health(
