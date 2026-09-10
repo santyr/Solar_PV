@@ -152,3 +152,28 @@ origins, invalid runtime options and both early/final time-budget exhaustion are
 covered. Fullsuite453passed in18.99seconds after the one-night cache tightening.
 Runtime hard timeout, reviewed activation and observational publication remain
 unfinished; no production migration or scorer change occurred.
+
+## Default-off process deadline
+
+`trough_runtime` now launches only the fixed assessment worker, and only when
+`ADVISORY_ASSESS_ENABLED` is exactly `1` with explicit DSN, bank epoch, cutover
+and timezone. Ambient PostgreSQL service configuration is rejected. The child
+receives an allowlisted environment without OpenHAB or notification credentials;
+this is credential separation, not an operating-system sandbox.
+
+The parent enforces a 40-second process timeout and kills/reaps a timed-out
+child. Failed or partial runs have no publishable projection. Reports reject
+duplicate fields, nonfinite values, invalid counts and causal-reward claims.
+The worker emits at most 16 KiB of JSON; the parent also checks report size.
+Process output capture itself is not a streaming byte limit. Worker failures,
+including connection cleanup errors, cannot expose driver details in returned
+results. There is no publisher or control dependency in this wrapper.
+
+The worker resolves the exact atomic evidence Item mapping with a bounded,
+read-only query before invoking the existing runner. Missing or ambiguous
+mappings fail closed. Thirty-eight runtime tests cover configuration rejection,
+sanitized failures, report validation, minimal environment and actual timeout
+kill/reap. Full analytics suite: 491 passed in 19.06 seconds. Successful live
+worker execution, diagnostic publication, reviewed schema/role activation and
+natural post-cutover outcome qualification remain unverified. No production
+migration, scheduler change or forecast-scoring cutover occurred in this step.
