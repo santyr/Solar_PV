@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 import json
 
 from earthship_energy.scheduled import main
+from earthship_energy.config import load_source_config
 
 
 UTC = timezone.utc
@@ -23,7 +24,7 @@ def test_energy_ui_publish_closes_read_only_db_before_one_openhab_write(monkeypa
     monkeypatch.setattr("earthship_energy.scheduled.parse_openhab_jdbc_config", lambda _: "settings")
     monkeypatch.setattr("earthship_energy.scheduled.connect_read_only", lambda settings: calls.append(("connect", settings)) or connection)
     monkeypatch.setattr("earthship_energy.scheduled.load_epoch_config", lambda _: ("epoch",))
-    monkeypatch.setattr("earthship_energy.scheduled.load_source_config", lambda: "sources")
+    monkeypatch.setattr("earthship_energy.scheduled.load_source_config", load_source_config)
     monkeypatch.setattr("earthship_energy.scheduled.fetch_inventory", lambda db: ([(1, "item")], {"item0001"}))
     monkeypatch.setattr("earthship_energy.scheduled.resolve_sources", lambda config, items, tables: ("resolved",))
     monkeypatch.setattr(
@@ -73,7 +74,7 @@ def test_energy_ui_publish_does_not_write_when_snapshot_build_fails(monkeypatch)
     monkeypatch.setattr("earthship_energy.scheduled.parse_openhab_jdbc_config", lambda _: "settings")
     monkeypatch.setattr("earthship_energy.scheduled.connect_read_only", lambda _: connection)
     monkeypatch.setattr("earthship_energy.scheduled.load_epoch_config", lambda _: ("epoch",))
-    monkeypatch.setattr("earthship_energy.scheduled.load_source_config", lambda: "sources")
+    monkeypatch.setattr("earthship_energy.scheduled.load_source_config", load_source_config)
     monkeypatch.setattr("earthship_energy.scheduled.fetch_inventory", lambda db: ([(1, "item")], {"item0001"}))
     monkeypatch.setattr("earthship_energy.scheduled.resolve_sources", lambda config, items, tables: ("resolved",))
     monkeypatch.setattr(
