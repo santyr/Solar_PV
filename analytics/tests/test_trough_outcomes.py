@@ -5,7 +5,7 @@ import json
 import pytest
 
 from advisory_windows import trough_window
-from earthship_energy.advisory_store import InvalidAdvisoryRecord
+from earthship_energy import advisory_store
 from earthship_energy.materialize import load_epoch_config, select_epoch
 from earthship_energy.trough_outcomes import assess_trough_decision
 from test_advisory_store import decision
@@ -68,11 +68,11 @@ def test_wrong_bank_or_time_cannot_attribute_an_outcome():
 def test_mutated_target_or_extra_origin_field_is_rejected():
     payload = json.loads(origin())
     payload["targets"]["trough"]["end"] = WINDOW.start.isoformat()
-    with pytest.raises(InvalidAdvisoryRecord):
+    with pytest.raises(advisory_store.InvalidAdvisoryRecord):
         assess(json.dumps(payload))
     payload = json.loads(origin())
     payload["invented_success"] = True
-    with pytest.raises(InvalidAdvisoryRecord):
+    with pytest.raises(advisory_store.InvalidAdvisoryRecord):
         assess(json.dumps(payload))
 
 
