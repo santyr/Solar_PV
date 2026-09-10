@@ -202,3 +202,26 @@ existing Item is a Number; its legacy state was 6.7. No live PUT occurred.
 Successful OpenHAB acceptance of numeric/UNDEF states and parent forecast-job
 integration remain deployment verification gates. This publisher is not wired
 to any scheduler, and production scoring remains unchanged.
+
+## Successful real worker and deployment preflight
+
+A real worker subprocess now runs end to end against the disposable PostgreSQL
+fixture with the configured current bank, immutable origin/publication and a
+complete synthetic atomic source window. First execution stores one qualified
+outcome and produces a valid 10.0-point diagnostic; repeat execution inserts no
+duplicate and preserves the same sample. This is isolated test evidence, not
+live outcome qualification. Revoking either registry or telemetry SELECT makes
+the worker fail closed. Duplicate registry mapping also fails closed, and the
+assessor cannot DELETE raw telemetry. Full analytics suite: 523 passed in
+22.31 seconds, using the staged Earthship integration scripts on PYTHONPATH.
+
+Read-only production preflight on September 10 confirms migrations [1,2], exact
+atomic Item mapping item0613, and no roles named advisory_writer/advisory_assessor.
+The forecast service executes `/home/sat/openhab/scripts/forecast_intel.py`, has
+no drop-in or EnvironmentFile, and retains TimeoutStartSec=180. Its active timer
+next fires September 11 at 06:40 MDT. Installed forecast SHA-256 is
+`6a3d176a9e8e852c8da9890e4c5d8a4731a912124065b8cf8ae7af7f72b23412`.
+Installed advisory_capture, completed_trough_score, advisory_records and
+advisory_windows helpers are absent. Deployment must install these dependencies
+and the explicit cross-repo import path, not just update a repository checkout.
+No production role, migration, file, schedule or Item state changed in preflight.
