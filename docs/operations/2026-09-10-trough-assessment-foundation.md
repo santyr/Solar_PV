@@ -106,3 +106,24 @@ Migrations0003/0004 remain feature-only, tested in disposable databases; no
 production migration, capture/scorer activation, legacy state or DM change.
 Current-revision queries, bounded assessment orchestration and deterministic
 diagnostic projection remain the next integration steps.
+
+## Current revisions and seven-night diagnostic
+
+`trough_projection` now reads at most30frozen target nights and each selected
+decision's latest committed assessment revision as of the report time. Quality
+filtering occurs after latest-revision selection: a newer insufficient revision
+cannot fall back to a previous measured value. Assessment-time/digest ordering
+is deterministic, and future revisions/selections are excluded from as-of reads.
+
+The pure projection rejects duplicate nights, mismatched origins/targets/banks,
+invalid measurement ranges and inconsistent residuals. It rebuilds the mean
+absolute error from the latest seven distinct verified nights without mutating
+history or consumption markers. Output includes actual sample count/dates,
+coverage, evidence identities and missing/insufficient/pending dates; unavailable
+is explicit until there is a verified night. One sample is never labeled seven
+days of evidence, and no causal reward or bandit eligibility is assigned.
+
+Ten new tests include actual disposable PostgreSQL as-of/current revision
+comparison. Fullsuite439passed in16.14seconds before merging the separate
+live-health compatibility hotfix. No diagnostic Item write or outcome activation
+has occurred; bounded orchestration and publication remain required.
