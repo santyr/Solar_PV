@@ -177,3 +177,28 @@ kill/reap. Full analytics suite: 491 passed in 19.06 seconds. Successful live
 worker execution, diagnostic publication, reviewed schema/role activation and
 natural post-cutover outcome qualification remain unverified. No production
 migration, scheduler change or forecast-scoring cutover occurred in this step.
+
+## Exact observational diagnostic publisher
+
+`trough_publish` validates completed worker reports before a single fixed
+`PUT http://127.0.0.1:8080/rest/items/Forecast_Trough_Error_7d/state` request.
+There is no configurable target, proxy forwarding, redirect following or retry.
+The transport timeout is five seconds; response bodies are not consumed.
+This is a socket timeout, not an additional hard-process deadline.
+
+Validation checks report/projection versions and shape, a maximum five-minute
+report age, matching bounded dates, distinct ordered sample days, coverage,
+evidence identities and residual ranges. The published one-decimal absolute
+error is rederived from at most seven samples and checked against the report.
+No qualified samples yields `UNDEF`, not zero. Incomplete or failed reports
+cannot reach transport. An accepted HTTP result is labeled accepted, not proof
+of UI display. Driver/HTTP details and tokens are excluded from errors/results.
+
+Thirty-one new tests exercise valid numeric/unknown output, exact endpoint and
+method, malformed or stale evidence, duplicate dates, token rejection, sanitized
+failures without retries, and disabled proxy/redirect handlers. Full analytics
+suite: 522 passed in 18.99 seconds. Read-only live inspection confirmed the
+existing Item is a Number; its legacy state was 6.7. No live PUT occurred.
+Successful OpenHAB acceptance of numeric/UNDEF states and parent forecast-job
+integration remain deployment verification gates. This publisher is not wired
+to any scheduler, and production scoring remains unchanged.
