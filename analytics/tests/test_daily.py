@@ -1,4 +1,5 @@
 from datetime import date, timedelta
+from dataclasses import replace
 from types import SimpleNamespace
 from zoneinfo import ZoneInfo
 
@@ -9,6 +10,11 @@ from earthship_energy.series import local_day_bounds
 
 def test_build_daily_snapshot_is_read_only_and_uses_canonical_conversions(monkeypatch):
     config = load_source_config()
+    # Exercise the retained explicit legacy configuration, not the new default.
+    config = replace(config, sources=tuple(
+        replace(source, stale_policy="status_must_equal_OK", freshness_item="BMS_Comms_Status")
+        if source.canonical_name == "battery.soc_pct" else source for source in config.sources
+    ))
     required = {
         "battery.soc_pct": "item0001",
         "battery.dc_power_w": "item0002",

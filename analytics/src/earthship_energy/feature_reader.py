@@ -2,9 +2,46 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from bisect import bisect_right
+from datetime import datetime, timedelta, timezone
 
-from .reader import ITEM_TABLE
+from .bms_evidence import EvidenceSequenceError
+from .reader import ITEM_TABLE, fetch_bms_soc_intervals
+from .series import local_day_bounds
+
+
+def _soc_lookup(connection, table, start, end, epochs, timezone_name):
+    """Index original qualified segments, never interpolating across gaps."""
+    intervals = []
+    for epoch in epochs:
+        # Undated historical banks cannot authorize atomic evidence.
+        if epoch.start_local_date is None:
+            continue
+        bank_start = local_day_bounds(epoch.start_local_date, timezone_name)[0]
+        bank_end = (local_day_bounds(epoch.end_local_date_exclusive, timezone_name)[0]
+                    if epoch.end_local_date_exclusive is not None else None)
+        left, right = max(start, bank_start), min(end, bank_end or end)
+        if right <= left or table is None:
+            continue
+        try:
+            intervals.extend(fetch_bms_soc_intervals(
+                connection, table, left, right, epoch_start=bank_start, epoch_end=bank_end,
+            ))
+        except EvidenceSequenceError:
+            # Ambiguous evidence never falls back to legacy numeric history.
+            continue
+    intervals.sort(key=lambda interval: interval.start)
+    if any(left.end > right.start for left, right in zip(intervals, intervals[1:])):
+        raise ValueError("physical bank evidence intervals overlap")
+    starts = [interval.start for interval in intervals]
+
+    def value_at(at):
+        index = bisect_right(starts, at) - 1
+        if index >= 0 and at < intervals[index].end:
+            return intervals[index].soc
+        return None
+
+    return value_at
 
 
 REQUIRED_TABLES = {
@@ -62,11 +99,21 @@ def fetch_feature_rows(
     cadence_minutes: int,
     timezone_name: str,
     conversions: dict[str, str | None] | None = None,
+    atomic_soc: bool = False,
+    soc_evidence_table: str | None = None,
+    bank_epochs=None,
 ) -> list[dict[str, object]]:
+    if any(at.tzinfo is None or at.utcoffset() is None for at in (start, end_exclusive)):
+        raise ValueError("feature window must be timezone-aware")
+    start, end_exclusive = start.astimezone(timezone.utc), end_exclusive.astimezone(timezone.utc)
     if end_exclusive <= start:
         raise ValueError("feature export end must be after start")
     if cadence_minutes not in {5, 15}:
         raise ValueError("feature cadence must be 5 or 15 minutes")
+    if atomic_soc and bank_epochs is None:
+        raise ValueError("atomic SoC requires configured physical bank epochs")
+    if soc_evidence_table is not None and not ITEM_TABLE.fullmatch(soc_evidence_table):
+        raise ValueError("invalid OpenHAB evidence table name")
     for table in tables.values():
         if not ITEM_TABLE.fullmatch(table):
             raise ValueError("invalid OpenHAB Item table name")
@@ -74,6 +121,9 @@ def fetch_feature_rows(
     if missing:
         raise ValueError(f"feature sources unresolved: {sorted(missing)}")
     soc = tables["battery.soc_pct"]
+    soc_value = "NULL::double precision" if atomic_soc else _value(soc, "g.at")
+    soc_lag = ("NULL::double precision" if atomic_soc
+               else _value(soc, "g.at - interval '1 hour'"))
     pv = tables["pv.input_power_w"]
     load = tables["house.ac_power_w"]
     temperature = tables["weather.outdoor_temperature_c"]
@@ -95,8 +145,8 @@ def fetch_feature_rows(
         ),
         raw AS (
           SELECT g.at,
-                 {_value(soc, "g.at")} AS battery_soc_pct,
-                 {_value(soc, "g.at - interval '1 hour'")} AS battery_soc_pct_lag_1h,
+                 {soc_value} AS battery_soc_pct,
+                 {soc_lag} AS battery_soc_pct_lag_1h,
                  {_value(pv, "g.at")} AS pv_power_w,
                  {_value(pv, "g.at - interval '1 hour'")} AS pv_power_w_lag_1h,
                  {_value(load, "g.at")} AS load_power_w,
@@ -197,4 +247,12 @@ def fetch_feature_rows(
                 timezone_name, timezone_name, timezone_name, timezone_name,
             ),
         )
-        return [dict(zip(FEATURE_FIELDS, row)) for row in cursor.fetchall()]
+        rows = [dict(zip(FEATURE_FIELDS, row)) for row in cursor.fetchall()]
+    if atomic_soc:
+        lookup = _soc_lookup(connection, soc_evidence_table, start - timedelta(hours=1),
+                             end_exclusive, bank_epochs, timezone_name)
+        for row in rows:
+            at = row["at"].astimezone(timezone.utc)
+            row["battery_soc_pct"] = lookup(at)
+            row["battery_soc_pct_lag_1h"] = lookup(at - timedelta(hours=1))
+    return rows

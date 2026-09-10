@@ -45,6 +45,14 @@ def test_loads_strict_source_config(tmp_path):
     assert config.sources[0].required is True
 
 
+def test_default_soc_source_selects_atomic_evidence_without_renaming_numeric_item():
+    source = next(source for source in load_source_config().sources
+                  if source.canonical_name == "battery.soc_pct")
+    assert source.item_name == "BMS_SOC"
+    assert source.freshness_item == "BMS_SOC_Evidence_JSON"
+    assert source.stale_policy == "atomic_bms_evidence"
+
+
 def test_duplicate_canonical_names_are_rejected(tmp_path):
     source = minimal_source()
     path = write_config(

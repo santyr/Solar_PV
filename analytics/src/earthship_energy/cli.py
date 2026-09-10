@@ -133,6 +133,7 @@ def _parser() -> argparse.ArgumentParser:
     feature_export.add_argument("--output", required=True, type=Path)
     feature_export.add_argument("--cadence", type=int, choices=(5, 15), default=15)
     feature_export.add_argument("--config", type=Path)
+    feature_export.add_argument("--epochs", type=Path)
     feature_export.add_argument("--jdbc-config", default=DEFAULT_JDBC_CONFIG, type=Path)
     feature_export.add_argument("--force", action="store_true")
     return parser
@@ -256,10 +257,10 @@ def _aggregate(args) -> int:
                 )
         items, tables = fetch_inventory(connection)
         resolved = resolve_sources(config, items, tables)
-        snapshot = build_daily_snapshot(connection, config, resolved, local_date)
+        epochs = load_epoch_config(args.epochs)
+        epoch = select_epoch(epochs, local_date)
+        snapshot = build_daily_snapshot(connection, config, resolved, local_date, bank_epoch=epoch)
         if args.apply:
-            epochs = load_epoch_config(args.epochs)
-            epoch = select_epoch(epochs, local_date)
             seed_reference_data(connection, config, epochs)
             result = materialize_daily_snapshot(
                 connection, snapshot, epoch.epoch_id
@@ -518,10 +519,18 @@ def _export_features(args) -> int:
             source.canonical_name: source.conversion
             for source in config.sources
         }
+        soc_definition = next((source for source in config.sources
+                               if source.canonical_name == "battery.soc_pct"), None)
+        atomic_soc = soc_definition is not None and soc_definition.stale_policy == "atomic_bms_evidence"
+        soc_evidence_table = next((getattr(source, "freshness_table_name", None)
+                                   for source in resolved
+                                   if source.canonical_name == "battery.soc_pct"), None)
         rows = fetch_feature_rows(
             connection, source_tables, start, end,
             cadence_minutes=args.cadence, timezone_name=config.timezone,
             conversions=source_conversions,
+            atomic_soc=atomic_soc, soc_evidence_table=soc_evidence_table,
+            bank_epochs=load_epoch_config(args.epochs) if atomic_soc else None,
         )
     finally:
         connection.close()

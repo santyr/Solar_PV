@@ -121,7 +121,7 @@ def test_aggregate_date_runs_read_only_dry_run(tmp_path, monkeypatch, capsys):
     monkeypatch.setattr(
         cli,
         "build_daily_snapshot",
-        lambda _connection, _config, _resolved, day: {
+        lambda _connection, _config, _resolved, day, **kwargs: {
             "status": "ok",
             "mode": "read_only_dry_run",
             "local_date": day.isoformat(),
@@ -183,7 +183,7 @@ def test_aggregate_apply_seeds_and_materializes(tmp_path, monkeypatch, capsys):
     monkeypatch.setattr(cli, "load_epoch_config", lambda _: (epoch,))
     monkeypatch.setattr(cli, "select_epoch", lambda *_: epoch)
     monkeypatch.setattr(cli, "seed_reference_data", lambda *_: calls.append("seed") or {})
-    monkeypatch.setattr(cli, "build_daily_snapshot", lambda *_: {
+    monkeypatch.setattr(cli, "build_daily_snapshot", lambda *_, **kwargs: {
         "status": "ok", "mode": "read_only_dry_run", "local_date": "2026-01-02"
     })
     monkeypatch.setattr(cli, "materialize_daily_snapshot", lambda *_: {
@@ -412,11 +412,16 @@ def test_export_features_writes_versioned_csv_from_read_only_database(
         cli, "resolve_sources",
         lambda *_: [type("Resolved", (), {
             "canonical_name": "battery.soc_pct", "table_name": "item0001",
+            "freshness_table_name": "item0613",
         })()],
     )
-    monkeypatch.setattr(
-        cli, "fetch_feature_rows", lambda *_args, **_kwargs: [{"at": "row"}],
-    )
+    def fetch_features(*args, **kwargs):
+        assert kwargs["atomic_soc"] is True
+        assert kwargs["soc_evidence_table"] == "item0613"
+        assert any(epoch.epoch_id == "discover_4_module_2026" for epoch in kwargs["bank_epochs"])
+        return [{"at": "row"}]
+
+    monkeypatch.setattr(cli, "fetch_feature_rows", fetch_features)
     monkeypatch.setattr(cli, "export_feature_csv", lambda *_args, **_kwargs: b"schema\nrow\n")
     assert cli.main([
         "export-features", "--start", "2026-08-01T00:00:00Z",

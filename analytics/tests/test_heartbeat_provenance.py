@@ -191,7 +191,9 @@ def test_daily_uses_original_observations_through_real_reader(monkeypatch, case,
         raise AssertionError("freshness path must not use clipped text reader")
 
     monkeypatch.setattr(daily, "fetch_text_series", forbidden_text)
-    result = daily.build_daily_snapshot(connection, config, resolved, day)
+    from earthship_energy.materialize import load_epoch_config, select_epoch
+    result = daily.build_daily_snapshot(connection, config, resolved, day,
+                                        bank_epoch=select_epoch(load_epoch_config(), day))
     quality = next(row for row in result["source_quality"] if row["canonical_name"] == "battery.dc_power_w")
     assert quality["detail"]["valid_seconds"] == expected_seconds
     assert quality["coverage"] == expected_seconds / (end - start).total_seconds()

@@ -104,9 +104,9 @@ def build_daily_snapshot(
     evidence_errors = {}
 
     def qualified_soc(left, right):
-        if bank_epoch is None or bank_epoch.start_local_date is None:
+        if bank_epoch is None:
             raise ValueError("atomic SoC requires a configured physical bank start")
-        if evidence_table is None:
+        if evidence_table is None or bank_epoch.start_local_date is None:
             return []
         bank_start = local_day_bounds(bank_epoch.start_local_date, config.timezone)[0]
         bank_end = (local_day_bounds(bank_epoch.end_local_date_exclusive, config.timezone)[0]

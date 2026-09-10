@@ -11,8 +11,8 @@
       "canonical_unit": "percent",
       "scale": 1.0,
       "sign": "unsigned",
-      "freshness_item": "BMS_Comms_Status",
-      "stale_policy": "status_must_equal_OK",
+      "freshness_item": "BMS_SOC_Evidence_JSON",
+      "stale_policy": "atomic_bms_evidence",
       "kind": "device_reported",
       "confidence": 1.0,
       "required": true
