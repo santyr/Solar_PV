@@ -4,6 +4,43 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 
+from .bms_evidence import SocInterval
+
+
+def assess_bms_source_quality(
+    *, intervals: list[SocInterval], window_start: datetime, window_end: datetime,
+    row_count: int, first_at: datetime | None, last_at: datetime | None,
+    freshness_item: str | None, reason: str | None = None,
+) -> dict[str, object]:
+    """Score the same qualified segments used for numbers, without another parser."""
+    window_seconds = (window_end - window_start).total_seconds()
+    if window_seconds <= 0:
+        raise ValueError("quality window must be positive")
+    cursor = window_start
+    valid_seconds = 0.0
+    gaps = 0
+    for interval in intervals:
+        left, right = max(window_start, interval.start), min(window_end, interval.end)
+        if right <= left:
+            continue
+        if left < cursor:
+            raise ValueError("SoC intervals must be ordered and nonoverlapping")
+        if left > cursor:
+            gaps += 1
+        valid_seconds += (right - left).total_seconds()
+        cursor = right
+    if cursor < window_end:
+        gaps += 1
+    coverage = valid_seconds / window_seconds
+    return {
+        "canonical_name": "battery.soc_pct", "row_count": row_count,
+        "first_at": first_at, "last_at": last_at, "coverage": coverage,
+        "stale_intervals": gaps, "quality": _coverage_quality(coverage),
+        "detail": {"policy": "atomic_bms_evidence", "freshness_basis": freshness_item,
+                   "valid_seconds": valid_seconds, "window_seconds": window_seconds,
+                   "reason": reason},
+    }
+
 
 def _coverage_quality(coverage: float) -> str:
     if coverage >= 0.9:

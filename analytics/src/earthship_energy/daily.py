@@ -12,9 +12,11 @@ from .aggregation import (
     value_at,
 )
 from .config import SourceConfig
+from .bms_evidence import EvidenceSequenceError, soc_at
 from .events import fetch_snow_state_as_of
 from .reader import (
     datetime_state_for_local_date,
+    fetch_bms_soc_intervals,
     fetch_freshness_observations,
     fetch_numeric_series,
     fetch_observation_stats,
@@ -27,7 +29,7 @@ from .series import (
     integrate_trapezoid,
     local_day_bounds,
 )
-from .quality import assess_source_quality
+from .quality import assess_source_quality, assess_bms_source_quality
 
 
 REQUIRED_DAILY = {
@@ -57,6 +59,8 @@ def build_daily_snapshot(
     config: SourceConfig,
     resolved_sources,
     local_date: date,
+    *,
+    bank_epoch=None,
 ) -> dict[str, object]:
     tables = {
         source.canonical_name: source.table_name
@@ -93,7 +97,31 @@ def build_daily_snapshot(
 
     sunrise = event_time("solar.sunrise_at", local_date, start, end)
     sunset = event_time("solar.sunset_at", local_date, start, end)
-    battery_soc = series("battery.soc_pct")
+    atomic_soc = definitions["battery.soc_pct"].stale_policy == "atomic_bms_evidence"
+    evidence_table = next((getattr(source, "freshness_table_name", None)
+                           for source in resolved_sources
+                           if source.canonical_name == "battery.soc_pct"), None)
+    evidence_errors = {}
+
+    def qualified_soc(left, right):
+        if bank_epoch is None or bank_epoch.start_local_date is None:
+            raise ValueError("atomic SoC requires a configured physical bank start")
+        if evidence_table is None:
+            return []
+        bank_start = local_day_bounds(bank_epoch.start_local_date, config.timezone)[0]
+        bank_end = (local_day_bounds(bank_epoch.end_local_date_exclusive, config.timezone)[0]
+                    if bank_epoch.end_local_date_exclusive is not None else None)
+        try:
+            return fetch_bms_soc_intervals(
+                connection, evidence_table, left, right,
+                epoch_start=bank_start, epoch_end=bank_end,
+            )
+        except EvidenceSequenceError:
+            evidence_errors[(left, right)] = "ambiguous_evidence_sequence"
+            return []
+
+    battery_soc = [] if atomic_soc else series("battery.soc_pct")
+    battery_intervals = qualified_soc(start, end) if atomic_soc else None
 
     battery = aggregate_battery(
         soc_points=battery_soc,
@@ -106,6 +134,7 @@ def build_daily_snapshot(
         power_sign=definitions["battery.dc_power_w"].sign,
         sunrise=sunrise,
         sunset=sunset,
+        soc_intervals=battery_intervals,
     )
     pv = aggregate_power(
         series("pv.input_power_w"), start, end, max_gap=max_gap
@@ -141,14 +170,18 @@ def build_daily_snapshot(
         "solar.sunset_at", previous_day, previous_start, previous_end
     )
     if sunrise is not None and previous_sunset is not None:
-        previous_soc = _convert(
-            fetch_numeric_series(
-                connection, tables["battery.soc_pct"], previous_start, previous_end
-            ),
-            definitions["battery.soc_pct"].conversion,
-        )
-        previous_sunset_soc = value_at(previous_soc, previous_sunset)
-        sunrise_soc = value_at(battery_soc, sunrise)
+        if atomic_soc:
+            previous_sunset_soc = soc_at(qualified_soc(previous_start, previous_end), previous_sunset)
+            sunrise_soc = soc_at(battery_intervals, sunrise)
+        else:
+            previous_soc = _convert(
+                fetch_numeric_series(
+                    connection, tables["battery.soc_pct"], previous_start, previous_end
+                ),
+                definitions["battery.soc_pct"].conversion,
+            )
+            previous_sunset_soc = value_at(previous_soc, previous_sunset)
+            sunrise_soc = value_at(battery_soc, sunrise)
         if previous_sunset_soc is not None and sunrise_soc is not None:
             battery_payload["overnight_soc_drop_pct"] = (
                 previous_sunset_soc - sunrise_soc
@@ -198,6 +231,16 @@ def build_daily_snapshot(
         if resolved.table_name is None:
             continue
         definition = definitions[resolved.canonical_name]
+        if atomic_soc and resolved.canonical_name == "battery.soc_pct":
+            stats = (fetch_observation_stats(connection, evidence_table, start, end)
+                     if evidence_table is not None else (0, None, None))
+            source_quality.append(assess_bms_source_quality(
+                intervals=battery_intervals, window_start=start, window_end=end,
+                row_count=stats[0], first_at=stats[1], last_at=stats[2],
+                freshness_item=definition.freshness_item,
+                reason=evidence_errors.get((start, end)),
+            ))
+            continue
         row_count, first_at, last_at = fetch_observation_stats(
             connection, resolved.table_name, start, end
         )

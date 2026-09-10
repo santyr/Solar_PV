@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
 from math import sqrt
 from typing import Iterable
 
+from .bms_evidence import SocInterval, soc_at
 from .series import (
     Point,
     coverage_ratio,
@@ -233,6 +234,7 @@ def aggregate_battery(
     power_sign: str,
     sunrise: datetime | None = None,
     sunset: datetime | None = None,
+    soc_intervals: list[SocInterval] | None = None,
 ) -> BatteryAggregate:
     if power_sign not in {"positive_charging", "negative_charging"}:
         raise SignCalibrationError("battery power sign has not been calibrated")
@@ -244,35 +246,67 @@ def aggregate_battery(
     discharge = integrate_trapezoid(
         [(at, max(0.0, -value)) for at, value in signed], max_gap
     )
-    soc_integration = integrate_trapezoid(soc_points, max_gap)
+    if soc_intervals is None:
+        soc_integration = integrate_trapezoid(soc_points, max_gap)
+        soc_seconds = soc_integration.covered_seconds
+        mean_soc = time_weighted_mean(soc_integration)
+        soc_values = [value for _, value in soc_points]
+        first_99 = next((at for at, value in sorted(soc_points) if value >= 99), None)
+        above_90 = duration_above(soc_points, 90.0, max_gap) / 3600.0
+        above_95 = duration_above(soc_points, 95.0, max_gap) / 3600.0
+        below_50 = duration_above(
+            [(at, -value) for at, value in soc_points], -50.0, max_gap
+        ) / 3600.0
+        below_25 = duration_above(
+            [(at, -value) for at, value in soc_points], -25.0, max_gap
+        ) / 3600.0
+        sunrise_soc = _value_at(soc_points, sunrise) if sunrise else None
+        sunset_soc = _value_at(soc_points, sunset) if sunset else None
+    else:
+        # Empty qualified history is authoritative: never fall back to points.
+        # Retain individual segments, including gaps and observer boundaries.
+        intervals = []
+        previous_end = None
+        for interval in soc_intervals:
+            if interval.end <= interval.start or (
+                previous_end is not None and interval.start < previous_end
+            ):
+                raise ValueError("SoC intervals must be positive, ordered and nonoverlapping")
+            previous_end = interval.end
+            left, right = max(window_start, interval.start), min(window_end, interval.end)
+            if right > left:
+                intervals.append(replace(interval, start=left, end=right))
+        durations = [(interval, (interval.end - interval.start).total_seconds())
+                     for interval in intervals]
+        soc_seconds = sum(seconds for _, seconds in durations)
+        mean_soc = (sum(interval.soc * seconds for interval, seconds in durations)
+                    / soc_seconds if soc_seconds else None)
+        soc_values = [interval.soc for interval in intervals]
+        first_99 = next((interval.start for interval in intervals if interval.soc >= 99), None)
+        above_90 = sum(seconds for interval, seconds in durations if interval.soc > 90) / 3600.0
+        above_95 = sum(seconds for interval, seconds in durations if interval.soc > 95) / 3600.0
+        below_50 = sum(seconds for interval, seconds in durations if interval.soc < 50) / 3600.0
+        below_25 = sum(seconds for interval, seconds in durations if interval.soc < 25) / 3600.0
+        sunrise_soc = soc_at(intervals, sunrise) if sunrise else None
+        sunset_soc = soc_at(intervals, sunset) if sunset else None
     temperature = integrate_trapezoid(temperature_c_points, max_gap)
     window_seconds = (window_end - window_start).total_seconds()
     coverage = min(
-        coverage_ratio(soc_integration.covered_seconds, window_seconds),
+        coverage_ratio(soc_seconds, window_seconds),
         coverage_ratio(charge.covered_seconds, window_seconds),
         coverage_ratio(temperature.covered_seconds, window_seconds),
     )
     charge_kwh = charge.value_hours / 1000.0
     discharge_kwh = discharge.value_hours / 1000.0
-    soc_values = [value for _, value in soc_points]
     temperature_values = [value for _, value in temperature_c_points]
     min_soc = min(soc_values, default=None)
     max_soc = max(soc_values, default=None)
-    first_99 = next((at for at, value in sorted(soc_points) if value >= 99), None)
-    above_90 = duration_above(soc_points, 90.0, max_gap) / 3600.0
-    above_95 = duration_above(soc_points, 95.0, max_gap) / 3600.0
-    below_50 = duration_above(
-        [(at, -value) for at, value in soc_points], -50.0, max_gap
-    ) / 3600.0
-    below_25 = duration_above(
-        [(at, -value) for at, value in soc_points], -25.0, max_gap
-    ) / 3600.0
     return BatteryAggregate(
         min_soc_pct=min_soc,
         max_soc_pct=max_soc,
-        mean_soc_pct=time_weighted_mean(soc_integration),
-        sunrise_soc_pct=_value_at(soc_points, sunrise) if sunrise else None,
-        sunset_soc_pct=_value_at(soc_points, sunset) if sunset else None,
+        mean_soc_pct=mean_soc,
+        sunrise_soc_pct=sunrise_soc,
+        sunset_soc_pct=sunset_soc,
         overnight_soc_drop_pct=None,
         depth_of_discharge_pct=(max_soc - min_soc)
         if min_soc is not None and max_soc is not None
