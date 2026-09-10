@@ -127,3 +127,28 @@ Ten new tests include actual disposable PostgreSQL as-of/current revision
 comparison. Fullsuite439passed in16.14seconds before merging the separate
 live-health compatibility hotfix. No diagnostic Item write or outcome activation
 has occurred; bounded orchestration and publication remain required.
+
+## Bounded assessment orchestration
+
+`trough_runner` now connects completed-day selection, original evidence reads,
+origin-aware assessment, append-only storage, frozen selection and the diagnostic
+projection. Its window is at most30completed prediction days, with1000decision
+limit,10001-row overflow detection for telemetry and one-night-at-a-time caching.
+At06:40 the preceding night's11:00 target is excluded; at completion it becomes
+eligible. Older unassessed origins are explicitly counted as expired/unscored.
+
+A dedicated read-only READ COMMITTED connection sees the separate store's
+committed outcomes on subsequent projection reads. Each read has a two-second
+statement timeout. A cooperative30-second budget is checked between operations,
+including after the final read; exhaustion returns no publishable projection.
+The runtime owner still must enforce a hard process deadline: this function
+cannot preempt an in-flight operation. Store operations retain bounded timeouts
+and no automatic retries. There is no OpenHAB, notifier or control dependency.
+
+Twelve new tests include an end-to-end disposable PostgreSQL run: an incomplete
+night reads no telemetry, a completed night stores both origins but projects one
+frozen sample, and a later invocation inserts no duplicates. Row limits, expired
+origins, invalid runtime options and both early/final time-budget exhaustion are
+covered. Fullsuite453passed in18.99seconds after the one-night cache tightening.
+Runtime hard timeout, reviewed activation and observational publication remain
+unfinished; no production migration or scorer change occurred.

@@ -160,6 +160,8 @@ def fetch_freshness_observations(
     table_name: str,
     window_start: datetime,
     window_end: datetime,
+    *,
+    row_limit: int | None = None,
 ) -> list[tuple[datetime, str]]:
     """Return original freshness observations, preserving their timestamps."""
     if not ITEM_TABLE.fullmatch(table_name):
@@ -171,6 +173,8 @@ def fetch_freshness_observations(
         raise ValueError("freshness window timestamps must be timezone-aware")
     if window_end <= window_start:
         raise ValueError("window_end must be after window_start")
+    if row_limit is not None and (type(row_limit) is not int or not 1 <= row_limit <= 10001):
+        raise ValueError("freshness row limit must be 1..10001")
     with connection.cursor() as cursor:
         cursor.execute(
             f"""SELECT time, value FROM public.{table_name}
@@ -178,10 +182,12 @@ def fetch_freshness_observations(
             (window_start,),
         )
         carry_in = cursor.fetchone()
+        limit_sql = " LIMIT %s" if row_limit is not None else ""
+        params = (window_start, window_end, row_limit) if row_limit is not None else (window_start, window_end)
         cursor.execute(
             f"""SELECT time, value FROM public.{table_name}
-                WHERE time >= %s AND time < %s ORDER BY time""",
-            (window_start, window_end),
+                WHERE time >= %s AND time < %s ORDER BY time""" + limit_sql,
+            params,
         )
         rows = cursor.fetchall()
     observations = []
