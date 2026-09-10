@@ -76,3 +76,33 @@ Still required: frozen first-accepted publication selection and current-revision
 queries, bounded backlog, deterministic diagnostic projection and legacy-state
 preservation, remaining quantity/action evidence, runtime wiring/reviewed release,
 and actual completed post-activation evidence. No outcome is bandit eligible.
+
+## Frozen diagnostic origin
+
+Migration0004 adds an append-only selection keyed by physical bank, prediction
+day and `completed-night-v1`. A composite foreign key binds its publication
+result to the same decision. Capture has no selection privilege; the separate
+assessor can read candidate decisions/results and insert/read selections.
+
+`choose_trough_origin` validates closed decision/result schemas and chronology.
+Only post-cutover decisions issued strictly before target20:00 with an observed
+accepted `Predicted_SoC_Trough_Tomorrow` publication qualify. Advisory acceptance
+and notification success are not substitutes. Candidates order by recorded
+accepted-publication time, then issue time and UUIDs for deterministic ties.
+The result time must be no later than assessment time; this is acceptance
+evidence, not proof of actual display or human receipt.
+
+`freeze_trough_selection` does not connect before window completion. It reads at
+most1001candidates and refuses overflow instead of selecting from truncated
+evidence. A primary-key insert freezes the first choice atomically; retries
+read the stored selection, including after later arrival of an earlier origin.
+Changed cutover/timezone configuration conflicts rather than silently changing
+meaning. Missing eligible evidence does not freeze a negative selection.
+
+Eighteen new tests cover eligibility, result/parent chronology, cutoff bounds,
+pending/limits, order independence, durable late-arrival behavior, concurrent
+insertion and append-only/role constraints. Fullsuite429passed in13.84seconds.
+Migrations0003/0004 remain feature-only, tested in disposable databases; no
+production migration, capture/scorer activation, legacy state or DM change.
+Current-revision queries, bounded assessment orchestration and deterministic
+diagnostic projection remain the next integration steps.

@@ -88,6 +88,11 @@ def validate_decision_record(encoded):
     return _decode(encoded, "decision")[0]
 
 
+def validate_result_record(encoded):
+    """Validate publication/notification evidence with the storage schema, no I/O."""
+    return _decode(encoded, "result")[0]
+
+
 class AdvisoryStore:
     def __init__(self, dsn: str):
         _reject_ambient_service()
@@ -112,6 +117,73 @@ class AdvisoryStore:
     def put_result(self, encoded: str) -> bool:
         payload, canonical = _decode(encoded, "result")
         return self._put(payload, canonical, "result")
+
+    def freeze_trough_selection(self, *, prediction_day, site_timezone, bank_epoch, cutover_at, now):
+        """Freeze one accepted origin per night; later arrivals cannot replace it."""
+        from .trough_selection import choose_trough_origin, SELECTION_VERSION, MAX_CANDIDATES
+        from advisory_windows import trough_window
+
+        kwargs = dict(prediction_day=prediction_day, site_timezone=site_timezone,
+                      bank_epoch=bank_epoch, cutover_at=cutover_at, now=now)
+        empty = choose_trough_origin([], **kwargs)
+        if empty["status"] == "pending":
+            return empty
+        window = trough_window(prediction_day, site_timezone)
+        identity = (bank_epoch, prediction_day, SELECTION_VERSION)
+        _reject_ambient_service()
+        connection = None
+
+        def existing(cursor):
+            cursor.execute("""SELECT payload FROM energy_analytics.advisory_trough_selection
+                WHERE bank_epoch=%s AND prediction_day=%s AND selection_version=%s""", identity)
+            row = cursor.fetchone()
+            if row is None:
+                return None
+            payload = row[0]
+            if payload["cutover_at"] != empty["cutover_at"] or payload["site_timezone"] != site_timezone:
+                raise AdvisoryConflictError("frozen trough selection configuration conflict")
+            return payload
+
+        try:
+            connection = psycopg2.connect(
+                self._dsn, connect_timeout=3, hostaddr=self._hostaddr, sslmode="disable",
+                options="-c statement_timeout=2000 -c lock_timeout=1000 "
+                        "-c idle_in_transaction_session_timeout=5000",
+            )
+            connection.set_session(isolation_level="READ COMMITTED", autocommit=False)
+            with connection:
+                with connection.cursor() as cursor:
+                    frozen = existing(cursor)
+                    if frozen is not None:
+                        return frozen
+                    cursor.execute("""SELECT d.payload, r.payload
+                        FROM energy_analytics.advisory_decisions d
+                        JOIN energy_analytics.advisory_results r USING (decision_id)
+                        WHERE d.bank_epoch=%s AND d.payload->>'prediction_day'=%s
+                          AND d.payload->>'site_timezone'=%s AND d.issued_at >= %s AND d.issued_at < %s
+                          AND r.observed_at <= %s AND r.payload->>'kind'='publication'
+                          AND r.payload->>'target'='Predicted_SoC_Trough_Tomorrow'
+                          AND r.payload->>'status'='accepted'
+                        ORDER BY r.observed_at, d.issued_at, d.decision_id, r.result_id
+                        LIMIT %s""", (bank_epoch, prediction_day.isoformat(), site_timezone,
+                                      cutover_at, window.start, now, MAX_CANDIDATES+1))
+                    candidates = [(_canonical(d), _canonical(r)) for d, r in cursor.fetchall()]
+                    chosen = choose_trough_origin(candidates, **kwargs)
+                    if chosen["status"] != "selected":
+                        return chosen
+                    cursor.execute("""INSERT INTO energy_analytics.advisory_trough_selection
+                        (bank_epoch, prediction_day, selection_version, decision_id,
+                         publication_result_id, cutover_at, selected_at, payload)
+                        VALUES (%s,%s,%s,%s,%s,%s,%s,%s::jsonb)
+                        ON CONFLICT (bank_epoch, prediction_day, selection_version) DO NOTHING""",
+                        (*identity, chosen["decision_id"], chosen["publication_result_id"],
+                         cutover_at, now, _canonical(chosen)))
+                    return existing(cursor)
+        except psycopg2.Error:
+            raise AdvisoryStorageError("trough selection storage unavailable") from None
+        finally:
+            if connection is not None:
+                connection.close()
 
     def put_trough_outcome(self, encoded_decision, *, observations, assessed_at, bank_epoch):
         """Assess and append; exact evidence replay ignores only assessment clock.
