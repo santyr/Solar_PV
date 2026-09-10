@@ -31,3 +31,17 @@ projection preserving legacy arrays; other quantity/source and action evidence;
 least-privilege runtime wiring, reviewed activation and a genuinely completed
 post-activation live target. Prediction equations, thresholds,06:40 schedule,
 notifications, controls and all learned state remain unchanged. Task82 is held.
+
+## Immutable-origin association
+
+`trough_outcomes.assess_trough_decision` now uses the same closed origin validator
+as the append-only decision store. It rejects forged targets/extra fields,
+wrong-bank attribution, issue times outside the bank, assessment before issue,
+and out-of-range SoC predictions. Measured residuals use the exact recorded
+prediction minus the validated minimum; pending/insufficient evidence has no
+residual. Issue before target start is explicit, including strict rejection of
+the exact20:00 boundary as a pre-window origin. Publication and action evidence
+are not inferred, and bandit eligibility remains false.
+
+Seven focused tests cover this association. This adds no persistence, frozen
+publication selection, projection or runtime activation; those remain required.

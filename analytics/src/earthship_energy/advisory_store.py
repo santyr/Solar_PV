@@ -83,6 +83,11 @@ def _decode(encoded, kind):
         raise InvalidAdvisoryRecord("invalid advisory record") from None
 
 
+def validate_decision_record(encoded):
+    """Validate an immutable origin with the same closed schema as storage, no I/O."""
+    return _decode(encoded, "decision")[0]
+
+
 class AdvisoryStore:
     def __init__(self, dsn: str):
         _reject_ambient_service()
