@@ -2,15 +2,44 @@
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date, datetime, timedelta, timezone
 from math import isfinite
 import re
 from zoneinfo import ZoneInfo
 
 from .series import Point
+from .bms_evidence import SocInterval, build_soc_intervals
 
 
 ITEM_TABLE = re.compile(r"^item\d{4,}$")
+
+
+def fetch_bms_soc_intervals(
+    connection,
+    table_name: str,
+    window_start: datetime,
+    window_end: datetime,
+    *,
+    epoch_start: datetime,
+    epoch_end: datetime | None = None,
+) -> list[SocInterval]:
+    """Read atomic evidence with enough history to retain preceding fault barriers.
+
+    One latest carry alone is insufficient: a restored record can follow a fault.
+    No qualifying source timestamp can be older than the 120-second validity
+    window, so retain that entire lookback plus its original boundary record.
+    """
+    if (window_start.tzinfo is None or window_start.utcoffset() is None
+        or window_end.tzinfo is None or window_end.utcoffset() is None):
+        raise ValueError('BMS evidence window must be timezone-aware')
+    start = window_start.astimezone(timezone.utc)
+    end = window_end.astimezone(timezone.utc)
+    if end <= start:
+        raise ValueError('BMS evidence window must be positive')
+    observations = fetch_freshness_observations(
+        connection, table_name, start-timedelta(seconds=120), end,
+    )
+    return build_soc_intervals(observations, start, end, epoch_start=epoch_start, epoch_end=epoch_end)
 
 
 def normalize_window_series(
