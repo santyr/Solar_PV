@@ -1,8 +1,9 @@
 # Atomic BMS analytics reader verification
 
-Status: implementation and read-only comparison complete on
-`feat/bms-analytics-reader`; final independent review and production deployment
-remain pending. This is not a deployment receipt.
+Status: reviewed release b08ae1435bfa456075b4d6eaa1f1b05ad728f1a2 merged,
+pushed to origin/main and deployed locally on September10. The next normal
+scheduled daily run remains pending verification. The original implementation
+and comparison evidence below is followed by the deployment receipt.
 
 ## Implemented contract
 
@@ -75,8 +76,42 @@ remains null.
 
 ## Remaining release work and boundaries
 
-Complete independent review, then merge/push and verify deployed imports and
-the next normal scheduled run. Do not backfill historical reports to make them
+Verify the next normal scheduled run. Do not backfill historical reports to make them
 appear qualified. Preserve existing schedules, everyChange persistence, BMS
 counters, controls, notification policy, and all stored history. Rollback is
 reader/configuration code only. Task82 remains held; Superpowers is disabled.
+
+## Deployment receipt
+
+The user-designated local Spark agent performed a bounded independent read-only
+review of91867f8..b08ae14. Its first checklist covered expiry enforcement,
+no numeric fallback, and independent current/lag qualification. The coordinator
+required a second pass over aggregation/reader/quality/CLI and the full changed
+file list before accepting the accounting/scope check. Both passes reported
+PASS with function-level evidence. This was a bounded checklist, not an
+independent exhaustive security audit. Hexmem access succeeded; Spark received
+no write, control, notification or deployment authority.
+
+Coordinator checks included the accounting diff, all production call sites,
+the actual CLI dry run, scheduled delegation with the write-capable CLI mocked
+out, and381passing tests on the exact candidate (7.46seconds). The production
+checkout was clean at91867f8 before a fast-forward to the reviewed b08ae14.
+HEAD and origin/main matched after push. No unit, timer or service was modified
+or restarted: existing oneshot jobs import from `/home/sat/Solar_PV/analytics/src`.
+
+Post-deployment imports resolved to that production checkout, the selected
+policy was `atomic_bms_evidence`, and a real read-only CLI daily run succeeded
+with the partial day's battery quality `insufficient_data`. Before/after
+fingerprints of complete historical rows matched exactly:
+
+| Table | Rows | MD5 of ordered row JSON |
+| --- | --- | --- |
+| daily_battery | 53 | d2abcd0797e8e7971b444cc7a2783de8 |
+| daily_pv | 53 | cfa92cc27fcb746599a0c0f35f5f8499 |
+| daily_load | 53 | 0856550a50ebcc2d6e0eed45d8881502 |
+| daily_weather | 53 | 4e93f13e43feade368e3c66a662a0d93 |
+
+The existing daily timer remained active, next due September11 at00:21:25MDT.
+The UI publisher timer also remained active; its16:45:29MDT run exited0.
+These checks do not substitute for the next completed daily materialization.
+No historical backfill, test DM, source/control write, or accounting reset occurred.
