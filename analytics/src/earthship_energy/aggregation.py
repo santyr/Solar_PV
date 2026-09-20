@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from math import sqrt
 from typing import Iterable
 
@@ -166,7 +166,31 @@ def aggregate_power(
     *,
     max_gap: timedelta,
     productive_threshold_w: float = 10.0,
+    power_intervals: list[PowerInterval] | None = None,
 ) -> PowerAggregate:
+    if power_intervals is not None:
+        accounting = account_power_intervals(
+            power_intervals, window_start=window_start, window_end=window_end,
+        )
+        start, end = window_start.astimezone(timezone.utc), window_end.astimezone(timezone.utc)
+        clipped = [
+            PowerInterval(max(start, i.start.astimezone(timezone.utc)),
+                          min(end, i.end.astimezone(timezone.utc)), max(0.0, i.watts))
+            for i in power_intervals
+            if i.end.astimezone(timezone.utc) > start and i.start.astimezone(timezone.utc) < end
+        ]
+        productive = [i for i in clipped if i.watts > productive_threshold_w]
+        return PowerAggregate(
+            energy_kwh=accounting.positive_kwh,
+            peak_w=max((i.watts for i in clipped), default=None),
+            productive_hours=sum((i.end-i.start).total_seconds() for i in productive)/3600.0,
+            # These timestamps identify productive segment starts, not a claim
+            # that its exclusive endpoint is still productive.
+            first_productive_at=productive[0].start if productive else None,
+            last_productive_at=productive[-1].start if productive else None,
+            coverage=accounting.coverage,
+            quality=_quality(accounting.coverage),
+        )
     window_seconds = (window_end - window_start).total_seconds()
     nonnegative = [(at, max(0.0, value)) for at, value in power_points]
     integration = integrate_trapezoid(nonnegative, max_gap)
