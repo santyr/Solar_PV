@@ -72,3 +72,34 @@ the actual battery JS transform and observer, parsed their two output records
 with this reader and integrated the result. With1000W,120-second expiry and1ms
 persistence delay, coverage was119.999seconds and energy0.03333305555555555kWh.
 This proves code-contract compatibility, not live acquisition or SQL transport.
+
+## Bounded SQL transport follow-up
+
+`power_reader.read_power_history` now opens a dedicated read-only connection with
+5-second connect/statement and1-second lock timeouts. A single SELECT snapshot
+reads the120-second lookback plus two preceding boundary rows, retaining original
+timestamps and duplicates. It builds all three fields from the same rows rather
+than issuing separate potentially inconsistent per-field queries.
+
+Requests are capped at25elapsed hours and60000window/lookback rows. An extra row
+detects overflow; excessive history raises PowerHistoryLimitError and never
+returns a truncated prefix. SQL transfers at most4096bytes per raw record;
+oversized values become null invalid barriers rather than truncated JSON.
+The two earlier rows expose duplicate latest-carry timestamps; duplicates remain
+sequence errors. Windows entirely before cutover do not connect. The requested
+table must match the OpenHAB item-number naming convention. Connection closes
+on query failure and before parsing.
+
+Verification:16transport tests; full595analytics tests pass. A read-only live
+PostgreSQL query of the same boundary/window/size-guard structure against existing
+weather history item0646 returned2boundary rows and1window row(max1099bytes).
+This proves the query structure on real JDBC storage, not power-data collection.
+No power Item table exists by this implementation, and no credentials or table
+IDs are hardcoded into the new reader. Filesystem currently has659GiB available;
+that is headroom only, not a measured power-record retention budget.
+
+The60000row ceiling accommodates the nominal three5-second fields over25hours,
+but publication/storage volume still requires live measurement. This function
+is not yet called by the daily scheduler. Read-only credentials, resolved power
+table inventory, persistence activation, live provenance checks and explicit
+versioned accounting cutover remain required before operational integration.
