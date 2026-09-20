@@ -33,7 +33,7 @@ from .quality import assess_source_quality, assess_bms_source_quality
 from .quality import assess_power_source_quality
 from .power_reader import read_power_history
 from .power_evidence import BOUNDS, utc
-from .power_intervals import account_power_intervals
+from .power_intervals import account_power_intervals, account_common_power
 
 
 REQUIRED_DAILY = {
@@ -190,6 +190,16 @@ def build_daily_snapshot(
             pv_output.energy_kwh / pv.energy_kwh if not qualified_power and pv.energy_kwh > 0 else None
         ),
     })
+    common_pv = None
+    if qualified_power:
+        common_pv = account_common_power(
+            power_history['pv.input_power_w'], power_history['pv.output_power_w'],
+            window_start=start, window_end=end,
+        )
+        pv_payload['mppt_efficiency'] = (
+            common_pv[1].positive_kwh / common_pv[0].positive_kwh
+            if common_pv[0].positive_kwh > 0 else None
+        )
     battery_payload = asdict(battery)
     previous_day = local_date - timedelta(days=1)
     previous_start, previous_end = local_day_bounds(previous_day, config.timezone)
@@ -347,6 +357,8 @@ def build_daily_snapshot(
             'cutover': cutover.isoformat(),
             'qualified_fields': sorted(BOUNDS) if qualified_power else [],
             'balance_reason': 'ac_load_evidence_unqualified' if qualified_power else None,
-            'efficiency_reason': 'requires_common_qualified_support' if qualified_power else None,
+            'efficiency_reason': ('no_common_positive_input'
+                                  if qualified_power and common_pv[0].positive_kwh == 0 else None),
+            'efficiency_coverage': common_pv[0].coverage if qualified_power else None,
         }
     return snapshot

@@ -117,3 +117,15 @@ def test_partial_reader_field_map_is_rejected(setup_daily):
     setup_daily[5].pop('pv.output_power_w')
     with pytest.raises(ValueError, match='incomplete qualified power history'):
         run(setup_daily)
+
+
+def test_efficiency_uses_common_support_not_separate_daily_totals(setup_daily):
+    start = setup_daily[2]
+    setup_daily[5]['pv.input_power_w'] = [PowerInterval(start,start+timedelta(hours=2),1000)]
+    setup_daily[5]['pv.output_power_w'] = [
+        PowerInterval(start+timedelta(hours=1),start+timedelta(hours=2),900)]
+    result=run(setup_daily)
+    assert result['pv']['energy_kwh'] == 2
+    assert result['pv']['output_energy_kwh'] == .9
+    assert result['pv']['mppt_efficiency'] == .9  # not .45
+    assert result['power_accounting']['efficiency_coverage'] == pytest.approx(1/24)

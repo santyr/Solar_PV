@@ -87,3 +87,30 @@ def account_power_intervals(
         window_seconds=window_seconds,
         coverage=min(1.0, covered / window_seconds),
     )
+
+
+def account_common_power(left, right, *, window_start, window_end):
+    """Account two streams only over their identical qualified intersection.
+
+    Validate both complete inputs even if their intersection is empty. The
+    two-pointer walk is linear; gaps and exclusive boundaries are preserved.
+    """
+    for intervals in (left, right):
+        account_power_intervals(intervals, window_start=window_start, window_end=window_end)
+    common_left, common_right = [], []
+    i = j = 0
+    start, end = window_start.astimezone(timezone.utc), window_end.astimezone(timezone.utc)
+    while i < len(left) and j < len(right):
+        a, b = left[i], right[j]
+        a_end, b_end = a.end.astimezone(timezone.utc), b.end.astimezone(timezone.utc)
+        first = max(start, a.start.astimezone(timezone.utc), b.start.astimezone(timezone.utc))
+        last = min(end, a_end, b_end)
+        if first < last:
+            common_left.append(PowerInterval(first, last, a.watts))
+            common_right.append(PowerInterval(first, last, b.watts))
+        if a_end <= b_end:
+            i += 1
+        if b_end <= a_end:
+            j += 1
+    return tuple(account_power_intervals(intervals, window_start=start, window_end=end)
+                 for intervals in (common_left, common_right))
