@@ -209,6 +209,13 @@ def _recompute_battery_rollups(cursor, epoch_id: str) -> dict[date, float]:
 def materialize_daily_snapshot(connection, snapshot: dict[str, object], epoch_id: str) -> dict[str, object]:
     if snapshot.get("status") != "ok" or snapshot.get("mode") != "read_only_dry_run":
         raise ValueError("only a successful read-only snapshot may be materialized")
+    basis = snapshot.get('power_accounting')
+    if basis is not None:
+        if basis.get('policy') == 'qualified_power_evidence_v1':
+            from .power_store import store_power_snapshot
+            return store_power_snapshot(connection, snapshot, epoch_id)
+        if basis.get('policy') != 'legacy_numeric_estimate':
+            raise ValueError('unknown power accounting policy')
     local_date = date.fromisoformat(str(snapshot["local_date"]))
     battery = snapshot["battery"]
     pv = snapshot["pv"]

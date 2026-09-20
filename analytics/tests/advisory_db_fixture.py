@@ -87,8 +87,8 @@ def advisory_db():
         with closing(connection), connection:
             pending = plan_migrations(discover_migrations(),
                                       get_applied_migrations(connection))
-            assert [m.version for m in pending] == [1, 2, 3, 4]
-            assert apply_migrations(connection, pending) == [1, 2, 3, 4]
+            assert [m.version for m in pending] == [1, 2, 3, 4, 5]
+            assert apply_migrations(connection, pending) == [1, 2, 3, 4, 5]
             with connection.cursor() as cursor:
                 cursor.execute("""INSERT INTO energy_analytics.system_epochs
                     (epoch_id, current_analytics) VALUES ('test_bank', true)""")
