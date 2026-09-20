@@ -1,4 +1,7 @@
 import pytest
+from datetime import date, datetime, time, timedelta, timezone
+from zoneinfo import ZoneInfo
+from earthship_energy.power_report import build_qualified_lifecycle_report
 from earthship_energy.power_store import encode_snapshot
 from test_power_report import revision
 from test_qualified_lifecycle import report
@@ -54,3 +57,29 @@ def test_inconsistent_evidence_fails_closed(change):
     else:row['payload']['source_quality'].append(dict(quality))
     with pytest.raises(ValueError,match='SoC exposure'):
         result(row)
+
+
+@pytest.mark.parametrize('day,hours', [(date(2026,3,8),23),(date(2026,11,1),25)])
+def test_denver_dst_days_use_elapsed_hours_and_reject_24_hour_denominator(day,hours):
+    row=observed(valid=hours*3600,above90=hours,above95=hours/2)
+    zone=ZoneInfo('America/Denver')
+    start=datetime.combine(day,time.min,tzinfo=zone)
+    end=datetime.combine(day+timedelta(days=1),time.min,tzinfo=zone)
+    cutover=datetime(2026,1,1,tzinfo=timezone.utc)
+    payload=row['payload']
+    payload.update(local_date=day.isoformat(),window_start=start.isoformat(),window_end=end.isoformat())
+    payload['power_accounting']['cutover']=cutover.isoformat()
+    quality=payload['source_quality'][0]
+    quality['coverage']=1
+    quality['detail']['window_seconds']=hours*3600
+    row.update(local_date=day,cutover=cutover,payload_sha256=encode_snapshot(payload)[3])
+    args=dict(epoch_id='bank',cutover=cutover,start_date=day,
+              end_date=day+timedelta(days=1),as_of=row['computed_at'])
+    out=build_qualified_lifecycle_report([row],**args)['high_soc_exposure']
+    assert out['above_90_hours']==hours
+    assert out['daily'][0]['window_seconds']==hours*3600
+    assert out['daily'][0]['coverage']==1
+    quality['detail']['window_seconds']=86400
+    row['payload_sha256']=encode_snapshot(payload)[3]
+    with pytest.raises(ValueError,match='coverage'):
+        build_qualified_lifecycle_report([row],**args)
