@@ -1,5 +1,7 @@
 from datetime import datetime, timedelta, timezone
 
+import pytest
+
 from earthship_energy.reports import module_health_report
 
 
@@ -63,3 +65,36 @@ def test_module_health_report_explicitly_reports_no_samples():
         "modules": {},
         "provenance": [],
     }
+
+
+@pytest.mark.parametrize('counters', [
+    [10, 9], [10, 1, 11], [10, None, 11], [None, 10, 11],
+    [10, 11, None], [10, float('nan'), 11], [10, float('inf')],
+    [-1, 2], [True, 2], [10, 'invalid', 11], [10],
+])
+def test_module_counter_uncertainty_is_not_zero_or_endpoint_delta(counters):
+    rows = [sample('module-1', hour, current=0, spread=0,
+                   charge=value, discharge=20 + hour)
+            for hour, value in enumerate(counters)]
+    result = module_health_report(rows)['modules']['module-1']
+    assert result['charge_throughput_delta_kwh'] is None
+    if len(counters) > 1:
+        assert result['discharge_throughput_delta_kwh'] == len(counters) - 1
+
+
+def test_module_counter_observed_zero_and_sorted_growth_remain_valid():
+    rows = [sample('module-1', hour, current=0, spread=0,
+                   charge=10, discharge=20 + hour)
+            for hour in [2, 0, 1]]
+    result = module_health_report(rows)['modules']['module-1']
+    assert result['charge_throughput_delta_kwh'] == 0
+    assert result['discharge_throughput_delta_kwh'] == 2
+
+
+def test_module_conflicting_same_timestamp_counters_are_unknown():
+    rows = [sample('module-1', hour, current=0, spread=0,
+                   charge=value, discharge=20)
+            for hour, value in [(0, 10), (0, 11), (1, 12)]]
+    result = module_health_report(rows)['modules']['module-1']
+    assert result['charge_throughput_delta_kwh'] is None
+    assert result['discharge_throughput_delta_kwh'] == 0

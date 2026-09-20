@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import asdict
 from datetime import timedelta
+from math import isfinite
 from statistics import median
 
 from .simulation import Scenario, replay_energy_balance
@@ -78,10 +79,29 @@ def lifecycle_report(daily_rows) -> dict[str, object]:
 
 
 def _counter_delta(rows, field: str) -> float | None:
-    values = [float(row[field]) for row in rows if row.get(field) is not None]
-    if len(values) < 2:
+    # A reset, invalid sample or ambiguous same-time observation is not zero
+    # throughput. Do not silently shorten the reported window past a barrier.
+    if len(rows) < 2:
         return None
-    return round(max(0.0, values[-1] - values[0]), 12)
+    values = []
+    previous_at = None
+    for row in rows:
+        raw = row.get(field)
+        if raw is None or isinstance(raw, bool):
+            return None
+        try:
+            value = float(raw)
+        except (TypeError, ValueError, OverflowError):
+            return None
+        if not isfinite(value) or value < 0:
+            return None
+        sampled_at = row['sampled_at']
+        if values and (value < values[-1] or
+                       (sampled_at == previous_at and value != values[-1])):
+            return None
+        values.append(value)
+        previous_at = sampled_at
+    return round(values[-1] - values[0], 12)
 
 
 def module_health_report(sample_rows) -> dict[str, object]:

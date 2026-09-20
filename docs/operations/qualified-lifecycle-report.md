@@ -26,6 +26,14 @@ Qualified winter energy replay still requires an independently qualified AC-load
 source. No consumer schedule, hardware action, historical rewrite or learning
 activation is changed by this opt-in command.
 
+Independent module-report safeguard: imported lifetime throughput counters are
+only differenced when every supplied sample in that module's requested window
+is finite, nonnegative, present and nondecreasing. Any observed reset, invalid
+barrier or conflicting same-time counter yields null, not zero or a shortened
+window's delta. Equal valid counters still yield measured zero. This does not
+qualify sampling gaps, infer reset offsets or complete the qualified lifecycle
+BMS comparison; imported provenance and original observations are retained.
+
 September 20 verification: focused lifecycle/power/CLI tests passed. A live call
 using `energy-power-reader.jdbc` returned the expected empty/unavailable result
 for September 19, with null throughput and no legacy substitution. This does
