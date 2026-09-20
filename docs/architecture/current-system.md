@@ -86,7 +86,8 @@ telemetry, controls, policy, or UI.
 
 ## Observational learning lifecycle — September 19, 2026
 
-The energy_analytics migration ledger is now1–4. Existing06:40 forecast
+At the September 19 release the energy_analytics migration ledger was1–4.
+Existing06:40 forecast
 intelligence captures immutable advisory decisions/publication results through
 a dedicated insert-only role, and assesses only fully completed20:00–11:00
 trough windows using atomic BMS receipt history. Assessment cutover is
@@ -102,6 +103,26 @@ advisory thresholds, notification policy, or everyChange persistence. First
 natural captured origins/completed outcomes and qualified hourly updates still
 require observation; installation is not a claim of learned improvement or
 causal reward. See earthship-ui's September19 activation receipts.
+
+## Qualified accounting and configuration ownership — September 20, 2026
+
+The live migration ledger is now 1–5. Explicit qualified daily accounting,
+five-minute v3 UI publication and hourly data-quality checks use restricted
+writer/reader roles and the actual September 20 collection cutover. Latest
+qualified revisions remain separate from legacy estimates; unknown energy is
+not zero and observed period EFC is not lifetime use. The table is empty before
+the first natural completed-day write on September 21. Qualified monthly
+reporting is enabled on the existing timer, first due October 1; it preserves
+legacy reports and emits a distinct file. See
+[qualified monthly reporting](../operations/2026-09-20-qualified-monthly.md).
+
+OpenHAB configuration policy is now staged, Git-owned file-first. Only the
+observational `Energy_Analytics_JSON` Item has completed file-provider migration
+and rollback rehearsal. Its publisher remains the only state writer. The
+prepared JDBC persistence file is not deployed; change-only managed persistence
+remains authoritative. Full configuration/role recovery and protected-control
+restart/rollback are still open gates. Off-host backup destination remains
+operator-deferred; a same-host database restore is not disaster recovery.
 
 ## Known current gaps
 

@@ -1,4 +1,11 @@
-# Qualified power accounting storage (source-only)
+# Qualified power accounting storage
+
+Production activation supersedes the original source-only checkpoint: migration
+5, restricted writer/reader roles and qualified daily/UI/quality jobs are live as
+of September 20. Qualified monthly preparation was subsequently enabled from
+`5fc878a`. See earthship-ui's `2026-09-20-power-production-activation.md` receipt
+and [monthly consumer contract](2026-09-20-qualified-monthly.md). The first natural
+completed-day snapshot remains unobserved; no historical rows were fabricated.
 
 Migration0005 creates `daily_power_snapshots`, an append-only revision series.
 It does not modify historical `daily_battery`, `daily_pv`, load, weather or
@@ -27,14 +34,15 @@ PostgreSQL constraints independently bind payload identity and policy columns.
 
 ## Release gates
 
-No live migration, grants or scheduler configuration has been applied. Before
-production activation: rehearse backup/restore and migration, configure the
-restricted writer/reader, wire explicit evidence policy and actual cutover,
-and migrate daily report/export/UI readers to select the appropriate versioned
-series. Readers must expose policy, cutover and coverage; do not present a new
-qualified counter as a continuous extension of the historical estimate.
-Do not enable the new writer while downstream readers still only inspect the
-legacy daily tables. Collection may continue independently during this work.
+Backup/migration rehearsal, restricted roles, explicit cutover policy, daily
+writer, v3 UI and qualified monthly consumer have been deployed and verified at
+their respective configuration/readback boundaries. Natural completed-day and
+monthly execution remain time-dependent evidence gates. Lifecycle/winter reports
+and feature exports still need explicit qualified integration; they must not be
+described as qualified merely because the writer is enabled. All readers must
+expose policy, cutover and coverage and must not present the new series as a
+continuous extension of historical estimated totals. Independent AC-load
+qualification and full-day source/persistence validation remain outstanding.
 
 Real isolated PostgreSQL tests cover retries, revisions, legacy isolation,
 cutover isolation, mutation refusal, privilege separation and transactional

@@ -2,6 +2,10 @@
 
 **Evidence snapshot:** 2026-08-20, America/Denver
 
+The numbered findings below retain that historical snapshot, not current runtime
+status. The stable contracts later in this document include subsequent verified
+deployments; September 20 accounting supersedes the earlier v2-only boundary.
+
 **Canonical tracker:**
 [`docs/audit/cross-repo-dependency-inventory.csv`](../audit/cross-repo-dependency-inventory.csv)
 
@@ -188,15 +192,15 @@ state change, or physical action was used.
 ## Stable energy analytics UI boundary
 
 `Solar_PV` owns PostgreSQL analytics and publishes the closed
-`earthship-energy-ui/v2` payload every five minutes. Reader-first deployment
-was verified on 2026-09-05: the dual-version UI was live before the publisher,
-and the new fields matched the persisted day and bank epoch. OpenHAB owns one observational String
+`earthship-energy-ui/v3` payload every five minutes with explicit qualified
+power accounting. The v1/v2/v3 reader was deployed before the v3 publisher's
+September 20 activation. OpenHAB hosts one observational String
 Item, `Energy_Analytics_JSON`. `earthship-ui` consumes that Item through its
 existing REST/SSE store, rejects payloads at or above 16 KiB and evidence older
 than 15 minutes, and exposes no control from the analytics surface. Unknown
 data remains explicit rather than becoming zero.
 
-Version 2 preserves every version 1 field and meaning, and adds two nullable
+Historical version 2 preserves every version 1 field and meaning, and adds two nullable
 battery fields sourced from the latest persisted `daily_battery` row:
 `latestDepthOfDischargePct` is the 0--100 daily SoC range, and `latestEfc` is
 the nonnegative daily energy-throughput EFC. Both are populated only when that
@@ -204,15 +208,31 @@ battery row has `quality=ok`; otherwise they are null and battery status is
 degraded (or unavailable when there is no daily row). This remains
 observational evidence, not a health measurement or an action authority.
 
-Deploy a UI reader that accepts both exact v1 and v2 shapes before enabling the
-v2 analytics publisher. Roll back in the reverse safety order: restore the
-publisher to v1 first, verify the old payload is visible, and only then remove
-v2 reader support if desired. Never delete persisted daily evidence as part of
-contract rollback.
+Version 3 selects bounded latest revisions from `daily_power_snapshots`, never
+falling back to legacy daily power totals. Its accounting object carries policy
+`qualified_power_evidence_v1`, actual collection cutover, requested date window,
+present/missing day counts, coverage and latest revision identity. EFC describes
+observed qualified throughput in that window, not complete lifetime use. Legacy
+cumulative EFC, unqualified AC-load balance and unsupported winter estimates are
+withheld. A valid empty series exposes WAITING / No daily data with null totals.
+The first natural completed-day write is due September 21; deployment does not
+prove full-day coverage or improved accuracy. Exact UI contract and activation
+receipts are in earthship-ui `docs/operations/2026-09-20-qualified-energy-ui-contract.md`
+and `2026-09-20-power-production-activation.md`.
+
+For contract rollback, restore the publisher first and verify its payload before
+removing corresponding reader support. Preserve persisted revisions and history;
+never silently label legacy totals as qualified accounting.
 
 The publisher is the only state writer and may call only
-`PUT /rest/items/Energy_Analytics_JSON/state`; the separate receipt-bound UI
-tool may manage only the exact Item configuration and cannot write Item state.
+`PUT /rest/items/Energy_Analytics_JSON/state`. The Item definition is now file-owned
+from earthship-ui `openhab/file-config/items/energy-analytics.items`, installed at
+`/etc/openhab/items/energy-analytics.items`. The old receipt-bound managed tool
+refuses this noneditable resource; it cannot take ownership back through REST.
+File-to-managed-to-file rollback was rehearsed for this Item with exact state
+restore, unchanged JDBC mapping/history and no control changes. All other provider
+transfers require their own inventory and verification; this does not qualify a
+full restart or protected-control recovery.
 This contract does not rename or reinterpret any feeder, greywater, night-load,
 forecast, thermal, AGM-history, BMS, inverter, or charge-controller interface.
 
