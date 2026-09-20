@@ -27,7 +27,10 @@ def test_required_user_units_are_complete_and_hardened():
 
 
 def test_routine_units_never_invoke_codex_or_change_openhab():
-    bodies = "\n".join(path.read_text() for path in UNIT_DIR.glob("energy-*"))
+    paths = [path for path in UNIT_DIR.rglob('*')
+             if path.is_file() and path.relative_to(UNIT_DIR).parts[0].startswith('energy-')]
+    assert UNIT_DIR / 'energy-monthly-report.service.d' / 'qualified-power.conf' in paths
+    bodies = "\n".join(path.read_text() for path in paths)
     assert "codex exec" not in bodies.lower()
     assert "/rest/items/" not in bodies
     assert "curl" not in bodies

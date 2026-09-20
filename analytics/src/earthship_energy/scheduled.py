@@ -9,6 +9,7 @@ import hashlib
 import io
 import json
 import os
+import stat
 from pathlib import Path
 import subprocess
 import tempfile
@@ -149,17 +150,21 @@ def assess_backup(
         raise ValueError("backup manifest lacks dated verification evidence") from exc
     if verified_at.tzinfo is None or verified_at.utcoffset() is None:
         raise ValueError("backup verified_at must be timezone-aware")
-    fresh = now - verified_at <= max_age
+    if max_age <= timedelta(0):
+        raise ValueError('backup max age must be positive')
+    fresh = timedelta(0) <= now - verified_at <= max_age
     restored = manifest.get("status") == "restore_verified"
     off_host = manifest.get("off_host") is True
     available = archive.is_file()
-    disaster_recovery = fresh and restored and readable and available and off_host
-    if not off_host:
+    integrity = bool(readable and available and archive_integrity_matches(
+        archive, manifest.get('archive_sha256')))
+    disaster_recovery = fresh and restored and readable and available and integrity and off_host
+    if not (fresh and restored and readable and available and integrity):
+        severity = "Actionable"
+        reason = "backup evidence is stale, future-dated, unavailable, unreadable, unverified, or hash-mismatched"
+    elif not off_host:
         severity = "Actionable"
         reason = "verified restore point has no off-host disaster-recovery copy"
-    elif not (fresh and restored and readable and available):
-        severity = "Actionable"
-        reason = "backup evidence is stale, unavailable, unreadable, or unverified"
     else:
         severity = "Routine"
         reason = "fresh readable off-host restore evidence"
@@ -167,6 +172,7 @@ def assess_backup(
         "fresh": fresh,
         "readable": bool(readable and available),
         "restore_verified": restored,
+        "archive_integrity_verified": integrity,
         "off_host": off_host,
         "disaster_recovery": disaster_recovery,
         "severity": severity,
@@ -354,15 +360,37 @@ def read_qualified_quality_state(jdbc_config,now,policy,timezone_name):
         'coverage_ok':coverage_ok}
 
 
+def archive_integrity_matches(path: str | Path, expected: object) -> bool:
+    if (not isinstance(expected, str) or len(expected) != 64
+            or any(c not in '0123456789abcdef' for c in expected)):
+        return False
+    try:
+        descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+        with os.fdopen(descriptor, 'rb') as stream:
+            before = os.fstat(stream.fileno())
+            if not stat.S_ISREG(before.st_mode):
+                return False
+            digest = hashlib.file_digest(stream, 'sha256').hexdigest()
+            after = os.fstat(stream.fileno())
+            unchanged = all(getattr(before, field) == getattr(after, field)
+                            for field in ('st_size', 'st_mtime_ns', 'st_ctime_ns'))
+            return unchanged and digest == expected
+    except OSError:
+        return False
+
+
 def archive_is_readable(path: str | Path) -> bool:
-    result = subprocess.run(
-        ["pg_restore", "--list", str(path)],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-        timeout=300,
-        check=False,
-    )
-    return result.returncode == 0
+    try:
+        result = subprocess.run(
+            ["pg_restore", "--list", str(path)],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            timeout=300,
+            check=False,
+        )
+        return result.returncode == 0
+    except (OSError, subprocess.TimeoutExpired):
+        return False
 
 
 def _event_from_result(kind: str, result: dict[str, object]) -> dict[str, object]:

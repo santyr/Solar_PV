@@ -1,5 +1,6 @@
 from datetime import date, datetime, timedelta, timezone
 import json
+import hashlib
 import os
 from pathlib import Path
 
@@ -44,6 +45,7 @@ def test_backup_assessment_distinguishes_restore_point_from_disaster_recovery(tm
         "archive_path": str(archive),
         "verified_at": (now - timedelta(days=1)).isoformat(),
         "off_host": False,
+        "archive_sha256": hashlib.sha256(b'archive').hexdigest(),
     }
 
     result = assess_backup(manifest, now=now, readable=True, max_age=timedelta(days=7))
@@ -53,6 +55,43 @@ def test_backup_assessment_distinguishes_restore_point_from_disaster_recovery(tm
     assert result["disaster_recovery"] is False
     assert result["severity"] == "Actionable"
     assert "off-host" in result["reason"]
+
+
+@pytest.mark.parametrize('case', ['valid', 'future', 'stale', 'changed', 'missing_hash'])
+def test_backup_evidence_binds_freshness_and_archive(tmp_path, case):
+    archive = tmp_path / 'archive.dump'; archive.write_bytes(b'original')
+    now = datetime(2026, 9, 20, tzinfo=UTC)
+    verified = now + timedelta(seconds=1) if case == 'future' else now
+    if case == 'stale': verified -= timedelta(days=8)
+    manifest = {'status': 'restore_verified', 'archive_path': str(archive),
+                'verified_at': verified.isoformat(), 'off_host': True,
+                'archive_sha256': hashlib.sha256(b'original').hexdigest()}
+    if case == 'changed': archive.write_bytes(b'replaced')
+    if case == 'missing_hash': del manifest['archive_sha256']
+    result = assess_backup(manifest, now=now, readable=True, max_age=timedelta(days=7))
+    assert result['disaster_recovery'] is (case == 'valid')
+    assert result['archive_integrity_verified'] is (case not in ('changed', 'missing_hash'))
+    assert result['fresh'] is (case not in ('future', 'stale'))
+
+
+def test_backup_hash_refuses_symlinks_nonfiles_and_bad_hash(tmp_path):
+    from earthship_energy.scheduled import archive_integrity_matches
+    target = tmp_path / 'archive'; target.write_bytes(b'original')
+    link = tmp_path / 'link'; link.symlink_to(target)
+    digest = hashlib.sha256(b'original').hexdigest()
+    assert archive_integrity_matches(target, digest)
+    assert not archive_integrity_matches(link, digest)
+    assert not archive_integrity_matches(tmp_path, digest)
+    assert not archive_integrity_matches(target, 'not-a-digest')
+
+
+def test_unreadable_archive_probe_fails_closed(monkeypatch):
+    import subprocess
+    from earthship_energy.scheduled import archive_is_readable
+    def failed(*args, **kwargs):
+        raise subprocess.TimeoutExpired('pg_restore', 300)
+    monkeypatch.setattr('earthship_energy.scheduled.subprocess.run', failed)
+    assert archive_is_readable('/private/archive') is False
 
 
 def test_write_event_is_private_atomic_and_idempotent(tmp_path):

@@ -37,6 +37,16 @@ restore testing, and alerting before backup operations can be called complete.
 weekly and keeps this limitation Actionable; an off-host destination still
 requires operator selection.
 
+September 20 monitor correction: freshness requires a verification timestamp
+between now minus the permitted age and now, never in the future. The check also
+streams the archive's SHA256 and compares it with `archive_sha256` from the
+restore manifest; listing the archive alone is insufficient. Missing/malformed
+hashes, changed archives, symlinks, non-regular files and read errors cannot yield
+verified integrity. Readability timeouts fail closed. The result exposes
+`archive_integrity_verified` separately from historical `restore_verified`.
+This does not turn a same-host copy into disaster recovery, qualify role/ACL
+restoration, or refresh the age of an old restore exercise.
+
 List an archive without restoring it:
 
 ```bash
