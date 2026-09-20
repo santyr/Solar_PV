@@ -70,6 +70,14 @@ def build_quality_report(
     qualified_daily=None,
 ) -> dict[str, object]:
     yesterday = previous_local_date(now, timezone_name)
+    # The existing daily timer runs around00:21; the hourly quality timer can
+    # run at00:20. Do not call the new day missing before its scheduled writer.
+    awaiting_schedule=False
+    if qualified_daily is not None:
+        local_now=now.astimezone(ZoneInfo(timezone_name))
+        awaiting_schedule=local_now.hour==0 and local_now.minute<30
+        if awaiting_schedule:
+            yesterday-=timedelta(days=1)
     checks = [{
         "name": "source_inventory",
         "severity": "Routine" if sources_ok else "Actionable",
@@ -92,6 +100,8 @@ def build_quality_report(
     if qualified_daily is not None:
         checks[-1]['basis']='qualified_power_evidence_v1'
         checks[-1]['reason']='awaiting_first_completed_day' if not_due else None
+        if awaiting_schedule:
+            checks[-1]['reason']='awaiting_scheduled_daily_aggregation'
         if not not_due and aggregate_ok:
             complete=qualified_daily['coverage_ok']
             checks.append({'name':'qualified_daily_coverage','ok':complete,

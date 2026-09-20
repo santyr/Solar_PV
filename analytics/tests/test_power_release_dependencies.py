@@ -91,3 +91,15 @@ def test_qualified_apply_verifies_references_without_seed_writes(tmp_path,monkey
     assert cli.main(['aggregate','--date','2026-09-21','--apply',
         '--power-evidence-policy',str(write_policy(tmp_path))])==0
     assert calls==['verify','store']
+
+
+@pytest.mark.parametrize('minute,severity,expected',[(20,'Routine','2026-09-19'),(30,'Actionable','2026-09-20')])
+def test_monitor_deadline_follows_existing_0021_writer(minute,severity,expected):
+    now=datetime(2026,9,21,6,minute,tzinfo=timezone.utc)
+    report=scheduled.build_quality_report(now=now,timezone_name='America/Denver',
+        sources_ok=True,live_sources_ok=True,latest_aggregate=None,latest_forecast_issued=now,
+        qualified_daily={'first_date':date(2026,9,20),'coverage_ok':False})
+    assert report['severity']==severity
+    daily=next(c for c in report['checks'] if c['name']=='daily_aggregate')
+    assert daily['expected_through']==expected
+    if minute==20:assert daily['reason']=='awaiting_scheduled_daily_aggregation'
