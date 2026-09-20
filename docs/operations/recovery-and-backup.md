@@ -15,6 +15,9 @@ because this runbook exists.
 
 ## 2026-08-20 analytics migration restore point
 
+Historical receipt: superseded for scheduled monitoring by the September 20
+full-database data rehearsal below. Retain the old archive for recovery history.
+
 The first `energy_analytics` migration was gated by a PostgreSQL custom-format
 dump and a complete isolated restore. Private host-local artifacts are under
 `/home/sat/backups/earthship-energy/2026-08-20/` with mode `0600`:
@@ -54,6 +57,21 @@ pg_restore --list /home/sat/backups/earthship-energy/2026-08-20/openhab-pre-ener
 ```
 
 Never put the protected JDBC password on the command line or in this repository.
+
+## September 20 full-database data restore point
+
+The full archive under
+`/home/sat/backups/earthship-energy/full-restore-0lnrkogj/` restored successfully
+and all 510 tables matched fingerprints from the same exported production
+snapshot at 18:59:53Z. The isolated container was removed. Directory mode 0700;
+archive and manifest modes 0600. SHA256:
+`6e6fba4f7608500a0964f453b57fb9a20b1f39fb857ed66563139f8b437d5e31`.
+Independent monitor assessment confirms fresh/readable/restore-verified and
+matching archive integrity. The versioned backup-check service now selects this
+manifest. Same-host-only remains Actionable; off-host destination is deferred.
+This no-owner/no-privileges rehearsal does not establish role/ACL, configuration,
+OpenHAB restart or disaster recovery. No manual notification job is required to
+adopt the new reference; retain the existing weekly timer.
 
 
 ## Energy analytics Item restore evidence
