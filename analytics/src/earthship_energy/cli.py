@@ -14,6 +14,7 @@ from zoneinfo import ZoneInfo
 from .config import ConfigError, load_source_config
 from .daily import build_daily_snapshot
 from .power_policy import load_power_policy
+from .power_report import read_power_report
 from .db import (
     DatabaseConfigError,
     connect_read_only,
@@ -93,7 +94,8 @@ def _parser() -> argparse.ArgumentParser:
     aggregate_mode.add_argument("--apply", action="store_true")
     aggregate.add_argument("--backup-manifest", type=Path)
     report = subparsers.add_parser("report")
-    report.add_argument("kind", choices=("monthly", "winter", "lifecycle", "modules"))
+    report.add_argument("kind", choices=("monthly", "winter", "lifecycle", "modules", "power"))
+    report.add_argument("--power-evidence-policy", type=Path)
     report.add_argument("--start")
     report.add_argument("--end", help="Exclusive local end date")
     report.add_argument("--epoch")
@@ -301,7 +303,17 @@ def _report(args) -> int:
         raise ValueError("report dates must use YYYY-MM-DD") from exc
     if start is None:
         raise ValueError("--start is required for an open-ended historical epoch")
+    policy_path = getattr(args, 'power_evidence_policy', None)
+    if (args.kind == 'power') != (policy_path is not None):
+        raise ValueError('report power requires --power-evidence-policy; other report kinds do not accept it')
     settings = parse_openhab_jdbc_config(args.jdbc_config)
+    if args.kind == 'power':
+        policy = load_power_policy(policy_path)
+        payload = read_power_report(settings, epoch_id=epoch.epoch_id,
+            cutover=policy.cutover, start_date=start, end_date=end,
+            as_of=datetime.now(REPORT_TIMEZONE))
+        _print_report(payload, args, epoch, start, end)
+        return 0
     connection = connect_read_only(settings)
     try:
         if args.kind == "modules":
@@ -330,6 +342,11 @@ def _report(args) -> int:
             reserve_soc_pct=20.0,
         )
         payload["epoch_id"] = epoch.epoch_id
+    _print_report(payload, args, epoch, start, end)
+    return 0
+
+
+def _print_report(payload, args, epoch, start, end):
     if args.format == "json":
         _print(payload)
     else:
@@ -339,7 +356,6 @@ def _report(args) -> int:
         print("\n```json")
         print(json.dumps(payload, indent=2, sort_keys=True, default=str))
         print("```")
-    return 0
 
 
 def _simulate(args) -> int:

@@ -39,3 +39,23 @@ legacy daily tables. Collection may continue independently during this work.
 Real isolated PostgreSQL tests cover retries, revisions, legacy isolation,
 cutover isolation, mutation refusal, privilege separation and transactional
 locking. Existing migration files remain unchanged; only0005 is new.
+
+## Qualified report consumer
+
+`energy-data report power --start YYYY-MM-DD --end YYYY-MM-DD
+--power-evidence-policy analytics/config/power-evidence.json` reads only the
+selected qualified series. The end is exclusive; one request is bounded to366
+days using the dedicated read-only snapshot connection and its5-second SQL
+timeout. JSON and Markdown include policy, exact cutover, as-of time, each day's
+revision ID/digest/computed time and battery/PV daily coverage. Missing days stay
+listed, empty history has null totals, and revisions are selected before quality
+interpretation. Lower-coverage corrections cannot resurrect older larger totals.
+
+Totals mean observed qualified throughput within the requested window, not bank
+lifetime use or complete-day estimates. They do not include legacy EFC. Load and
+balance are explicitly unavailable until AC-load evidence is qualified. This is
+an additive explicit report kind; it does not silently change the historical
+monthly/lifecycle/winter commands or activate the publisher. Those commands,
+feature exports and the UI still need their own reader/provenance integration
+before accounting activation. Unit and real disposable PostgreSQL tests cover
+the new report path, missing dates, exact identity and latest-revision selection.
