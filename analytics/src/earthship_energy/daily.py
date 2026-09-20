@@ -30,6 +30,10 @@ from .series import (
     local_day_bounds,
 )
 from .quality import assess_source_quality, assess_bms_source_quality
+from .quality import assess_power_source_quality
+from .power_reader import read_power_history
+from .power_evidence import BOUNDS, utc
+from .power_intervals import account_power_intervals
 
 
 REQUIRED_DAILY = {
@@ -61,6 +65,9 @@ def build_daily_snapshot(
     local_date: date,
     *,
     bank_epoch=None,
+    power_evidence_settings=None,
+    power_evidence_table=None,
+    power_evidence_cutover=None,
 ) -> dict[str, object]:
     tables = {
         source.canonical_name: source.table_name
@@ -73,6 +80,23 @@ def build_daily_snapshot(
     definitions = {source.canonical_name: source for source in config.sources}
     start, end = local_day_bounds(local_date, config.timezone)
     max_gap = end - start
+    power_options = (power_evidence_settings, power_evidence_table, power_evidence_cutover)
+    configured_power = any(option is not None for option in power_options)
+    if configured_power and any(option is None for option in power_options):
+        raise ValueError('complete power evidence configuration is required')
+    cutover = utc(power_evidence_cutover) if configured_power else None
+    qualified_power = configured_power and end > cutover
+    power_history = None
+    power_stats = None
+    if qualified_power:
+        # One bounded independent read-only snapshot for all three fields.
+        # Errors propagate: never silently substitute numeric held history.
+        power_history = read_power_history(
+            power_evidence_settings, power_evidence_table, start, end, cutover=cutover,
+        )
+        if set(power_history) != set(BOUNDS):
+            raise ValueError('incomplete qualified power history')
+        power_stats = fetch_observation_stats(connection, power_evidence_table, start, end)
 
     series_cache: dict[str, list[Point]] = {}
 
@@ -125,7 +149,7 @@ def build_daily_snapshot(
 
     battery = aggregate_battery(
         soc_points=battery_soc,
-        power_points=series("battery.dc_power_w"),
+        power_points=[] if qualified_power else series("battery.dc_power_w"),
         temperature_c_points=series("battery.temperature_c"),
         window_start=start,
         window_end=end,
@@ -135,12 +159,15 @@ def build_daily_snapshot(
         sunrise=sunrise,
         sunset=sunset,
         soc_intervals=battery_intervals,
+        power_intervals=power_history['battery.dc_power_w'] if qualified_power else None,
     )
     pv = aggregate_power(
-        series("pv.input_power_w"), start, end, max_gap=max_gap
+        [] if qualified_power else series("pv.input_power_w"), start, end, max_gap=max_gap,
+        power_intervals=power_history['pv.input_power_w'] if qualified_power else None,
     )
     pv_output = aggregate_power(
-        series("pv.output_power_w"), start, end, max_gap=max_gap
+        [] if qualified_power else series("pv.output_power_w"), start, end, max_gap=max_gap,
+        power_intervals=power_history['pv.output_power_w'] if qualified_power else None,
     )
     load = aggregate_power(
         series("house.ac_power_w"), start, end, max_gap=max_gap
@@ -153,14 +180,14 @@ def build_daily_snapshot(
         max_gap=max_gap,
         precipitation_mm_points=optional_series("weather.precipitation_mm"),
     )
-    ratio = pv.energy_kwh / load.energy_kwh if load.energy_kwh > 0 else None
+    ratio = pv.energy_kwh / load.energy_kwh if not qualified_power and load.energy_kwh > 0 else None
     pv_payload = asdict(pv)
     pv_payload.update({
         "before_solar_noon_kwh": None,
         "after_solar_noon_kwh": None,
         "output_energy_kwh": pv_output.energy_kwh,
         "mppt_efficiency": (
-            pv_output.energy_kwh / pv.energy_kwh if pv.energy_kwh > 0 else None
+            pv_output.energy_kwh / pv.energy_kwh if not qualified_power and pv.energy_kwh > 0 else None
         ),
     })
     battery_payload = asdict(battery)
@@ -190,6 +217,10 @@ def build_daily_snapshot(
     def energy_between(points, left, right):
         if left is None or right is None or right <= left:
             return None
+        if qualified_power:
+            return account_power_intervals(
+                power_history['pv.input_power_w'], window_start=left, window_end=right,
+            ).positive_kwh
         selected = [(at, value) for at, value in points if left <= at <= right]
         left_value = value_at(points, left)
         right_value = value_at(points, right)
@@ -203,10 +234,10 @@ def build_daily_snapshot(
     if sunrise is not None and sunset is not None and sunset > sunrise:
         solar_noon = sunrise + (sunset - sunrise) / 2
         pv_payload["before_solar_noon_kwh"] = energy_between(
-            series("pv.input_power_w"), start, solar_noon
+            [] if qualified_power else series("pv.input_power_w"), start, solar_noon
         )
         pv_payload["after_solar_noon_kwh"] = energy_between(
-            series("pv.input_power_w"), solar_noon, end
+            [] if qualified_power else series("pv.input_power_w"), solar_noon, end
         )
 
     active_loads = {}
@@ -231,6 +262,13 @@ def build_daily_snapshot(
         if resolved.table_name is None:
             continue
         definition = definitions[resolved.canonical_name]
+        if qualified_power and resolved.canonical_name in BOUNDS:
+            source_quality.append(assess_power_source_quality(
+                canonical_name=resolved.canonical_name,
+                intervals=power_history[resolved.canonical_name], window_start=start, window_end=end,
+                row_count=power_stats[0], first_at=power_stats[1], last_at=power_stats[2], cutover=cutover,
+            ))
+            continue
         if atomic_soc and resolved.canonical_name == "battery.soc_pct":
             stats = (fetch_observation_stats(connection, evidence_table, start, end)
                      if evidence_table is not None else (0, None, None))
@@ -286,7 +324,7 @@ def build_daily_snapshot(
     apply_source_quality(weather_payload, (
         "weather.irradiance_w_m2", "weather.outdoor_temperature_c",
     ))
-    return {
+    snapshot = {
         "status": "ok",
         "mode": "read_only_dry_run",
         "local_date": local_date.isoformat(),
@@ -298,7 +336,17 @@ def build_daily_snapshot(
         "weather": weather_payload,
         "balance": {
             "pv_load_ratio": ratio,
-            "surplus_deficit_kwh": pv.energy_kwh - load.energy_kwh,
+            "surplus_deficit_kwh": None if qualified_power else pv.energy_kwh - load.energy_kwh,
         },
         "source_quality": source_quality,
     }
+    if configured_power:
+        snapshot['power_accounting'] = {
+            'version': 1,
+            'policy': 'qualified_power_evidence_v1' if qualified_power else 'legacy_numeric_estimate',
+            'cutover': cutover.isoformat(),
+            'qualified_fields': sorted(BOUNDS) if qualified_power else [],
+            'balance_reason': 'ac_load_evidence_unqualified' if qualified_power else None,
+            'efficiency_reason': 'requires_common_qualified_support' if qualified_power else None,
+        }
+    return snapshot

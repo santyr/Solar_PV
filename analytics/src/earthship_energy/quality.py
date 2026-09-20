@@ -5,6 +5,32 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 
 from .bms_evidence import SocInterval
+from .power_intervals import account_power_intervals
+from .power_evidence import utc
+
+
+def assess_power_source_quality(*, canonical_name, intervals, window_start, window_end,
+                                row_count, first_at, last_at, cutover):
+    accounting = account_power_intervals(intervals, window_start=window_start, window_end=window_end)
+    start, end = utc(window_start), utc(window_end)
+    cursor, gaps = start, 0
+    for interval in intervals:
+        left, right = max(start, utc(interval.start)), min(end, utc(interval.end))
+        if right <= left:
+            continue
+        gaps += int(left > cursor)
+        cursor = right
+    gaps += int(cursor < end)
+    return {
+        'canonical_name': canonical_name, 'row_count': row_count,
+        'first_at': first_at, 'last_at': last_at, 'coverage': accounting.coverage,
+        'stale_intervals': gaps, 'quality': _coverage_quality(accounting.coverage),
+        'detail': {'policy': 'qualified_power_evidence_v1',
+                   'freshness_basis': 'Power_Evidence_JSON', 'cutover': utc(cutover).isoformat(),
+                   'valid_seconds': accounting.covered_seconds,
+                   'window_seconds': accounting.window_seconds,
+                   'row_count_basis': 'shared_evidence_stream'},
+    }
 
 
 def assess_bms_source_quality(
