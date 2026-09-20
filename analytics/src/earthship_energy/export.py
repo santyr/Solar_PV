@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import csv
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 import io
 from math import isfinite
 
@@ -54,9 +54,17 @@ def _csv_value(value):
     return value
 
 
-def export_feature_csv(rows, *, cadence_minutes: int = 15) -> bytes:
+def export_feature_csv(rows, *, cadence_minutes: int = 15, power_cutover=None) -> bytes:
     if cadence_minutes not in {5, 15}:
         raise FeatureExportError("cadence must be 5 or 15 minutes")
+    provenance = {}
+    if power_cutover is not None:
+        if not _aware(power_cutover):
+            raise FeatureExportError('power cutover must be timezone-aware')
+        provenance = {'pv_basis': 'qualified_power_evidence_v1',
+                      'power_cutover': power_cutover.astimezone(timezone.utc).isoformat(),
+                      'load_basis': 'ac_load_evidence_unqualified',
+                      'other_fields_basis': 'existing_source_policies_not_power_qualified'}
     normalized = []
     for row in sorted(rows, key=lambda item: item["at"]):
         missing = set(FIELDS[2:]) - set(row)
@@ -69,6 +77,16 @@ def export_feature_csv(rows, *, cadence_minutes: int = 15) -> bytes:
         daily_valid = row["daily_pv_forecast_valid_for"]
         if not _aware(at):
             raise FeatureExportError("feature timestamps must be timezone-aware")
+        if power_cutover is not None:
+            if row['load_power_w'] is not None or row['load_power_w_lag_1h'] is not None:
+                raise FeatureExportError('unqualified AC-load values must be absent')
+            for field, instant in (('pv_power_w', at),
+                                   ('pv_power_w_lag_1h', at - timedelta(hours=1))):
+                value = row[field]
+                if value is not None and (isinstance(value, bool)
+                        or not isinstance(value, (float, int)) or value < 0
+                        or instant < power_cutover):
+                    raise FeatureExportError('invalid qualified PV value or pre-cutover value')
         if at.minute % cadence_minutes or at.second or at.microsecond:
             raise FeatureExportError("row does not align to requested cadence")
         status = row["forecast_status"]
@@ -90,7 +108,8 @@ def export_feature_csv(rows, *, cadence_minutes: int = 15) -> bytes:
             raise FeatureExportError("future forecast leakage")
         normalized.append(
             {
-                "schema_version": 2,
+                "schema_version": 3 if provenance else 2,
+                **provenance,
                 **{
                     field: _csv_value(row[field])
                     for field in FIELDS[1:]
@@ -98,7 +117,7 @@ def export_feature_csv(rows, *, cadence_minutes: int = 15) -> bytes:
             }
         )
     stream = io.StringIO(newline="")
-    writer = csv.DictWriter(stream, fieldnames=FIELDS, lineterminator="\n")
+    writer = csv.DictWriter(stream, fieldnames=FIELDS + tuple(provenance), lineterminator="\n")
     writer.writeheader()
     writer.writerows(normalized)
     return stream.getvalue().encode("utf-8")

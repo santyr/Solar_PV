@@ -141,6 +141,7 @@ def _parser() -> argparse.ArgumentParser:
     feature_export.add_argument("--epochs", type=Path)
     feature_export.add_argument("--jdbc-config", default=DEFAULT_JDBC_CONFIG, type=Path)
     feature_export.add_argument("--force", action="store_true")
+    feature_export.add_argument("--power-evidence-policy", type=Path)
     return parser
 
 
@@ -527,6 +528,9 @@ def _export_features(args) -> int:
     end = _aware_datetime(args.end, "--end")
     if end <= start:
         raise ValueError("--end must be after --start")
+    policy = load_power_policy(args.power_evidence_policy) if args.power_evidence_policy else None
+    if policy is not None and end - start > timedelta(hours=24):
+        raise ValueError('qualified feature window must be at most 24 hours')
     if args.output.exists() and not args.force:
         raise ValueError("output exists; pass --force to replace it")
     if not args.output.parent.is_dir():
@@ -553,6 +557,8 @@ def _export_features(args) -> int:
         soc_definition = next((source for source in config.sources
                                if source.canonical_name == "battery.soc_pct"), None)
         atomic_soc = soc_definition is not None and soc_definition.stale_policy == "atomic_bms_evidence"
+        if policy is not None and not atomic_soc:
+            raise ValueError('qualified features require atomic SoC evidence policy')
         soc_evidence_table = next((getattr(source, "freshness_table_name", None)
                                    for source in resolved
                                    if source.canonical_name == "battery.soc_pct"), None)
@@ -562,17 +568,21 @@ def _export_features(args) -> int:
             conversions=source_conversions,
             atomic_soc=atomic_soc, soc_evidence_table=soc_evidence_table,
             bank_epochs=load_epoch_config(args.epochs) if atomic_soc else None,
+            **({'power_settings': settings,
+                'power_table': policy.resolve_table(items, tables),
+                'power_cutover': policy.cutover} if policy is not None else {}),
         )
     finally:
         connection.close()
-    content = export_feature_csv(rows, cadence_minutes=args.cadence)
+    content = export_feature_csv(rows, cadence_minutes=args.cadence,
+        **({'power_cutover': policy.cutover} if policy is not None else {}))
     try:
         args.output.write_bytes(content)
     except OSError as exc:
         raise ValueError(f"cannot write feature export: {exc}") from exc
     _print({
         "status": "ok",
-        "schema_version": 2,
+        "schema_version": 3 if policy is not None else 2,
         "rows": len(rows),
         "bytes": len(content),
         "sha256": hashlib.sha256(content).hexdigest(),
