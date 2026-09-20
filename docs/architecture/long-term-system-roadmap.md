@@ -590,6 +590,14 @@ As of August 2026:
 
 ## 16. Document Maintenance
 
+September19,2026 software milestone: immutable advisory capture and completed-night
+outcome assessment are enabled on the existing forecast schedule, backed by
+restricted PostgreSQL roles and atomic BMS receipt history. Qualified temperature
+receipt collection/hourly learning are enabled separately. This advances the
+evidence foundation only: natural delayed outcomes, calibrated uncertainty,
+threshold-tuning rewards and seasonal evaluation remain unfinished. No equipment
+control authority or hardware-replacement conclusion changes with this milestone.
+
 Revisit this roadmap at least annually and after any major hardware change.
 
 Update it when:

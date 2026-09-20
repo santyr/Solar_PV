@@ -84,6 +84,25 @@ documented direct light/circadian commands and correlated owner requests; see
 Mining is not active. AGM logic is historical. Neither belongs in current
 telemetry, controls, policy, or UI.
 
+## Observational learning lifecycle — September 19, 2026
+
+The energy_analytics migration ledger is now1–4. Existing06:40 forecast
+intelligence captures immutable advisory decisions/publication results through
+a dedicated insert-only role, and assesses only fully completed20:00–11:00
+trough windows using atomic BMS receipt history. Assessment cutover is
+2026-09-20T00:48:40Z. A separate restricted assessor may append outcome/selection
+records but cannot write raw telemetry. Original daily/forecast data fingerprints
+and learned model state were unchanged at release. The old prematurely scored
+trough-error display was retired to UNDEF pending qualified samples.
+
+Temperature receipt collection and qualified hourly temperature learning were
+also activated, using model/ID-bound observations and original receipt expiry.
+Neither release changes BMS/Schneider safety authority, household controls,
+advisory thresholds, notification policy, or everyChange persistence. First
+natural captured origins/completed outcomes and qualified hourly updates still
+require observation; installation is not a claim of learned improvement or
+causal reward. See earthship-ui's September19 activation receipts.
+
 ## Known current gaps
 
 - Capture the original PV quote or field nameplates; verify the exact Qcells
