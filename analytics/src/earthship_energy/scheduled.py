@@ -410,6 +410,7 @@ def _parser() -> argparse.ArgumentParser:
     monthly = commands.add_parser("monthly-report")
     monthly.add_argument("--jdbc-config", default=DEFAULT_JDBC_CONFIG)
     monthly.add_argument("--timezone", default="America/Denver")
+    monthly.add_argument("--power-evidence-policy")
     monthly.add_argument(
         "--output-dir", default="~/.local/state/earthship-energy/reports"
     )
@@ -489,30 +490,42 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(result, sort_keys=True, separators=(",", ":")))
         return _exit_for_severity(str(result["severity"]))
     if args.command == "monthly-report":
+        qualified = args.power_evidence_policy is not None
+        if qualified and args.timezone != 'America/Denver':
+            raise ValueError('qualified monthly accounting requires America/Denver')
         today = utc_now().astimezone(ZoneInfo(args.timezone)).date()
         end = today.replace(day=1)
         start = (end - timedelta(days=1)).replace(day=1)
         output = io.StringIO()
         with redirect_stdout(output):
             status = energy_cli.main([
-                "report", "monthly",
+                "report", "power" if qualified else "monthly",
                 "--start", start.isoformat(),
                 "--end", end.isoformat(),
                 "--format", "json",
                 "--jdbc-config", args.jdbc_config,
-            ])
+            ] + (["--power-evidence-policy", args.power_evidence_policy] if qualified else []))
         if status != 0:
             return status
         payload = json.loads(output.getvalue())
+        if qualified and not (
+            payload.get('report') == 'qualified_power'
+            and payload.get('schema_version') == 1
+            and payload.get('legacy_included') is False
+            and payload.get('basis') == 'observed_qualified_throughput_in_requested_window'
+            and payload.get('window_start') == start.isoformat()
+            and payload.get('window_end_exclusive') == end.isoformat()
+        ):
+            raise ValueError('qualified monthly report provenance mismatch')
         report_path = (
             Path(args.output_dir).expanduser()
             / start.strftime("%Y-%m")
-            / "energy-monthly.json"
+            / ("qualified-power-monthly.json" if qualified else "energy-monthly.json")
         )
         write_private_json(report_path, payload)
         digest = hashlib.sha256(report_path.read_bytes()).hexdigest()
         result = {
-            "schema": "earthship-energy-monthly-preparation/v1",
+            "schema": "earthship-energy-monthly-preparation/v2" if qualified else "earthship-energy-monthly-preparation/v1",
             "severity": "Interesting",
             "period_start": start.isoformat(),
             "period_end_exclusive": end.isoformat(),
@@ -520,6 +533,9 @@ def main(argv: list[str] | None = None) -> int:
             "report_sha256": digest,
             "codex_invoked": False,
         }
+        if qualified:
+            result['accounting_basis'] = payload['basis']
+            result['legacy_included'] = False
         write_event(
             Path(args.event_dir).expanduser(),
             _event_from_result("monthly-review", result),

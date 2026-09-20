@@ -239,3 +239,51 @@ def test_monthly_report_command_prepares_previous_month_without_invoking_codex(
     assert (os.stat(report_path).st_mode & 0o777) == 0o600
     assert len(list((tmp_path / "events").glob("*.json"))) == 1
     assert "Codex" not in capsys.readouterr().out
+
+
+def test_qualified_monthly_preserves_missing_days_and_legacy_file(monkeypatch, tmp_path, capsys):
+    from earthship_energy.power_report import build_power_report
+    now = datetime(2026, 10, 1, 13, tzinfo=UTC)
+    monkeypatch.setattr('earthship_energy.scheduled.utc_now', lambda: now)
+    payload = build_power_report([], epoch_id='bank',
+        cutover=datetime(2026, 9, 20, 15, tzinfo=UTC),
+        start_date=date(2026, 9, 1), end_date=date(2026, 10, 1), as_of=now)
+    calls = []
+    def report(argv):
+        calls.append(argv); print(json.dumps(payload)); return 0
+    monkeypatch.setattr('earthship_energy.scheduled.energy_cli.main', report)
+    folder = tmp_path / 'reports' / '2026-09'; folder.mkdir(parents=True)
+    old = folder / 'energy-monthly.json'; old.write_text('historical legacy report')
+    assert main(['monthly-report', '--power-evidence-policy', '/private/policy.json',
+        '--jdbc-config', '/private/reader.jdbc', '--output-dir', str(folder.parent),
+        '--event-dir', str(tmp_path / 'events')]) == 10
+    assert calls[0][:6] == ['report', 'power', '--start', '2026-09-01', '--end', '2026-10-01']
+    assert calls[0][-2:] == ['--power-evidence-policy', '/private/policy.json']
+    assert '/private/reader.jdbc' in calls[0]
+    actual = json.loads((folder / 'qualified-power-monthly.json').read_text())
+    assert actual == payload
+    assert len(actual['missing_dates']) == 30
+    assert actual['totals']['daily_efc'] is None
+    assert old.read_text() == 'historical legacy report'
+    assert (folder / 'qualified-power-monthly.json').stat().st_mode & 0o777 == 0o600
+    assert json.loads(capsys.readouterr().out)['legacy_included'] is False
+
+
+@pytest.mark.parametrize('failure', ['legacy', 'reader_error', 'timezone'])
+def test_qualified_monthly_refuses_fallback(monkeypatch, tmp_path, failure):
+    calls = []
+    def report(argv):
+        calls.append(argv)
+        print(json.dumps({'report': 'monthly'}))
+        return 2 if failure == 'reader_error' else 0
+    monkeypatch.setattr('earthship_energy.scheduled.energy_cli.main', report)
+    args = ['monthly-report', '--power-evidence-policy', '/private/policy.json',
+        '--output-dir', str(tmp_path / 'reports'), '--event-dir', str(tmp_path / 'events')]
+    if failure == 'timezone': args += ['--timezone', 'UTC']
+    if failure == 'reader_error':
+        assert main(args) == 2
+    else:
+        with pytest.raises(ValueError): main(args)
+    assert not (tmp_path / 'reports').exists()
+    assert not (tmp_path / 'events').exists()
+    assert len(calls) == (0 if failure == 'timezone' else 1)
