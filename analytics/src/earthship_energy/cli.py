@@ -13,6 +13,7 @@ from zoneinfo import ZoneInfo
 
 from .config import ConfigError, load_source_config
 from .daily import build_daily_snapshot
+from .power_policy import load_power_policy
 from .db import (
     DatabaseConfigError,
     connect_read_only,
@@ -85,6 +86,7 @@ def _parser() -> argparse.ArgumentParser:
     aggregate.add_argument("--date", required=True)
     aggregate.add_argument("--config", type=Path)
     aggregate.add_argument("--epochs", type=Path)
+    aggregate.add_argument("--power-evidence-policy", type=Path)
     aggregate.add_argument("--jdbc-config", default=DEFAULT_JDBC_CONFIG, type=Path)
     aggregate_mode = aggregate.add_mutually_exclusive_group()
     aggregate_mode.add_argument("--dry-run", action="store_true")
@@ -234,6 +236,7 @@ def _aggregate(args) -> int:
         local_date = date.fromisoformat(args.date)
     except ValueError as exc:
         raise ValueError("--date must use YYYY-MM-DD") from exc
+    policy = load_power_policy(args.power_evidence_policy) if args.power_evidence_policy else None
     config = load_source_config(args.config)
     settings = parse_openhab_jdbc_config(args.jdbc_config)
     if args.apply:
@@ -259,7 +262,13 @@ def _aggregate(args) -> int:
         resolved = resolve_sources(config, items, tables)
         epochs = load_epoch_config(args.epochs)
         epoch = select_epoch(epochs, local_date)
-        snapshot = build_daily_snapshot(connection, config, resolved, local_date, bank_epoch=epoch)
+        power_options = {} if policy is None else {
+            'power_evidence_settings': settings,
+            'power_evidence_table': policy.resolve_table(items, tables),
+            'power_evidence_cutover': policy.cutover,
+        }
+        snapshot = build_daily_snapshot(connection, config, resolved, local_date,
+                                        bank_epoch=epoch, **power_options)
         if args.apply:
             seed_reference_data(connection, config, epochs)
             result = materialize_daily_snapshot(

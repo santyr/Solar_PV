@@ -342,6 +342,7 @@ def _parser() -> argparse.ArgumentParser:
     aggregate = commands.add_parser("daily-aggregate")
     aggregate.add_argument("--jdbc-config", default=DEFAULT_JDBC_CONFIG)
     aggregate.add_argument("--timezone", default="America/Denver")
+    aggregate.add_argument("--power-evidence-policy")
     quality = commands.add_parser("data-quality")
     quality.add_argument("--jdbc-config", default=DEFAULT_JDBC_CONFIG)
     quality.add_argument("--timezone", default="America/Denver")
@@ -384,14 +385,17 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.command == "daily-aggregate":
         local_date = previous_local_date(utc_now(), args.timezone)
-        return energy_cli.main([
+        command = [
             "aggregate",
             "--date",
             local_date.isoformat(),
             "--apply",
             "--jdbc-config",
             args.jdbc_config,
-        ])
+        ]
+        if args.power_evidence_policy:
+            command.extend(['--power-evidence-policy', args.power_evidence_policy])
+        return energy_cli.main(command)
     if args.command == "data-quality":
         now = utc_now()
         sources_ok, live_sources_ok, latest_aggregate, latest_forecast = read_quality_state(
