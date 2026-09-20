@@ -14,8 +14,14 @@ yields null totals, not zero. Latest revision selection occurs before validation
 and never revives an older better-looking revision.
 
 This is not a complete battery-lifetime report. Lifetime/cumulative endpoint EFC
-is withheld. Temperature exposure, high-SoC exposure and independent BMS-cycle
-comparisons remain explicitly unavailable, not inferred from power evidence.
+is withheld. High-SoC exposure uses the separately qualified atomic BMS source
+record, never power coverage or legacy numeric history. Its own daily coverage,
+valid seconds and revision identity accompany observed hours above90/95percent.
+Zero valid coverage is unknown; a measured zero duration with valid coverage is
+zero. Missing, ambiguous or non-atomic SoC evidence is explicitly unavailable;
+inconsistent duration/coverage or duplicate quality records fail closed.
+Temperature exposure and independent BMS-cycle comparisons remain explicitly
+unavailable, not inferred from power evidence.
 Qualified winter energy replay still requires an independently qualified AC-load
 source. No consumer schedule, hardware action, historical rewrite or learning
 activation is changed by this opt-in command.

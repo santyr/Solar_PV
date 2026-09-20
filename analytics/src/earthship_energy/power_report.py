@@ -5,6 +5,7 @@ from math import fsum
 from .power_evidence import utc
 from .power_snapshot_reader import MAX_DAYS, read_power_snapshots
 from .power_store import POLICY, encode_snapshot
+from .soc_exposure import lifecycle_soc_exposure
 
 
 def build_power_report(rows, *, epoch_id, cutover, start_date, end_date, as_of):
@@ -64,6 +65,7 @@ def build_qualified_lifecycle_report(rows, **kwargs):
     """Period use only; no lifetime, temperature or BMS-counter inference."""
     evidence = build_power_report(rows, **kwargs)
     daily = evidence['daily']
+    exposure = lifecycle_soc_exposure(rows)
     return {
         **{key: value for key, value in evidence.items()
            if key not in ('report', 'totals', 'balance', 'daily')},
@@ -74,12 +76,14 @@ def build_qualified_lifecycle_report(rows, **kwargs):
         'period_efc': evidence['totals']['daily_efc'],
         'lifetime_efc': None,
         'ending_cumulative_efc': None,
+        'high_soc_exposure': exposure,
         'daily': [{key: value for key, value in day.items()
                    if not key.startswith('pv_')} for day in daily],
         'unavailable': {
             'lifetime_efc': 'requested_window_is_not_complete_bank_lifetime',
             'temperature_exposure': 'not_qualified_by_power_evidence',
-            'high_soc_exposure': 'not_qualified_by_power_evidence',
+            **({'high_soc_exposure': 'no_qualified_atomic_soc_exposure'}
+               if not exposure['daily'] else {}),
             'bms_cycle_counter_comparison': 'independent_module_counter_evidence_required',
         },
     }
