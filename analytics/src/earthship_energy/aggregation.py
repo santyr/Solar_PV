@@ -8,6 +8,7 @@ from math import sqrt
 from typing import Iterable
 
 from .bms_evidence import SocInterval, soc_at
+from .power_intervals import PowerInterval, account_power_intervals
 from .series import (
     Point,
     coverage_ratio,
@@ -235,17 +236,31 @@ def aggregate_battery(
     sunrise: datetime | None = None,
     sunset: datetime | None = None,
     soc_intervals: list[SocInterval] | None = None,
+    power_intervals: list[PowerInterval] | None = None,
 ) -> BatteryAggregate:
     if power_sign not in {"positive_charging", "negative_charging"}:
         raise SignCalibrationError("battery power sign has not been calibrated")
-    sign_factor = 1.0 if power_sign == "positive_charging" else -1.0
-    signed = [(at, value * sign_factor) for at, value in power_points]
-    charge = integrate_trapezoid(
-        [(at, max(0.0, value)) for at, value in signed], max_gap
-    )
-    discharge = integrate_trapezoid(
-        [(at, max(0.0, -value)) for at, value in signed], max_gap
-    )
+    if power_intervals is None:
+        # Explicit legacy path only; [] in qualified mode must never fall back.
+        sign_factor = 1.0 if power_sign == "positive_charging" else -1.0
+        signed = [(at, value * sign_factor) for at, value in power_points]
+        charge = integrate_trapezoid(
+            [(at, max(0.0, value)) for at, value in signed], max_gap
+        )
+        discharge = integrate_trapezoid(
+            [(at, max(0.0, -value)) for at, value in signed], max_gap
+        )
+        charge_kwh = charge.value_hours / 1000.0
+        discharge_kwh = discharge.value_hours / 1000.0
+        power_seconds = charge.covered_seconds
+    else:
+        accounting = account_power_intervals(
+            power_intervals, window_start=window_start, window_end=window_end,
+        )
+        charge_kwh, discharge_kwh = accounting.positive_kwh, accounting.negative_kwh
+        if power_sign == "negative_charging":
+            charge_kwh, discharge_kwh = discharge_kwh, charge_kwh
+        power_seconds = accounting.covered_seconds
     if soc_intervals is None:
         soc_integration = integrate_trapezoid(soc_points, max_gap)
         soc_seconds = soc_integration.covered_seconds
@@ -293,11 +308,9 @@ def aggregate_battery(
     window_seconds = (window_end - window_start).total_seconds()
     coverage = min(
         coverage_ratio(soc_seconds, window_seconds),
-        coverage_ratio(charge.covered_seconds, window_seconds),
+        coverage_ratio(power_seconds, window_seconds),
         coverage_ratio(temperature.covered_seconds, window_seconds),
     )
-    charge_kwh = charge.value_hours / 1000.0
-    discharge_kwh = discharge.value_hours / 1000.0
     temperature_values = [value for _, value in temperature_c_points]
     min_soc = min(soc_values, default=None)
     max_soc = max(soc_values, default=None)
