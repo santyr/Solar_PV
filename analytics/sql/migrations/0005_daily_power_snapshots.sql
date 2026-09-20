@@ -25,6 +25,29 @@ CREATE TABLE energy_analytics.daily_power_snapshots (
 CREATE INDEX daily_power_snapshots_latest_idx ON energy_analytics.daily_power_snapshots
     (epoch_id, policy, cutover_at, local_date, snapshot_id DESC);
 
+CREATE FUNCTION energy_analytics.validate_daily_power_completion() RETURNS trigger
+LANGUAGE plpgsql AS $$
+BEGIN
+    -- Database clock owns the revision timestamp; a caller cannot backdate or
+    -- future-date a provisional snapshot into apparent completed evidence.
+    NEW.computed_at := clock_timestamp();
+    IF (NEW.payload->>'window_start')::timestamptz IS DISTINCT FROM
+           (NEW.local_date::timestamp AT TIME ZONE 'America/Denver')
+       OR (NEW.payload->>'window_end')::timestamptz IS DISTINCT FROM
+           ((NEW.local_date + 1)::timestamp AT TIME ZONE 'America/Denver') THEN
+        RAISE EXCEPTION 'qualified window must match the complete site-local day';
+    END IF;
+    IF (NEW.payload->>'window_end')::timestamptz > NEW.computed_at THEN
+        RAISE EXCEPTION 'cannot persist an unfinished qualified day';
+    END IF;
+    RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER daily_power_snapshots_completed_day
+    BEFORE INSERT ON energy_analytics.daily_power_snapshots
+    FOR EACH ROW EXECUTE FUNCTION energy_analytics.validate_daily_power_completion();
+
 CREATE FUNCTION energy_analytics.reject_daily_power_mutation() RETURNS trigger
 LANGUAGE plpgsql AS $$
 BEGIN

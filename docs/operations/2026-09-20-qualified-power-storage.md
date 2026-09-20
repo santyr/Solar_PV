@@ -87,3 +87,14 @@ has changed. Release still requires migration/backup rehearsal, restricted roles
 other consumer policy treatment, and completed-day writer qualification. In
 particular, UI revisions must have been computed after their local day completed;
 do not activate a writer that stores provisional current-day results as final.
+
+Completed-day safeguards are now implemented: Python checks exact America/Denver
+day bounds (including23/25-hour DST days) and refuses unfinished-day writes.
+Migration0005, still undeployed, independently checks the same bounds in an
+INSERT trigger and assigns revision time from the database clock. Supplying a
+future `computed_at` cannot bypass completion. Readers reject revisions computed
+before their represented window completed. Synthetic fixtures were moved to
+historical August dates; the real collection cutover configuration is unchanged.
+All693analytics tests pass, including direct-SQL bypass attempts and actual
+PostgreSQL DST-day inserts. Production backup/rehearsal is in progress, not yet
+verified by these tests.

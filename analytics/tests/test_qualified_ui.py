@@ -10,7 +10,7 @@ from earthship_energy.power_store import encode_snapshot
 from test_power_report import revision, CUTOVER
 from test_ui_reader import LIVE_OK
 
-NOW=datetime(2026,9,24,18,tzinfo=timezone.utc)
+NOW=datetime(2026,8,24,18,tzinfo=timezone.utc)
 
 
 def rows():
@@ -26,14 +26,14 @@ def rows():
 
 def build(records=None):
     return build_qualified_ui_payload(rows() if records is None else records,
-        epoch_id='bank',cutover=CUTOVER,start_date=date(2026,9,21),end_date=date(2026,9,24),
+        epoch_id='bank',cutover=CUTOVER,start_date=date(2026,8,21),end_date=date(2026,8,24),
         generated_at=NOW,timezone_name='America/Denver',forecast=None,health=None,module_health=None)
 
 
 def test_projection_retains_latest_partial_day_and_never_lifetime_or_load():
     result=build()
     assert result['schema']=='earthship-energy-ui/v3'
-    assert result['throughDate']=='2026-09-23'
+    assert result['throughDate']=='2026-08-23'
     assert result['battery']['latestEfc']==.02
     assert result['battery']['latestMinSocPct'] is None
     assert result['battery']['status']=='degraded'
@@ -61,7 +61,7 @@ def test_empty_projection_does_not_fabricate_zeros():
     lambda p:p['accounting'].update(daysPresent=3),
     lambda p:p['accounting']['latestRevision'].update(id=2**54),
     lambda p:p['accounting']['latestRevision'].update(sha256='x'),
-    lambda p:p['accounting']['latestRevision'].update(computedAt='2026-09-23T18:00:00Z'),
+    lambda p:p['accounting']['latestRevision'].update(computedAt='2026-08-23T18:00:00Z'),
     lambda p:p['accounting']['latestRevision'].update(computedAt='2030-01-01T00:00:00Z'),
     lambda p:p['lifecycle'].update(endingCumulativeEfc=99),
     lambda p:p['energy']['latest'].update(loadKwh=9),
@@ -84,7 +84,7 @@ class ForecastOnly:
 
 
 def test_qualified_health_bypasses_legacy_quality_table():
-    _,health=fetch_ui_health_and_forecast(ForecastOnly(),through_date=date(2026,9,23),
+    _,health=fetch_ui_health_and_forecast(ForecastOnly(),through_date=date(2026,8,23),
         generated_at=NOW,timezone_name='America/Denver',live_health=LIVE_OK,
         qualified_source_quality=[{'canonical_name':'battery.dc_power_w','quality':'partial'}])
     assert health['analytics']=='degraded'
@@ -101,4 +101,4 @@ def test_qualified_snapshot_never_reads_legacy_daily_tables(monkeypatch):
         power_policy=SimpleNamespace(cutover=CUTOVER))
     assert result['schema']=='earthship-energy-ui/v3'
     assert result['health']['analytics']=='degraded'
-    assert result['throughDate']=='2026-09-23'
+    assert result['throughDate']=='2026-08-23'

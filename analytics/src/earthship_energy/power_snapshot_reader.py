@@ -57,7 +57,7 @@ def read_power_snapshots(settings, *, epoch_id, cutover, start_date, end_date, a
             raise ValueError('invalid selected power snapshot')
         decoded_day, decoded_cutover, _, digest = encode_snapshot(payload)
         if (decoded_day != local_day or decoded_cutover != cutover or digest != stored_digest
-                or utc(datetime.fromisoformat(payload['window_end'])) > as_of):
+                or utc(datetime.fromisoformat(payload['window_end'])) > min(as_of,utc(computed_at))):
             raise ValueError('power snapshot identity or completed-window mismatch')
         result.append({'snapshot_id': snapshot_id, 'local_date': local_day,
                        'epoch_id': epoch_id, 'policy': POLICY, 'cutover': cutover,

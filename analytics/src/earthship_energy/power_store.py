@@ -1,5 +1,6 @@
 """Append-only qualified daily revisions, isolated from legacy daily estimates."""
-from datetime import date, datetime
+from datetime import date, datetime, time, timedelta, timezone
+from zoneinfo import ZoneInfo
 import hashlib
 import json
 from math import isfinite
@@ -31,6 +32,11 @@ def encode_snapshot(snapshot):
     start, end = (utc(datetime.fromisoformat(snapshot[key])) for key in ('window_start','window_end'))
     if end <= start or end <= cutover:
         raise ValueError('invalid qualified accounting window')
+    zone = ZoneInfo('America/Denver')
+    expected_start = datetime.combine(local_date, time.min, tzinfo=zone)
+    expected_end = datetime.combine(local_date+timedelta(days=1), time.min, tzinfo=zone)
+    if start != expected_start or end != expected_end:
+        raise ValueError('qualified window must match the complete site-local day')
     for group, fields in (
         ('battery', ('daily_efc','charge_kwh','discharge_kwh','coverage')),
         ('pv', ('energy_kwh','output_energy_kwh','coverage')),
@@ -53,6 +59,8 @@ def encode_snapshot(snapshot):
 
 def store_power_snapshot(connection, snapshot, epoch_id):
     local_date, cutover, encoded, digest = encode_snapshot(snapshot)
+    if utc(datetime.fromisoformat(snapshot['window_end'])) > datetime.now(timezone.utc):
+        raise ValueError('cannot persist an unfinished qualified day')
     if connection.autocommit:
         raise ValueError('qualified snapshot writes require a transaction')
     try:
