@@ -39,3 +39,36 @@ evidence, malformed/nonfinite/overflowing values and 23/25-hour days.
 This foundation deliberately supplies no evidence parser, receipt producer,
 schema migration or activation flag. It cannot qualify input on its own and
 must not be wired to unqualified numeric carry as a shortcut.
+
+## Historical reader follow-up
+
+`power_evidence.py` now supplies a separate strict parser and per-field interval
+builder for the staged OpenHAB power-evidence stream. The original foundation
+boundary above describes a8925f9; this follow-up adds parsing, but still no SQL
+transport, scheduler integration, migration or live activation.
+
+Closed top-level schema: version1,streamEpoch(UUID),sequence(positive safe integer),
+recordedAt(UTC milliseconds),fields(exactly battery.dc_power_w,pv.input_power_w,
+pv.output_power_w). Each field contains status,reason,observedAt,validUntil,watts.
+Unavailable fields have null measurement members. Valid fields use integral
+representable watts and exact120-second expiry after acquisition. Duplicate keys,
+unknown members, booleans as numbers, invalid timestamps and future publication
+relative to persistence are rejected. Malformed rows remain explicit barriers.
+
+Per-epoch sequences distinguish same-millisecond publications. Conflicting or
+regressing order fails closed. Missing sequences stop carry at the previous
+known publication; a later complete snapshot cannot revive an old carried field
+across that unknown interval. Retired epochs cannot reappear. An unchanged field
+does not gain a spurious gap merely because a different field publishes.
+
+Intervals begin no earlier than persistence visibility, end at evidence expiry
+or the next relevant publication boundary, preserve invalid/restart gaps and
+require post-cutover acquisition. A restored identical record never renews its
+coverage. No interpolation or fallback to legacy numeric power is permitted.
+
+Verification:579full analytics tests, including56focused reader/accounting tests;
+matching producer1498full UI/OpenHAB tests. An isolated cross-language probe ran
+the actual battery JS transform and observer, parsed their two output records
+with this reader and integrated the result. With1000W,120-second expiry and1ms
+persistence delay, coverage was119.999seconds and energy0.03333305555555555kWh.
+This proves code-contract compatibility, not live acquisition or SQL transport.
