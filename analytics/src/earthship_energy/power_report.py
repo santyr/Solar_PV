@@ -58,3 +58,32 @@ def build_power_report(rows, *, epoch_id, cutover, start_date, end_date, as_of):
 
 def read_power_report(settings, **kwargs):
     return build_power_report(read_power_snapshots(settings, **kwargs), **kwargs)
+
+
+def build_qualified_lifecycle_report(rows, **kwargs):
+    """Period use only; no lifetime, temperature or BMS-counter inference."""
+    evidence = build_power_report(rows, **kwargs)
+    daily = evidence['daily']
+    return {
+        **{key: value for key, value in evidence.items()
+           if key not in ('report', 'totals', 'balance', 'daily')},
+        'report': 'qualified_lifecycle',
+        'status': 'partial_observations' if daily else 'unavailable',
+        'charge_kwh': evidence['totals']['charge_kwh'],
+        'discharge_kwh': evidence['totals']['discharge_kwh'],
+        'period_efc': evidence['totals']['daily_efc'],
+        'lifetime_efc': None,
+        'ending_cumulative_efc': None,
+        'daily': [{key: value for key, value in day.items()
+                   if not key.startswith('pv_')} for day in daily],
+        'unavailable': {
+            'lifetime_efc': 'requested_window_is_not_complete_bank_lifetime',
+            'temperature_exposure': 'not_qualified_by_power_evidence',
+            'high_soc_exposure': 'not_qualified_by_power_evidence',
+            'bms_cycle_counter_comparison': 'independent_module_counter_evidence_required',
+        },
+    }
+
+
+def read_qualified_lifecycle_report(settings, **kwargs):
+    return build_qualified_lifecycle_report(read_power_snapshots(settings, **kwargs), **kwargs)

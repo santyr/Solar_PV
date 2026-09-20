@@ -14,7 +14,7 @@ from zoneinfo import ZoneInfo
 from .config import ConfigError, load_source_config
 from .daily import build_daily_snapshot
 from .power_policy import load_power_policy
-from .power_report import read_power_report
+from .power_report import read_power_report, read_qualified_lifecycle_report
 from .db import (
     DatabaseConfigError,
     connect_read_only,
@@ -311,12 +311,15 @@ def _report(args) -> int:
     if start is None:
         raise ValueError("--start is required for an open-ended historical epoch")
     policy_path = getattr(args, 'power_evidence_policy', None)
-    if (args.kind == 'power') != (policy_path is not None):
-        raise ValueError('report power requires --power-evidence-policy; other report kinds do not accept it')
+    if args.kind == 'power' and policy_path is None:
+        raise ValueError('report power requires --power-evidence-policy')
+    if policy_path is not None and args.kind not in ('power', 'lifecycle'):
+        raise ValueError('power evidence policy is supported only for power and lifecycle reports')
     settings = parse_openhab_jdbc_config(args.jdbc_config)
-    if args.kind == 'power':
+    if policy_path is not None:
         policy = load_power_policy(policy_path)
-        payload = read_power_report(settings, epoch_id=epoch.epoch_id,
+        reader = read_power_report if args.kind == 'power' else read_qualified_lifecycle_report
+        payload = reader(settings, epoch_id=epoch.epoch_id,
             cutover=policy.cutover, start_date=start, end_date=end,
             as_of=datetime.now(REPORT_TIMEZONE))
         _print_report(payload, args, epoch, start, end)
