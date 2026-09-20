@@ -107,6 +107,7 @@ def fetch_ui_health_and_forecast(
     generated_at: datetime,
     timezone_name: str,
     live_health: dict[str, object],
+    qualified_source_quality=None,
 ) -> tuple[dict[str, object], dict[str, object]]:
     """Read one completed quality day and one as-of forecast snapshot."""
     if generated_at.tzinfo is None or generated_at.utcoffset() is None:
@@ -116,14 +117,19 @@ def fetch_ui_health_and_forecast(
         generated_at.astimezone(timezone).date(), time.min, tzinfo=timezone
     )
     with connection.cursor() as cursor:
-        cursor.execute(
-            """SELECT canonical_name, quality
+        if qualified_source_quality is None:
+            cursor.execute(
+                """SELECT canonical_name, quality
                FROM energy_analytics.daily_source_quality
                WHERE local_date = %s
                ORDER BY canonical_name""",
-            (through_date,),
-        )
-        quality_rows = {str(name): str(quality) for name, quality in cursor.fetchall()}
+                (through_date,),
+            )
+            quality_rows = {str(name): str(quality) for name, quality in cursor.fetchall()}
+        else:
+            quality_rows = {row['canonical_name']: row['quality'] for row in qualified_source_quality}
+            if len(quality_rows) != len(qualified_source_quality):
+                raise ValueError('duplicate qualified source quality')
         cursor.execute(
             """SELECT issued_at, valid_for, value
                FROM energy_analytics.forecast_snapshots
@@ -195,6 +201,8 @@ def build_energy_ui_snapshot(
     generated_at: datetime,
     timezone_name: str = "America/Denver",
     live_health: dict[str, object],
+    power_settings=None,
+    power_policy=None,
 ) -> dict[str, object]:
     """Assemble reports only through the last completed site-local day."""
     if generated_at.tzinfo is None or generated_at.utcoffset() is None:
@@ -207,6 +215,11 @@ def build_energy_ui_snapshot(
         raise ValueError("current analytics epoch requires a start date")
     timezone = ZoneInfo(timezone_name)
     completed_end = generated_at.astimezone(timezone).date()
+    if (power_settings is None) != (power_policy is None):
+        raise ValueError('qualified UI requires both settings and policy')
+    if power_policy is not None:
+        return _qualified_snapshot(connection,epoch,power_settings,power_policy,
+            generated_at,timezone_name,completed_end,live_health)
     rows = (
         fetch_daily_report_rows(
             connection, epoch.epoch_id, epoch.start_local_date, completed_end
@@ -249,3 +262,28 @@ def build_energy_ui_snapshot(
         forecast=forecast,
         health=health,
     )
+
+
+def _qualified_snapshot(connection,epoch,settings,policy,generated_at,timezone_name,end,live_health):
+    from .power_snapshot_reader import read_power_snapshots
+    from .qualified_ui import build_qualified_ui_payload
+    zone=ZoneInfo(timezone_name)
+    if policy.cutover > generated_at:
+        raise ValueError('qualified cutover is in the future')
+    start=max(epoch.start_local_date,policy.cutover.astimezone(zone).date(),end-timedelta(days=366))
+    # Before the first completed collection day, expose an empty series rather
+    # than resuming the older legacy daily products.
+    start=min(start,end-timedelta(days=1))
+    rows=read_power_snapshots(settings,epoch_id=epoch.epoch_id,cutover=policy.cutover,
+        start_date=start,end_date=end,as_of=generated_at)
+    quality=(rows[-1]['payload']['source_quality']
+             if rows and rows[-1]['local_date']==end-timedelta(days=1) else [])
+    forecast,health=fetch_ui_health_and_forecast(connection,
+        through_date=end-timedelta(days=1),generated_at=generated_at,
+        timezone_name=timezone_name,live_health=live_health,qualified_source_quality=quality)
+    modules=fetch_module_report_rows(connection,
+        datetime.combine(max(epoch.start_local_date,end-timedelta(days=365)),time.min,tzinfo=zone),
+        generated_at)
+    return build_qualified_ui_payload(rows,epoch_id=epoch.epoch_id,cutover=policy.cutover,
+        start_date=start,end_date=end,generated_at=generated_at,timezone_name=timezone_name,
+        forecast=forecast,health=health,module_health=module_health_report(modules))

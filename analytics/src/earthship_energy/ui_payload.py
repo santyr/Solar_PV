@@ -315,9 +315,10 @@ def build_energy_ui_payload(
 def validate_energy_ui_payload(
     payload: object, *, now: datetime | None = None
 ) -> dict[str, object]:
-    result = _exact(payload, TOP_LEVEL_FIELDS, "payload")
-    if result["schema"] != SCHEMA:
-        raise ValueError("energy UI schema must be earthship-energy-ui/v2")
+    qualified = isinstance(payload, dict) and payload.get('schema') == 'earthship-energy-ui/v3'
+    result = _exact(payload, TOP_LEVEL_FIELDS | ({'accounting'} if qualified else set()), "payload")
+    if result["schema"] not in {SCHEMA, 'earthship-energy-ui/v3'}:
+        raise ValueError("unsupported energy UI schema")
     generated = _aware(result["generatedAt"], "generatedAt")
     if now is not None:
         if now.tzinfo is None or now.utcoffset() is None:
@@ -361,7 +362,7 @@ def validate_energy_ui_payload(
         if through and latest_date != through:
             raise ValueError("energy latest date must equal throughDate")
         for field in ("pvKwh", "loadKwh", "chargeKwh", "dischargeKwh"):
-            _number(latest[field], f"energy.latest.{field}", optional=False)
+            _number(latest[field], f"energy.latest.{field}", optional=qualified and field == 'loadKwh')
     active = _exact(energy["activeLoads"], ACTIVE_LOAD_FIELDS, "energy.activeLoads")
     _status(active["status"], "energy.activeLoads")
     if active["measurement"] != "state_only" or not isinstance(active["reason"], str):
@@ -421,6 +422,9 @@ def validate_energy_ui_payload(
         or any(not isinstance(reason, str) or len(reason.encode()) > 256 for reason in health["reasons"])
     ):
         raise ValueError("health.reasons must be at most 16 bounded strings")
+    if qualified:
+        from .qualified_ui import validate_accounting
+        validate_accounting(result)
     return result
 
 

@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 import json
+import pytest
 
 from earthship_energy.scheduled import main
 from earthship_energy.config import load_source_config
@@ -8,7 +9,8 @@ from earthship_energy.config import load_source_config
 UTC = timezone.utc
 
 
-def test_energy_ui_publish_closes_read_only_db_before_one_openhab_write(monkeypatch, capsys):
+@pytest.mark.parametrize('qualified',[False,True])
+def test_energy_ui_publish_closes_read_only_db_before_one_openhab_write(monkeypatch, capsys, tmp_path, qualified):
     now = datetime(2026, 8, 20, 18, tzinfo=UTC)
     calls = []
 
@@ -51,11 +53,19 @@ def test_energy_ui_publish_closes_read_only_db_before_one_openhab_write(monkeypa
     monkeypatch.setattr("earthship_energy.scheduled.publish_energy_ui_state", publish)
     monkeypatch.setenv("OPENHAB_TOKEN", "test-token")
 
+    policy=tmp_path/'power.json'
+    policy.write_text(json.dumps({'version':1,'policy':'qualified_power_evidence_v1',
+        'item_name':'Power_Evidence_JSON','cutover':'2026-08-18T12:00:00Z'}))
     assert main([
         "energy-ui-publish", "--jdbc-config", "/protected/jdbc.config",
         "--epochs", "/repo/system-epochs.json",
         "--openhab-url", "http://127.0.0.1:8080",
-    ]) == 0
+    ] + (['--power-evidence-policy',str(policy)] if qualified else [])) == 0
+    build_kwargs=next(c[3] for c in calls if isinstance(c,tuple) and c[0]=='build')
+    assert ('power_policy' in build_kwargs) is qualified
+    if qualified:
+        assert build_kwargs['power_settings']=='settings'
+        assert build_kwargs['power_policy'].cutover.isoformat()=='2026-08-18T12:00:00+00:00'
     assert calls[0] == ("connect", "settings")
     assert calls[-2] == "close"
     assert calls[-1][0] == "publish"

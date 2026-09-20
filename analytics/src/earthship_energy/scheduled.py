@@ -21,6 +21,7 @@ from .db import connect_read_only, connect_write, parse_openhab_jdbc_config
 from .forecasts import persist_forecast_snapshots, snapshots_from_openhab_detail
 from .inventory import fetch_inventory, resolve_sources
 from .materialize import load_epoch_config
+from .power_policy import load_power_policy
 from .reader import ITEM_TABLE
 from .ui_publish import DEFAULT_OPENHAB_URL, publish_energy_ui_state
 from .ui_reader import build_energy_ui_snapshot, fetch_live_subsystem_health
@@ -369,6 +370,7 @@ def _parser() -> argparse.ArgumentParser:
     ui_publish.add_argument("--epochs")
     ui_publish.add_argument("--timezone", default="America/Denver")
     ui_publish.add_argument("--openhab-url", default=DEFAULT_OPENHAB_URL)
+    ui_publish.add_argument("--power-evidence-policy")
     return parser
 
 
@@ -470,7 +472,9 @@ def main(argv: list[str] | None = None) -> int:
         return _exit_for_severity("Interesting")
     if args.command == "energy-ui-publish":
         now = utc_now()
-        connection = connect_read_only(parse_openhab_jdbc_config(args.jdbc_config))
+        settings = parse_openhab_jdbc_config(args.jdbc_config)
+        policy = load_power_policy(args.power_evidence_policy) if args.power_evidence_policy else None
+        connection = connect_read_only(settings)
         try:
             source_config = live_health_source_config(load_source_config())
             items, tables = fetch_inventory(connection)
@@ -481,6 +485,7 @@ def main(argv: list[str] | None = None) -> int:
             payload = build_energy_ui_snapshot(
                 connection, load_epoch_config(args.epochs), generated_at=now,
                 timezone_name=args.timezone, live_health=live_health,
+                **({'power_settings':settings,'power_policy':policy} if policy else {}),
             )
         finally:
             connection.close()
