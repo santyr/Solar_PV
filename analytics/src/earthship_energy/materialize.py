@@ -147,6 +147,28 @@ def seed_reference_data(
     return {"metric_sources": len(source_config.sources), "system_epochs": len(epochs)}
 
 
+def verify_reference_data(connection, source_config, epochs):
+    """Fail on reference drift without granting a daily writer seed authority."""
+    with connection.cursor() as cursor:
+        for source in source_config.sources:
+            cursor.execute('''SELECT item_name,source_config,enabled
+                FROM energy_analytics.metric_sources WHERE canonical_name=%s''',
+                (source.canonical_name,))
+            expected=(source.item_name,json.loads(json.dumps(asdict(source))),True)
+            if cursor.fetchone()!=expected:
+                raise ValueError('source reference drift: '+source.canonical_name)
+        for epoch in epochs:
+            cursor.execute('''SELECT start_local_date,end_local_date_exclusive,
+                current_analytics,nominal_capacity_ah,nominal_usable_kwh,metadata
+                FROM energy_analytics.system_epochs WHERE epoch_id=%s''',(epoch.epoch_id,))
+            expected=(epoch.start_local_date,epoch.end_local_date_exclusive,
+                      epoch.current_analytics,epoch.nominal_capacity_ah,
+                      epoch.nominal_usable_kwh,epoch.metadata)
+            if cursor.fetchone()!=expected:
+                raise ValueError('bank reference drift: '+epoch.epoch_id)
+    return {'metric_sources':len(source_config.sources),'system_epochs':len(epochs)}
+
+
 def _upsert(cursor, table: str, columns: tuple[str, ...], values: tuple[object, ...]):
     assignments = ", ".join(
         f"{column} = EXCLUDED.{column}" for column in columns if column not in {"local_date", "epoch_id"}

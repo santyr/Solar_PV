@@ -35,6 +35,7 @@ from .materialize import (
     load_epoch_config,
     materialize_daily_snapshot,
     seed_reference_data,
+    verify_reference_data,
     select_epoch,
 )
 from .migrations import (
@@ -272,7 +273,12 @@ def _aggregate(args) -> int:
         snapshot = build_daily_snapshot(connection, config, resolved, local_date,
                                         bank_epoch=epoch, **power_options)
         if args.apply:
-            seed_reference_data(connection, config, epochs)
+            if policy is None:
+                seed_reference_data(connection, config, epochs)
+            else:
+                if snapshot.get('power_accounting',{}).get('policy') != 'qualified_power_evidence_v1':
+                    raise ValueError('qualified writer requires a post-cutover daily snapshot')
+                verify_reference_data(connection, config, epochs)
             result = materialize_daily_snapshot(
                 connection, snapshot, epoch.epoch_id
             )

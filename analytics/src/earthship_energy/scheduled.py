@@ -67,6 +67,7 @@ def build_quality_report(
     live_sources_ok: bool = True,
     latest_aggregate: date | None,
     latest_forecast_issued: datetime | None,
+    qualified_daily=None,
 ) -> dict[str, object]:
     yesterday = previous_local_date(now, timezone_name)
     checks = [{
@@ -79,7 +80,8 @@ def build_quality_report(
         "severity": "Routine" if live_sources_ok else "Actionable",
         "ok": live_sources_ok,
     })
-    aggregate_ok = latest_aggregate is not None and latest_aggregate >= yesterday
+    not_due = qualified_daily is not None and qualified_daily['first_date'] > yesterday
+    aggregate_ok = not_due or (latest_aggregate is not None and latest_aggregate >= yesterday)
     checks.append({
         "name": "daily_aggregate",
         "severity": "Routine" if aggregate_ok else "Actionable",
@@ -87,6 +89,14 @@ def build_quality_report(
         "latest": latest_aggregate.isoformat() if latest_aggregate else None,
         "expected_through": yesterday.isoformat(),
     })
+    if qualified_daily is not None:
+        checks[-1]['basis']='qualified_power_evidence_v1'
+        checks[-1]['reason']='awaiting_first_completed_day' if not_due else None
+        if not not_due and aggregate_ok:
+            complete=qualified_daily['coverage_ok']
+            checks.append({'name':'qualified_daily_coverage','ok':complete,
+                'severity':'Routine' if complete else 'Interesting',
+                'reason':None if complete else 'qualified_day_has_partial_evidence'})
     if latest_forecast_issued is None:
         forecast_age = None
         forecast_severity = "Actionable"
@@ -304,6 +314,36 @@ def read_quality_state(
     return True, live_sources_ok, latest_aggregate, latest_forecast
 
 
+def read_qualified_quality_state(jdbc_config,now,policy,timezone_name):
+    from .power_snapshot_reader import read_power_snapshots
+    if policy.cutover > now:
+        raise ValueError('qualified cutover is in the future')
+    settings=parse_openhab_jdbc_config(jdbc_config)
+    epochs=load_epoch_config()
+    epoch=next(e for e in epochs if e.current_analytics)
+    end=now.astimezone(ZoneInfo(timezone_name)).date()
+    rows=read_power_snapshots(settings,epoch_id=epoch.epoch_id,cutover=policy.cutover,
+        start_date=end-timedelta(days=7),end_date=end,as_of=now)
+    latest=rows[-1] if rows else None
+    payload=latest['payload'] if latest else None
+    coverage_ok=bool(payload and all(payload[name].get('quality')=='ok'
+        and payload[name]['coverage']>=.9 for name in ('battery','pv')))
+    connection=connect_read_only(settings)
+    try:
+        items,tables=fetch_inventory(connection)
+        config=live_health_source_config(load_source_config())
+        resolved=resolve_sources(config,items,tables)
+        live_ok=_live_sources_ok(connection,config,resolved,now)
+        with connection.cursor() as cursor:
+            cursor.execute('SELECT max(issued_at) FROM energy_analytics.forecast_snapshots WHERE issued_at<=%s',(now,))
+            forecast=cursor.fetchone()[0]
+    finally:
+        connection.close()
+    return (True,live_ok,latest['local_date'] if latest else None,forecast), {
+        'first_date':max(epoch.start_local_date,policy.cutover.astimezone(ZoneInfo(timezone_name)).date()),
+        'coverage_ok':coverage_ok}
+
+
 def archive_is_readable(path: str | Path) -> bool:
     result = subprocess.run(
         ["pg_restore", "--list", str(path)],
@@ -347,6 +387,7 @@ def _parser() -> argparse.ArgumentParser:
     quality = commands.add_parser("data-quality")
     quality.add_argument("--jdbc-config", default=DEFAULT_JDBC_CONFIG)
     quality.add_argument("--timezone", default="America/Denver")
+    quality.add_argument("--power-evidence-policy")
     quality.add_argument(
         "--event-dir", default="~/.local/state/earthship-energy/pending-events"
     )
@@ -400,9 +441,13 @@ def main(argv: list[str] | None = None) -> int:
         return energy_cli.main(command)
     if args.command == "data-quality":
         now = utc_now()
-        sources_ok, live_sources_ok, latest_aggregate, latest_forecast = read_quality_state(
-            args.jdbc_config, now
-        )
+        qualified_daily=None
+        if args.power_evidence_policy:
+            values,qualified_daily=read_qualified_quality_state(args.jdbc_config,now,
+                load_power_policy(args.power_evidence_policy),args.timezone)
+        else:
+            values=read_quality_state(args.jdbc_config,now)
+        sources_ok,live_sources_ok,latest_aggregate,latest_forecast=values
         result = build_quality_report(
             now=now,
             timezone_name=args.timezone,
@@ -410,6 +455,7 @@ def main(argv: list[str] | None = None) -> int:
             live_sources_ok=live_sources_ok,
             latest_aggregate=latest_aggregate,
             latest_forecast_issued=latest_forecast,
+            **({'qualified_daily':qualified_daily} if qualified_daily is not None else {}),
         )
         if result["severity"] == "Actionable":
             write_event(Path(args.event_dir).expanduser(), _event_from_result("data-quality", result))
