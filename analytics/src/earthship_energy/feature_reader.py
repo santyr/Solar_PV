@@ -8,6 +8,24 @@ from datetime import datetime, timedelta, timezone
 from .bms_evidence import EvidenceSequenceError
 from .reader import ITEM_TABLE, fetch_bms_soc_intervals
 from .series import local_day_bounds
+from .power_reader import read_power_history
+from .power_intervals import account_power_intervals
+
+
+def _power_lookup(intervals, start, end):
+    # Validate the entire stream, including segments outside the lookup window.
+    account_power_intervals(intervals, window_start=start, window_end=end)
+    if any(segment.watts < 0 for segment in intervals):
+        raise ValueError('PV power cannot be negative')
+    starts = [segment.start.astimezone(timezone.utc) for segment in intervals]
+
+    def value_at(at):
+        index = bisect_right(starts, at)
+        if index and at < intervals[index - 1].end.astimezone(timezone.utc):
+            return intervals[index - 1].watts
+        return None
+
+    return value_at
 
 
 def _soc_lookup(connection, table, start, end, epochs, timezone_name):
@@ -102,6 +120,9 @@ def fetch_feature_rows(
     atomic_soc: bool = False,
     soc_evidence_table: str | None = None,
     bank_epochs=None,
+    power_settings=None,
+    power_table=None,
+    power_cutover=None,
 ) -> list[dict[str, object]]:
     if any(at.tzinfo is None or at.utcoffset() is None for at in (start, end_exclusive)):
         raise ValueError("feature window must be timezone-aware")
@@ -110,6 +131,12 @@ def fetch_feature_rows(
         raise ValueError("feature export end must be after start")
     if cadence_minutes not in {5, 15}:
         raise ValueError("feature cadence must be 5 or 15 minutes")
+    power_args = (power_settings, power_table, power_cutover)
+    qualified_power = any(value is not None for value in power_args)
+    if qualified_power and not all(value is not None for value in power_args):
+        raise ValueError('qualified power requires settings, table and cutover')
+    if qualified_power and end_exclusive - start > timedelta(hours=24):
+        raise ValueError('qualified feature window must be at most 24 hours plus one-hour lag')
     if atomic_soc and bank_epochs is None:
         raise ValueError("atomic SoC requires configured physical bank epochs")
     if soc_evidence_table is not None and not ITEM_TABLE.fullmatch(soc_evidence_table):
@@ -117,15 +144,26 @@ def fetch_feature_rows(
     for table in tables.values():
         if not ITEM_TABLE.fullmatch(table):
             raise ValueError("invalid OpenHAB Item table name")
-    missing = REQUIRED_TABLES - set(tables)
+    required = REQUIRED_TABLES - ({'pv.input_power_w', 'house.ac_power_w'} if qualified_power else set())
+    missing = required - set(tables)
     if missing:
         raise ValueError(f"feature sources unresolved: {sorted(missing)}")
     soc = tables["battery.soc_pct"]
     soc_value = "NULL::double precision" if atomic_soc else _value(soc, "g.at")
     soc_lag = ("NULL::double precision" if atomic_soc
                else _value(soc, "g.at - interval '1 hour'"))
-    pv = tables["pv.input_power_w"]
-    load = tables["house.ac_power_w"]
+    pv = tables.get("pv.input_power_w")
+    load = tables.get("house.ac_power_w")
+    pv_value = 'NULL::double precision' if qualified_power else _value(pv, 'g.at')
+    pv_lag = 'NULL::double precision' if qualified_power else _value(pv, "g.at - interval '1 hour'")
+    load_value = 'NULL::double precision' if qualified_power else _value(load, 'g.at')
+    load_lag = 'NULL::double precision' if qualified_power else _value(load, "g.at - interval '1 hour'")
+    power_lookup = None
+    if qualified_power:
+        history = read_power_history(power_settings, power_table,
+            start - timedelta(hours=1), end_exclusive, cutover=power_cutover)
+        power_lookup = _power_lookup(history['pv.input_power_w'],
+                                    start - timedelta(hours=1), end_exclusive)
     temperature = tables["weather.outdoor_temperature_c"]
     irradiance = tables["weather.irradiance_w_m2"]
     dishwasher = _switch(tables.get("load.dishwasher_state"))
@@ -147,10 +185,10 @@ def fetch_feature_rows(
           SELECT g.at,
                  {soc_value} AS battery_soc_pct,
                  {soc_lag} AS battery_soc_pct_lag_1h,
-                 {_value(pv, "g.at")} AS pv_power_w,
-                 {_value(pv, "g.at - interval '1 hour'")} AS pv_power_w_lag_1h,
-                 {_value(load, "g.at")} AS load_power_w,
-                 {_value(load, "g.at - interval '1 hour'")} AS load_power_w_lag_1h,
+                 {pv_value} AS pv_power_w,
+                 {pv_lag} AS pv_power_w_lag_1h,
+                 {load_value} AS load_power_w,
+                 {load_lag} AS load_power_w_lag_1h,
                  {temperature_value} AS outdoor_temperature_c,
                  {_value(irradiance, "g.at")} AS outdoor_irradiance_w_m2,
                  {dishwasher} AS dishwasher_active,
@@ -255,4 +293,11 @@ def fetch_feature_rows(
             at = row["at"].astimezone(timezone.utc)
             row["battery_soc_pct"] = lookup(at)
             row["battery_soc_pct_lag_1h"] = lookup(at - timedelta(hours=1))
+    if qualified_power:
+        for row in rows:
+            at = row['at'].astimezone(timezone.utc)
+            row['pv_power_w'] = power_lookup(at)
+            row['pv_power_w_lag_1h'] = power_lookup(at - timedelta(hours=1))
+            # No independently qualified AC-load source exists yet.
+            row['load_power_w'] = row['load_power_w_lag_1h'] = None
     return rows
