@@ -6,6 +6,7 @@ from zoneinfo import ZoneInfo
 from .power_evidence import utc
 from .power_report import build_power_report
 from .power_store import POLICY
+from .soc_exposure import lifecycle_soc_exposure
 from .ui_payload import _aware, _exact, _integer, _number
 
 ACCOUNTING = {'basis','cutover','daysPresent','latestBatteryCoverage',
@@ -135,4 +136,10 @@ def build_qualified_ui_payload(rows, *, epoch_id, cutover, start_date, end_date,
     result['lifecycle'].update(status='degraded' if latest else 'unavailable',
         chargeKwh=totals['charge_kwh'],dischargeKwh=totals['discharge_kwh'],
         periodEfc=totals['daily_efc'])
+    exposure = lifecycle_soc_exposure(rows)
+    if (rows and not report['missing_dates'] and len(exposure['daily']) == len(rows)
+            and all(day['coverage'] >= .9 for day in exposure['daily'])):
+        result['lifecycle'].update(
+            highSocHoursAbove90=exposure['above_90_hours'],
+            highSocHoursAbove95=exposure['above_95_hours'])
     return validate_energy_ui_payload(result,now=generated_at)

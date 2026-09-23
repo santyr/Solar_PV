@@ -100,6 +100,38 @@ def test_qualified_full_streak_rejects_partial_full_day_as_anchor():
     assert qualified_full_streak(records,date(2026,8,24)) == (2, None)
 
 
+def atomic_exposure_rows(*, coverage=.99, missing_day=False, missing_source=False):
+    records=full_rows(days=(21,23) if missing_day else (21,22,23),
+        reached=(True,False) if missing_day else (True,False,False))
+    for row in records:
+        window_start=datetime.fromisoformat(row['payload']['window_start'])
+        window_end=datetime.fromisoformat(row['payload']['window_end'])
+        seconds=(window_end-window_start).total_seconds()
+        row['payload']['battery'].update(hours_above_90=2.0,hours_above_95=1.0)
+        row['payload']['source_quality']=[{'canonical_name':'battery.soc_pct',
+            'coverage':coverage,'detail':{'policy':'atomic_bms_evidence',
+            'freshness_basis':'BMS_SOC_Evidence_JSON',
+            'valid_seconds':seconds*coverage,'window_seconds':seconds,
+            'reason':'source_unavailable' if missing_source else None}}]
+        row['payload_sha256']=encode_snapshot(row['payload'])[3]
+    return records
+
+
+def test_qualified_ui_exposes_observed_high_soc_hours_for_complete_atomic_window():
+    result=build(atomic_exposure_rows())
+    assert result['lifecycle']['highSocHoursAbove90']==6.0
+    assert result['lifecycle']['highSocHoursAbove95']==3.0
+    encode_energy_ui_payload(result)
+
+
+@pytest.mark.parametrize('options',[{'coverage':.89},{'missing_day':True},
+                                    {'missing_source':True}])
+def test_qualified_ui_withholds_high_soc_hours_when_window_is_not_qualified(options):
+    result=build(atomic_exposure_rows(**options))
+    assert result['lifecycle']['highSocHoursAbove90'] is None
+    assert result['lifecycle']['highSocHoursAbove95'] is None
+
+
 @pytest.mark.parametrize('mutate',[
     lambda p:p['accounting'].update(policy='legacy'),
     lambda p:p['accounting'].update(latestBatteryCoverage=2),
