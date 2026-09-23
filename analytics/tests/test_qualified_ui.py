@@ -3,7 +3,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from earthship_energy.qualified_ui import build_qualified_ui_payload
+from earthship_energy.qualified_ui import build_qualified_ui_payload, qualified_full_streak
 from earthship_energy.ui_payload import encode_energy_ui_payload, validate_energy_ui_payload
 from earthship_energy.ui_reader import build_energy_ui_snapshot, fetch_ui_health_and_forecast
 from earthship_energy.power_store import encode_snapshot
@@ -53,6 +53,51 @@ def test_empty_projection_does_not_fabricate_zeros():
     assert result['accounting']['daysPresent']==0
     assert result['accounting']['missingDays']==3
     encode_energy_ui_payload(result)
+
+
+def full_rows(days=(21,22,23), reached=(True,False,False), partial_days=()):
+    result=[]
+    for day, full in zip(days,reached):
+        row=revision(day=day)
+        row['computed_at']=NOW
+        row['payload']['battery'].update(quality='partial' if day in partial_days else 'ok',
+            coverage=.8 if day in partial_days else .99,min_soc_pct=60,
+            depth_of_discharge_pct=20,reached_99=full)
+        row['payload_sha256']=encode_snapshot(row['payload'])[3]
+        result.append(row)
+    return result
+
+
+def test_qualified_full_streak_counts_only_contiguous_healthy_days():
+    result=build(full_rows())
+    assert result['battery']['daysSinceFull']==2
+    assert result['battery']['currentNoFullDays']==2
+    assert result['battery']['status']=='ok'
+    assert build(full_rows(reached=(False,False,True)))['battery']['daysSinceFull']==0
+    assert build(full_rows(reached=(False,False,True)))['battery']['currentNoFullDays']==0
+
+
+@pytest.mark.parametrize('records',[
+    full_rows(days=(21,23),reached=(True,False)),
+    full_rows(reached=(True,False,False),partial_days=(22,)),
+    full_rows(reached=(False,False,False)),
+    full_rows(days=(21,22),reached=(True,False)),
+])
+def test_qualified_full_streak_withholds_gaps_partial_days_and_unwitnessed_full(records):
+    result=build(records)
+    assert result['battery']['daysSinceFull'] is None
+
+
+def test_qualified_no_full_run_stops_at_evidence_gap():
+    assert build(full_rows(days=(21,23),reached=(True,False)))['battery']['currentNoFullDays']==1
+    assert build(full_rows(reached=(True,False,False),partial_days=(22,)))['battery']['currentNoFullDays']==1
+    assert build(full_rows(reached=(False,False,False)))['battery']['currentNoFullDays']==3
+    assert build(full_rows(days=(21,22),reached=(True,False)))['battery']['currentNoFullDays'] is None
+
+
+def test_qualified_full_streak_rejects_partial_full_day_as_anchor():
+    records=full_rows(reached=(True,False,False),partial_days=(21,))
+    assert qualified_full_streak(records,date(2026,8,24)) == (2, None)
 
 
 @pytest.mark.parametrize('mutate',[

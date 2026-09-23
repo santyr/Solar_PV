@@ -1,5 +1,5 @@
 """Qualified UI v3 projection; no reads or legacy daily fallback."""
-from datetime import date
+from datetime import date, timedelta
 import re
 from zoneinfo import ZoneInfo
 
@@ -11,6 +11,26 @@ from .ui_payload import _aware, _exact, _integer, _number
 ACCOUNTING = {'basis','cutover','daysPresent','latestBatteryCoverage',
     'latestPvCoverage','latestRevision','loadStatus','missingDays','policy',
     'windowEndExclusive','windowStart'}
+
+
+def qualified_full_streak(rows, end_date):
+    """Return the observed no-full run and days since a witnessed 99% day.
+
+    The selected revisions must be ordered and identity-validated by the
+    caller. Never bridge a missing/partial day or invent a full-charge anchor.
+    """
+    expected = end_date - timedelta(days=1)
+    no_full_days = 0
+    for row in reversed(rows):
+        battery = row['payload']['battery']
+        if (row['local_date'] != expected or battery.get('quality') != 'ok'
+                or battery.get('coverage', 0) < .9):
+            break
+        if battery.get('reached_99') is True:
+            return no_full_days, no_full_days
+        no_full_days += 1
+        expected -= timedelta(days=1)
+    return no_full_days, None
 
 
 def validate_accounting(payload):
@@ -99,10 +119,14 @@ def build_qualified_ui_payload(rows, *, epoch_id, cutover, start_date, end_date,
     result['throughDate'] = latest['local_date'].isoformat() if latest else None
     if latest:
         battery_ok = battery.get('quality') == 'ok' and battery['coverage'] >= .9
+        current_no_full, days_since_full = qualified_full_streak(rows, end_date) if battery_ok else (None, None)
+        if latest['local_date'] != end_date - timedelta(days=1):
+            current_no_full = days_since_full = None
         result['battery'].update(status='ok' if battery_ok else 'degraded',
             latestMinSocPct=battery.get('min_soc_pct') if battery_ok else None,
             latestDepthOfDischargePct=battery.get('depth_of_discharge_pct') if battery_ok else None,
             latestReached99=battery.get('reached_99') if battery_ok else None,
+            daysSinceFull=days_since_full,currentNoFullDays=current_no_full,
             latestEfc=battery['daily_efc'])
         result['energy'].update(status='degraded', latest={
             'date':result['throughDate'],'pvKwh':pv['energy_kwh'],'loadKwh':None,
