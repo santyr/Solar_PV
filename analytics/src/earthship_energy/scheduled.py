@@ -23,6 +23,9 @@ from .forecasts import persist_forecast_snapshots, snapshots_from_openhab_detail
 from .inventory import fetch_inventory, resolve_sources
 from .materialize import load_epoch_config
 from .power_policy import load_power_policy
+from .ac_policy import load_ac_policy
+from .ac_snapshot_reader import read_ac_snapshots
+from .ac_ui import build_ac_ui_payload
 from .reader import ITEM_TABLE
 from .ui_publish import DEFAULT_OPENHAB_URL, publish_energy_ui_state
 from .ui_reader import build_energy_ui_snapshot, fetch_live_subsystem_health
@@ -451,6 +454,7 @@ def _parser() -> argparse.ArgumentParser:
     ui_publish.add_argument("--timezone", default="America/Denver")
     ui_publish.add_argument("--openhab-url", default=DEFAULT_OPENHAB_URL)
     ui_publish.add_argument("--power-evidence-policy")
+    ui_publish.add_argument("--ac-evidence-policy")
     return parser
 
 
@@ -572,8 +576,14 @@ def main(argv: list[str] | None = None) -> int:
         return _exit_for_severity("Interesting")
     if args.command == "energy-ui-publish":
         now = utc_now()
+        if args.ac_evidence_policy and (not args.power_evidence_policy
+                                        or args.timezone != 'America/Denver'):
+            raise ValueError('AC UI v4 requires qualified power policy and America/Denver')
         settings = parse_openhab_jdbc_config(args.jdbc_config)
         policy = load_power_policy(args.power_evidence_policy) if args.power_evidence_policy else None
+        ac_policy = load_ac_policy(args.ac_evidence_policy) if args.ac_evidence_policy else None
+        if ac_policy is not None and max(ac_policy.cutover, ac_policy.topology_from) > now:
+            raise ValueError('AC UI topology or evidence cutover is in the future')
         connection = connect_read_only(settings)
         try:
             source_config = live_health_source_config(load_source_config())
@@ -587,6 +597,15 @@ def main(argv: list[str] | None = None) -> int:
                 timezone_name=args.timezone, live_health=live_health,
                 **({'power_settings':settings,'power_policy':policy} if policy else {}),
             )
+            if ac_policy is not None:
+                end = now.astimezone(ZoneInfo(args.timezone)).date()
+                start = max(end-timedelta(days=366),
+                            ac_policy.cutover.astimezone(ZoneInfo(args.timezone)).date(),
+                            ac_policy.topology_from.astimezone(ZoneInfo(args.timezone)).date())
+                start = min(start, end-timedelta(days=1))
+                ac_rows = read_ac_snapshots(settings, policy=ac_policy,
+                                            start_date=start, end_date=end, as_of=now)
+                payload = build_ac_ui_payload(payload, policy=ac_policy, ac_rows=ac_rows)
         finally:
             connection.close()
         result = publish_energy_ui_state(

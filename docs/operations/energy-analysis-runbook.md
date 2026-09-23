@@ -61,6 +61,15 @@ prior revision. It does not publish a UI value or infer an AC/DC balance.
 September 24 is not complete until September 25 06:00Z. A scheduled writer
 and v4 UI publisher remain separately gated.
 
+The `energy-ui-publish` CLI now accepts an optional `--ac-evidence-policy`
+only alongside `--power-evidence-policy` and `America/Denver`. With that flag,
+it selects bounded latest AC revisions, builds the separate v4 AC section, and
+validates the complete payload before the single OpenHAB publication. The
+installed five-minute service intentionally has no AC flag, so it continues
+to publish v3. Do not add the flag until the first completed AC day, production
+evidence checks, and a reviewed v4 dry run pass. A bad latest AC revision must
+fail publication, never fall back to an older revision or legacy load estimate.
+
 Daily PV products include input/output energy, MPPT energy ratio, productive
 window and hours, and energy on each side of observed solar noon. Solar noon
 is the midpoint of the persisted `Sun_Rise_End` and `Sun_Set_Start` events,

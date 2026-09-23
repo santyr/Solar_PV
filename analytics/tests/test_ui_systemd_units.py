@@ -12,6 +12,7 @@ def test_energy_ui_publisher_unit_is_hardened_and_observational():
     assert "PYTHONPATH=/home/sat/Solar_PV/analytics/src" in service
     assert "/usr/bin/flock --nonblock %t/energy-ui-publish.lock" in service
     assert "earthship_energy.scheduled energy-ui-publish" in service
+    assert "--ac-evidence-policy" not in service
     assert "EnvironmentFile=-%h/.config/hex/openhab.env" in service
     assert "OPENHAB_TOKEN" not in service
     assert "NoNewPrivileges=true" in service

@@ -9,6 +9,61 @@ from earthship_energy.config import load_source_config
 UTC = timezone.utc
 
 
+def test_ac_v4_publication_is_opt_in_and_reads_before_one_write(monkeypatch, tmp_path):
+    now = datetime(2026, 9, 25, 12, tzinfo=UTC)
+    calls = []
+    class Connection:
+        closed = False
+        def close(self):
+            self.closed = True
+            calls.append('close')
+    connection = Connection()
+    monkeypatch.setattr('earthship_energy.scheduled.utc_now', lambda: now)
+    monkeypatch.setattr('earthship_energy.scheduled.parse_openhab_jdbc_config', lambda _: 'settings')
+    monkeypatch.setattr('earthship_energy.scheduled.connect_read_only', lambda _: connection)
+    monkeypatch.setattr('earthship_energy.scheduled.load_source_config', load_source_config)
+    monkeypatch.setattr('earthship_energy.scheduled.fetch_inventory', lambda _: ([], set()))
+    monkeypatch.setattr('earthship_energy.scheduled.resolve_sources', lambda *_: [])
+    monkeypatch.setattr('earthship_energy.scheduled.fetch_live_subsystem_health', lambda *_a, **_k: {})
+    monkeypatch.setattr('earthship_energy.scheduled.load_epoch_config', lambda _: [])
+    monkeypatch.setattr('earthship_energy.scheduled.build_energy_ui_snapshot',
+                        lambda *_a, **_k: {'schema': 'earthship-energy-ui/v3'})
+    def read(_settings, *, policy, start_date, end_date, as_of):
+        calls.append(('read', start_date.isoformat(), end_date.isoformat(), as_of))
+        assert policy.topology_until is None
+        return [{'selected': 'revision'}]
+    monkeypatch.setattr('earthship_energy.scheduled.read_ac_snapshots', read)
+    monkeypatch.setattr('earthship_energy.scheduled.build_ac_ui_payload',
+                        lambda base, *, policy, ac_rows: calls.append(('project', base['schema'], ac_rows))
+                        or {'schema': 'earthship-energy-ui/v4'})
+    def publish(payload, **_):
+        assert connection.closed
+        calls.append(('publish', payload['schema']))
+        return {'status': 'published'}
+    monkeypatch.setattr('earthship_energy.scheduled.publish_energy_ui_state', publish)
+    power = tmp_path/'power.json'
+    power.write_text(json.dumps({'version': 1, 'policy': 'qualified_power_evidence_v1',
+                     'item_name': 'Power_Evidence_JSON', 'cutover': '2026-09-20T00:00:00Z'}))
+    ac = tmp_path/'ac.json'
+    ac.write_text(json.dumps({'version': 1, 'policy': 'qualified_inverter_ac_output_v1',
+                  'item_name': 'Inverter_AC_Evidence_JSON', 'cutover': '2026-09-23T20:55:12.284Z',
+                  'topology': {'basis': 'inverter_only_no_bypass_or_generator',
+                               'effective_from': '2026-09-23T20:55:12.284Z',
+                               'effective_until': None}}))
+    assert main(['energy-ui-publish', '--power-evidence-policy', str(power),
+                 '--ac-evidence-policy', str(ac)]) == 0
+    assert calls == [('read', '2026-09-23', '2026-09-25', now),
+                     ('project', 'earthship-energy-ui/v3', [{'selected': 'revision'}]),
+                     'close', ('publish', 'earthship-energy-ui/v4')]
+
+
+def test_ac_v4_refuses_without_power_policy_before_db(monkeypatch):
+    monkeypatch.setattr('earthship_energy.scheduled.connect_read_only',
+                        lambda *_: pytest.fail('DB opened'))
+    with pytest.raises(ValueError, match='requires qualified power'):
+        main(['energy-ui-publish', '--ac-evidence-policy', '/private/ac.json'])
+
+
 @pytest.mark.parametrize('qualified',[False,True])
 def test_energy_ui_publish_closes_read_only_db_before_one_openhab_write(monkeypatch, capsys, tmp_path, qualified):
     now = datetime(2026, 8, 20, 18, tzinfo=UTC)
