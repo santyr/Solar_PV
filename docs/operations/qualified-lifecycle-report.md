@@ -39,3 +39,14 @@ using `energy-power-reader.jdbc` returned the expected empty/unavailable result
 for September 19, with null throughput and no legacy substitution. This does
 not establish a nonempty natural daily result; the first qualified daily write
 remains scheduled after the current day completes.
+
+September 23 read-only follow-up: the restricted reader returned naturally
+written September 20–22 daily snapshots (IDs 1–3), with no missing dates or
+legacy substitution. The cutover day has 60.39% battery-power coverage; both
+later completed days exceed 99.98%. The observed three-day period EFC is
+0.4347889408, and separate atomic-SoC evidence reports 49.5898 hours above
+90% and 32.4853 hours above 95%, with at least 99.97% valid SoC coverage on
+each day. This closes the first nonempty completed-day readback. The report
+correctly remains `partial_observations`: its cutover day is partial, no
+missing intervals are extrapolated, and lifetime EFC, temperature exposure
+and independent BMS-counter comparison remain unavailable.
