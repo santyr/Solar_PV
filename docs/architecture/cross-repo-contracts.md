@@ -236,6 +236,24 @@ full restart or protected-control recovery.
 This contract does not rename or reinterpret any feeder, greywater, night-load,
 forecast, thermal, AGM-history, BMS, inverter, or charge-controller interface.
 
+### Separate inverter-output evidence candidate (September 23)
+
+The operator reports that all current household AC loads are inverter-served,
+with no bypass or generator supplementation. This is a current topology report,
+not evidence that earlier or future intervals share it. The existing
+`Power_Evidence_JSON` three-field stream and `earthship-energy-ui/v3` load
+withholding contract remain unchanged.
+
+The proposed independent `Inverter_AC_Evidence_JSON` stream has basis
+`inverter_output`, not `household_load`. Solar-PV's source-only strict reader
+accepts it separately, preserves invalid-row and sequence barriers, and
+requires both actual collection cutover and an explicitly finite confirmed
+inverter-only topology period. It returns qualified inverter-output intervals,
+not energy balance or load totals. No policy period, production Item, reader
+activation, daily consumer or UI contract promotion is established by this
+code. A period must be recorded from evidence and bounded to avoid silently
+backdating or indefinitely extending the operator's current assertion.
+
 
 ## Forecast detail input boundary
 

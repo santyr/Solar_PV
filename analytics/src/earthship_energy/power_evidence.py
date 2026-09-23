@@ -101,7 +101,8 @@ def parse_power_evidence(raw: str, persisted_at: datetime) -> PowerRecord | None
         return None
 
 
-def build_power_intervals(observations, field, window_start, window_end, *, cutover):
+def build_power_intervals(observations, field, window_start, window_end, *, cutover,
+                          parser=parse_power_evidence, bounds=BOUNDS):
     """Return only qualified half-open intervals; publication delays remain gaps.
 
     Other fields changing do not interrupt an unchanged field. Restored records
@@ -109,7 +110,7 @@ def build_power_intervals(observations, field, window_start, window_end, *, cuto
     publications, retired epochs and invalid-row barriers. Cutover is actual
     activation time, never a retrospectively inferred start of historical data.
     """
-    if field not in BOUNDS:
+    if field not in bounds:
         raise ValueError('unknown power field')
     start, end, floor = utc(window_start), utc(window_end), utc(cutover)
     if end <= start:
@@ -140,7 +141,7 @@ def build_power_intervals(observations, field, window_start, window_end, *, cuto
         last_persisted = persisted
         if persisted >= end:
             continue
-        record = parse_power_evidence(raw, persisted)
+        record = parser(raw, persisted)
         if record is None:
             finish(persisted)
             pending = None

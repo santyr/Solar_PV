@@ -65,6 +65,12 @@ Modbus TCP. Current battery authority includes `BMS_SOC`,
 `BMS_Comms_Status`, `DCData_Voltage`, and `DCData_Current`. PostgreSQL
 stores quantitative OpenHAB history using `public.items` and per-Item tables.
 
+On September 23, 2026, the operator confirmed that all current household AC
+loads are served by inverter output, without bypass or generator supplementation.
+The confirmation has no historical start timestamp or automatic future-change
+detector; AC-load accounting therefore still requires a bounded, separately
+confirmed topology period and qualified inverter-output receipts.
+
 OpenHAB may observe, alert, and execute bounded deterministic owner rules. It
 does not replace BMS/inverter protection. The current browser sends only its
 documented direct light/circadian commands and correlated owner requests; see
