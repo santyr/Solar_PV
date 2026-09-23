@@ -66,6 +66,8 @@ def test_feature_reader_uses_validated_tables_and_as_of_forecast_constraints():
     sql, params = connection.cursor_instance.executed
     assert "generate_series" in sql
     assert "issued_at <= r.at" in sql
+    assert sql.count("captured_at <= r.at") == 3
+    assert "ftemp.issued_at IS NULL OR frad.issued_at IS NULL" in sql
     assert "public.item0001" in sql
     assert "public.item0007" in sql
     assert "- 32.0) * 5.0 / 9.0" in sql

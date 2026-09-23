@@ -216,7 +216,7 @@ def fetch_feature_rows(
                fpv.issued_at,
                fpv.valid_for,
                CASE
-                 WHEN ftemp.issued_at IS NULL THEN 'unavailable'
+                 WHEN ftemp.issued_at IS NULL OR frad.issued_at IS NULL THEN 'unavailable'
                  WHEN r.at - ftemp.issued_at > interval '3 hours' THEN 'stale'
                  ELSE 'current'
                END,
@@ -238,6 +238,7 @@ def fetch_feature_rows(
           FROM energy_analytics.forecast_snapshots
           WHERE metric = 'temperature_f'
             AND issued_at <= r.at
+            AND captured_at <= r.at
             AND valid_for >= r.at
           ORDER BY valid_for, issued_at DESC
           LIMIT 1
@@ -247,11 +248,13 @@ def fetch_feature_rows(
          AND frad.issued_at = ftemp.issued_at
          AND frad.valid_for = ftemp.valid_for
          AND frad.metric = 'radiation_wm2'
+         AND frad.captured_at <= r.at
         LEFT JOIN LATERAL (
           SELECT issued_at, valid_for, value
           FROM energy_analytics.forecast_snapshots
           WHERE metric = 'daily_pv_kwh'
             AND issued_at <= r.at
+            AND captured_at <= r.at
             AND (valid_for AT TIME ZONE %s)::date =
                 (r.at AT TIME ZONE %s)::date
           ORDER BY issued_at DESC

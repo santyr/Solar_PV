@@ -135,9 +135,10 @@ def fetch_ui_health_and_forecast(
                FROM energy_analytics.forecast_snapshots
                WHERE metric = 'daily_pv_kwh'
                  AND issued_at <= %s AND valid_for >= %s
+                 AND captured_at <= %s
                ORDER BY issued_at DESC, valid_for ASC
                LIMIT 1""",
-            (generated_at, forecast_floor),
+            (generated_at, forecast_floor, generated_at),
         )
         forecast_row = cursor.fetchone()
 

@@ -80,9 +80,11 @@ def test_health_and_forecast_reader_is_schema_bounded_and_time_bounded():
     assert quality_params == (date(2026, 8, 19),)
     assert "energy_analytics.forecast_snapshots" in forecast_sql
     assert "issued_at <= %s" in forecast_sql
+    assert "captured_at <= %s" in forecast_sql
     assert "valid_for >= %s" in forecast_sql
     assert "LIMIT 1" in forecast_sql
     assert forecast_params[0] == NOW
+    assert forecast_params[2] == NOW
     assert forecast["status"] == "current"
     assert forecast["pv24hKwh"] == 7.2
     assert health == {
