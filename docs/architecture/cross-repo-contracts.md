@@ -264,6 +264,16 @@ completed day. The operator's renewal/expiry preference, actual policy file,
 daily consumer, stored-revision policy and v4 UI contract remain separate
 activation work. The current v3 UI must continue withholding load totals.
 
+The next source-only read path resolves both exact Item identities, then
+integrates the qualified inverter-output intervals for one eligible day. It
+also reports MPPT DC output and AC output only over their common observed
+intervals, with separate coverage. It deliberately returns `balance_kwh:null`:
+MPPT output is DC and inverter output is AC, so their subtraction is not a
+household energy surplus, battery contribution or conversion-loss measure.
+No daily revision, scheduled job, load UI value or balance claim is enabled
+by this reader. A versioned daily store and UI reader-first contract are
+required before publication.
+
 
 ## Forecast detail input boundary
 
