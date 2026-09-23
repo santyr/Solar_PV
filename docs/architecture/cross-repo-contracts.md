@@ -254,6 +254,16 @@ activation, daily consumer or UI contract promotion is established by this
 code. A period must be recorded from evidence and bounded to avoid silently
 backdating or indefinitely extending the operator's current assertion.
 
+The subsequent source-only `ac_policy.py` adds an exact secret-free policy
+loader for the new Item. It resolves the physical JDBC table from the live
+Item inventory, rejects duplicate/malformed keys and a topology start before
+the evidence cutover, and admits only whole, already-finished Denver-local
+days inside the declared topology period. Even if the operator elects an
+open-ended attestation, each reader call receives the finite end of one
+completed day. The operator's renewal/expiry preference, actual policy file,
+daily consumer, stored-revision policy and v4 UI contract remain separate
+activation work. The current v3 UI must continue withholding load totals.
+
 
 ## Forecast detail input boundary
 
