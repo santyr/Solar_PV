@@ -43,6 +43,24 @@ the initial bounded backfill require the verified backup manifest documented in
 migration is pending, then updates only compact analytics rows; it does not
 rehash the migration backup. Raw `public.itemNNNN` history is read-only.
 
+The separate qualified AC-day command is explicit and unscheduled. It accepts
+only a completed America/Denver local day within both the independent AC
+evidence cutover and the operator-attested inverter-only period:
+
+```bash
+PYTHONPATH=src python3 -m earthship_energy.cli ac-day \
+  --date 2026-09-24 \
+  --ac-evidence-policy config/ac-evidence.json \
+  --power-evidence-policy config/power-evidence.json --dry-run
+```
+
+After the first complete day and live stream qualification, the same exact
+command may use `--apply` to append a daily AC revision. It checks for pending
+migrations, re-reads the topology policy before writing, and never updates a
+prior revision. It does not publish a UI value or infer an AC/DC balance.
+September 24 is not complete until September 25 06:00Z. A scheduled writer
+and v4 UI publisher remain separately gated.
+
 Daily PV products include input/output energy, MPPT energy ratio, productive
 window and hours, and energy on each side of observed solar noon. Solar noon
 is the midpoint of the persisted `Sun_Rise_End` and `Sun_Set_Start` events,

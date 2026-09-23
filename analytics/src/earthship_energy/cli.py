@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import argparse
 from dataclasses import asdict
-from datetime import date, datetime, time, timedelta
+from datetime import date, datetime, time, timedelta, timezone
 import hashlib
 import json
 from pathlib import Path
@@ -14,6 +14,9 @@ from zoneinfo import ZoneInfo
 from .config import ConfigError, load_source_config
 from .daily import build_daily_snapshot
 from .power_policy import load_power_policy
+from .ac_policy import load_ac_policy
+from .ac_accounting import read_ac_day_accounting
+from .ac_store import store_ac_snapshot
 from .power_report import read_power_report, read_qualified_lifecycle_report
 from .db import (
     DatabaseConfigError,
@@ -94,6 +97,14 @@ def _parser() -> argparse.ArgumentParser:
     aggregate_mode.add_argument("--dry-run", action="store_true")
     aggregate_mode.add_argument("--apply", action="store_true")
     aggregate.add_argument("--backup-manifest", type=Path)
+    ac_day = subparsers.add_parser("ac-day")
+    ac_day.add_argument("--date", required=True)
+    ac_day.add_argument("--ac-evidence-policy", required=True, type=Path)
+    ac_day.add_argument("--power-evidence-policy", required=True, type=Path)
+    ac_day.add_argument("--jdbc-config", default=DEFAULT_JDBC_CONFIG, type=Path)
+    ac_day_mode = ac_day.add_mutually_exclusive_group(required=True)
+    ac_day_mode.add_argument("--dry-run", action="store_true")
+    ac_day_mode.add_argument("--apply", action="store_true")
     report = subparsers.add_parser("report")
     report.add_argument("kind", choices=("monthly", "winter", "lifecycle", "modules", "power"))
     report.add_argument("--power-evidence-policy", type=Path)
@@ -290,6 +301,45 @@ def _aggregate(args) -> int:
         close = getattr(connection, "close", None)
         if close is not None:
             close()
+    _print(result)
+    return 0
+
+
+def _ac_day(args) -> int:
+    try:
+        local_date = date.fromisoformat(args.date)
+        if local_date.isoformat() != args.date:
+            raise ValueError
+    except ValueError as exc:
+        raise ValueError('--date must use YYYY-MM-DD') from exc
+    now = datetime.now(timezone.utc)
+    ac_policy = load_ac_policy(args.ac_evidence_policy)
+    power_policy = load_power_policy(args.power_evidence_policy)
+    ac_policy.day_window(local_date, as_of=now)
+    settings = parse_openhab_jdbc_config(args.jdbc_config)
+    try:
+        connection = (connect_write if args.apply else connect_read_only)(settings)
+    except Exception as exc:
+        raise DatabaseConfigError(
+            f'database connection failed ({type(exc).__name__})'
+        ) from exc
+    try:
+        if args.apply and plan_migrations(discover_migrations(),
+                                          get_applied_migrations(connection)):
+            raise MigrationDriftError('pending migrations must be applied before AC day')
+        items, tables = fetch_inventory(connection)
+        snapshot = read_ac_day_accounting(
+            settings, ac_policy=ac_policy, power_policy=power_policy,
+            items=items, tables=tables, local_date=local_date, as_of=now)
+        if args.apply:
+            if load_ac_policy(args.ac_evidence_policy) != ac_policy:
+                raise ValueError('AC topology policy changed during observation')
+            result = {'status': 'ok', 'mode': 'materialized',
+                      **store_ac_snapshot(connection, snapshot, ac_policy)}
+        else:
+            result = {'status': 'ok', 'mode': 'read_only_dry_run', **snapshot}
+    finally:
+        connection.close()
     _print(result)
     return 0
 
@@ -605,6 +655,8 @@ def main(argv: list[str] | None = None) -> int:
             return _migrate(args)
         if args.command == "aggregate":
             return _aggregate(args)
+        if args.command == "ac-day":
+            return _ac_day(args)
         if args.command == "report":
             return _report(args)
         if args.command == "simulate":
