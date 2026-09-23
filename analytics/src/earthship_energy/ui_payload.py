@@ -315,9 +315,12 @@ def build_energy_ui_payload(
 def validate_energy_ui_payload(
     payload: object, *, now: datetime | None = None
 ) -> dict[str, object]:
-    qualified = isinstance(payload, dict) and payload.get('schema') == 'earthship-energy-ui/v3'
-    result = _exact(payload, TOP_LEVEL_FIELDS | ({'accounting'} if qualified else set()), "payload")
-    if result["schema"] not in {SCHEMA, 'earthship-energy-ui/v3'}:
+    qualified = isinstance(payload, dict) and payload.get('schema') in {
+        'earthship-energy-ui/v3', 'earthship-energy-ui/v4'}
+    ac_v4 = isinstance(payload, dict) and payload.get('schema') == 'earthship-energy-ui/v4'
+    result = _exact(payload, TOP_LEVEL_FIELDS | ({'accounting'} if qualified else set())
+                    | ({'acLoad'} if ac_v4 else set()), "payload")
+    if result["schema"] not in {SCHEMA, 'earthship-energy-ui/v3', 'earthship-energy-ui/v4'}:
         raise ValueError("unsupported energy UI schema")
     generated = _aware(result["generatedAt"], "generatedAt")
     if now is not None:
@@ -425,6 +428,9 @@ def validate_energy_ui_payload(
     if qualified:
         from .qualified_ui import validate_accounting
         validate_accounting(result)
+    if ac_v4:
+        from .ac_ui import validate_ac_load
+        validate_ac_load(result)
     return result
 
 
