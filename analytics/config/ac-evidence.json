@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "policy": "qualified_inverter_ac_output_v1",
+  "item_name": "Inverter_AC_Evidence_JSON",
+  "cutover": "2026-09-23T20:55:12.284000Z",
+  "topology": {
+    "basis": "inverter_only_no_bypass_or_generator",
+    "effective_from": "2026-09-23T20:55:12.284000Z",
+    "effective_until": null
+  }
+}

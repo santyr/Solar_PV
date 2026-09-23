@@ -1,5 +1,6 @@
 from datetime import date, datetime, timezone
 import json
+from pathlib import Path
 
 import pytest
 
@@ -98,3 +99,21 @@ def test_duplicate_and_oversized_policy_refused(tmp_path, raw):
     path.write_text(raw)
     with pytest.raises(ValueError, match='valid AC evidence policy'):
         ac_policy.load_ac_policy(path)
+
+
+def test_checked_in_operator_attestation_starts_at_first_durable_evidence():
+    policy = ac_policy.load_ac_policy(
+        Path(__file__).resolve().parents[1] / 'config/ac-evidence.json')
+    assert policy.cutover == datetime(2026, 9, 23, 20, 55, 12, 284000,
+                                      tzinfo=timezone.utc)
+    assert policy.topology_from == policy.cutover
+    assert policy.topology_until is None
+    with pytest.raises(ValueError):
+        policy.day_window(date(2026, 9, 23),
+                          as_of=datetime(2026, 9, 25, tzinfo=timezone.utc))
+    with pytest.raises(ValueError):
+        policy.day_window(date(2026, 9, 24),
+                          as_of=datetime(2026, 9, 25, 5, tzinfo=timezone.utc))
+    assert policy.day_window(date(2026, 9, 24),
+        as_of=datetime(2026, 9, 25, 6, tzinfo=timezone.utc))[1] == datetime(
+            2026, 9, 25, 6, tzinfo=timezone.utc)

@@ -274,6 +274,18 @@ No daily revision, scheduled job, load UI value or balance claim is enabled
 by this reader. A versioned daily store and UI reader-first contract are
 required before publication.
 
+On September23, the operator explicitly chose for the current
+inverter-only/no-bypass/no-generator topology report to remain valid until
+they report a change. The checked-in, secret-free AC policy starts at
+`2026-09-23T20:55:12.284000Z`, the first durable unavailable barrier of the
+new evidence stream, never before it. It has no fixed expiry; each accounting
+read is still bounded to one completed local day. A reported topology change
+requires ending the policy at the actual change time before later days are
+qualified. The partial September23 day is ineligible; the earliest candidate
+full day is September24 after its Denver-local end on September25 at06:00Z.
+This policy file is not wired into the scheduled job or v3 publisher, so its
+presence does not publish load or balance.
+
 
 ## Forecast detail input boundary
 
