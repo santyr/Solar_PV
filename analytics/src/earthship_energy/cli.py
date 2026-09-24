@@ -92,6 +92,7 @@ def _parser() -> argparse.ArgumentParser:
     aggregate.add_argument("--config", type=Path)
     aggregate.add_argument("--epochs", type=Path)
     aggregate.add_argument("--power-evidence-policy", type=Path)
+    aggregate.add_argument("--temperature-evidence-policy", type=Path)
     aggregate.add_argument("--jdbc-config", default=DEFAULT_JDBC_CONFIG, type=Path)
     aggregate_mode = aggregate.add_mutually_exclusive_group()
     aggregate_mode.add_argument("--dry-run", action="store_true")
@@ -282,8 +283,14 @@ def _aggregate(args) -> int:
             'power_evidence_table': policy.resolve_table(items, tables),
             'power_evidence_cutover': policy.cutover,
         }
+        temperature_options = {} if args.temperature_evidence_policy is None else {
+            'temperature_evidence_settings': settings,
+            'temperature_evidence_policy': args.temperature_evidence_policy,
+            'temperature_evidence_assessed_at': datetime.now(timezone.utc),
+        }
         snapshot = build_daily_snapshot(connection, config, resolved, local_date,
-                                        bank_epoch=epoch, **power_options)
+                                        bank_epoch=epoch, **power_options,
+                                        **temperature_options)
         if args.apply:
             if policy is None:
                 seed_reference_data(connection, config, epochs)

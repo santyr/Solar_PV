@@ -215,6 +215,9 @@ def test_daily_aggregate_command_uses_previous_site_day(monkeypatch):
 
     assert main(["daily-aggregate"]) == 0
     assert calls[0][:4] == ["aggregate", "--date", "2026-11-01", "--apply"]
+    assert "--temperature-evidence-policy" not in calls[0]
+    assert main(["daily-aggregate", "--temperature-evidence-policy", "/private/temperature.json"]) == 0
+    assert calls[1][-2:] == ["--temperature-evidence-policy", "/private/temperature.json"]
 
 
 def test_data_quality_command_writes_only_actionable_event(monkeypatch, tmp_path, capsys):
