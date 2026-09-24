@@ -293,6 +293,9 @@ def build_daily_snapshot(
             connection, resolved.table_name, start, end
         )
         freshness_table = getattr(resolved, "freshness_table_name", None)
+        if (definition.stale_policy == "local_date_must_match"
+                and definition.freshness_item != definition.item_name):
+            raise ValueError("local-date schedule requires its own Item as evidence")
         freshness_points = (
             fetch_freshness_observations(connection, freshness_table, start, end)
             if freshness_table is not None else []
@@ -308,6 +311,7 @@ def build_daily_snapshot(
             stale_after_seconds=definition.stale_after_seconds,
             freshness_item=definition.freshness_item,
             freshness_points=freshness_points,
+            site_timezone=config.timezone,
         ))
 
     quality_by_name = {row["canonical_name"]: row for row in source_quality}

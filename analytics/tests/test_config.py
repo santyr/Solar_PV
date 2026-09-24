@@ -53,6 +53,27 @@ def test_default_soc_source_selects_atomic_evidence_without_renaming_numeric_ite
     assert source.stale_policy == "atomic_bms_evidence"
 
 
+def test_astro_local_date_quality_uses_only_its_own_derived_schedule():
+    sources = {source.canonical_name: source for source in load_source_config().sources}
+    for name, item in (("solar.sunrise_at", "Sun_Rise_End"),
+                       ("solar.sunset_at", "Sun_Set_Start")):
+        source = sources[name]
+        assert source.item_name == source.freshness_item == item
+        assert source.stale_policy == "local_date_must_match"
+        assert source.kind == "derived"
+        assert source.raw_unit == "datetime"
+
+
+def test_local_date_policy_rejects_other_sources_as_freshness_basis(tmp_path):
+    source = minimal_source(name="solar.sunrise_at", item="Sun_Rise_End", required=False)
+    source.update(stale_policy="local_date_must_match", kind="derived",
+                  raw_unit="datetime", freshness_item="Other_Item")
+    path = write_config(tmp_path, {"version": 1, "timezone": "America/Denver",
+                                   "sources": [source]})
+    with pytest.raises(ConfigError, match="its own derived datetime Item"):
+        load_source_config(path)
+
+
 def test_duplicate_canonical_names_are_rejected(tmp_path):
     source = minimal_source()
     path = write_config(

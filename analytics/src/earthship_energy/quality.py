@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 from .bms_evidence import SocInterval
 from .power_intervals import account_power_intervals
@@ -98,6 +99,7 @@ def assess_source_quality(
     stale_after_seconds: int | None,
     freshness_item: str | None,
     freshness_points: list[tuple[datetime, str]],
+    site_timezone: str | None = None,
 ) -> dict[str, object]:
     """Measure coverage from (original_observed_at, raw_value) health evidence.
 
@@ -126,6 +128,14 @@ def assess_source_quality(
                 "reason": "no explicit freshness companion",
             },
         }
+
+    zone = None
+    target_day = None
+    if stale_policy == "local_date_must_match":
+        if site_timezone is None:
+            raise ValueError("local_date_must_match requires site timezone")
+        zone = ZoneInfo(site_timezone)
+        target_day = window_start.astimezone(zone).date()
 
     valid_seconds = 0.0
     stale_intervals = 0
@@ -159,6 +169,12 @@ def assess_source_quality(
                 authorized = seconds if float(raw_value) == 1.0 else 0.0
             except ValueError:
                 authorized = 0.0
+        elif stale_policy == "local_date_must_match":
+            scheduled = _parse_aware_datetime(raw_value)
+            if (scheduled is not None
+                    and scheduled.astimezone(zone).date() == target_day
+                    and observed_at >= window_start - timedelta(hours=30)):
+                authorized = seconds
         else:
             raise ValueError(f"unsupported companion freshness policy: {stale_policy}")
         valid_seconds += authorized

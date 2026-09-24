@@ -83,6 +83,12 @@ class MetricSource:
             raise ConfigError("source confidence must be between 0 and 1")
         if source.stale_after_seconds is not None and source.stale_after_seconds <= 0:
             raise ConfigError("stale_after_seconds must be positive")
+        if source.stale_policy == "local_date_must_match" and (
+            source.freshness_item != source.item_name
+            or source.kind != "derived"
+            or source.raw_unit != "datetime"
+        ):
+            raise ConfigError("local-date schedule requires its own derived datetime Item")
         return source
 
 

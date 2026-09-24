@@ -218,6 +218,7 @@
       "scale": 1.0,
       "sign": "not_applicable",
       "stale_policy": "local_date_must_match",
+      "freshness_item": "Sun_Rise_End",
       "kind": "derived",
       "confidence": 1.0,
       "required": false
@@ -232,6 +233,7 @@
       "scale": 1.0,
       "sign": "not_applicable",
       "stale_policy": "local_date_must_match",
+      "freshness_item": "Sun_Set_Start",
       "kind": "derived",
       "confidence": 1.0,
       "required": false
