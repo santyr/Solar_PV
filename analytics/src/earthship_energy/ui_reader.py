@@ -113,8 +113,9 @@ def fetch_ui_health_and_forecast(
     if generated_at.tzinfo is None or generated_at.utcoffset() is None:
         raise ValueError("generated_at must be timezone-aware")
     timezone = ZoneInfo(timezone_name)
-    forecast_floor = datetime.combine(
-        generated_at.astimezone(timezone).date(), time.min, tzinfo=timezone
+    forecast_target_end = datetime.combine(
+        generated_at.astimezone(timezone).date() + timedelta(days=1),
+        time.min, tzinfo=timezone,
     )
     with connection.cursor() as cursor:
         if qualified_source_quality is None:
@@ -134,11 +135,11 @@ def fetch_ui_health_and_forecast(
             """SELECT issued_at, valid_for, value
                FROM energy_analytics.forecast_snapshots
                WHERE metric = 'daily_pv_kwh'
-                 AND issued_at <= %s AND valid_for >= %s
+                 AND issued_at <= %s AND valid_for = %s
                  AND captured_at <= %s
-               ORDER BY issued_at DESC, valid_for ASC
+               ORDER BY issued_at DESC, captured_at DESC
                LIMIT 1""",
-            (generated_at, forecast_floor, generated_at),
+            (generated_at, forecast_target_end, generated_at),
         )
         forecast_row = cursor.fetchone()
 

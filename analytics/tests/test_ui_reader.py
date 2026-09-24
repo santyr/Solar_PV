@@ -81,9 +81,10 @@ def test_health_and_forecast_reader_is_schema_bounded_and_time_bounded():
     assert "energy_analytics.forecast_snapshots" in forecast_sql
     assert "issued_at <= %s" in forecast_sql
     assert "captured_at <= %s" in forecast_sql
-    assert "valid_for >= %s" in forecast_sql
+    assert "valid_for = %s" in forecast_sql
     assert "LIMIT 1" in forecast_sql
     assert forecast_params[0] == NOW
+    assert forecast_params[1].astimezone(UTC) == valid
     assert forecast_params[2] == NOW
     assert forecast["status"] == "current"
     assert forecast["pv24hKwh"] == 7.2
@@ -122,6 +123,25 @@ def test_health_reader_marks_missing_groups_and_stale_forecast_explicitly():
     assert health["collector"] == "ok"
     assert health["publisher"] == "ok"
     assert "daily_source_quality_not_ok" in health["reasons"]
+
+
+def test_daily_pv_selection_uses_next_local_midnight_across_dst():
+    for generated, expected in (
+        (datetime(2026, 9, 23, 6, 0, tzinfo=UTC), datetime(2026, 9, 24, 6, 0, tzinfo=UTC)),
+        (datetime(2026, 3, 8, 7, 0, tzinfo=UTC), datetime(2026, 3, 9, 6, 0, tzinfo=UTC)),
+        (datetime(2026, 11, 1, 6, 0, tzinfo=UTC), datetime(2026, 11, 2, 7, 0, tzinfo=UTC)),
+    ):
+        connection = Connection([], (generated, expected, 5.5))
+        fetch_ui_health_and_forecast(
+            connection,
+            through_date=generated.date(),
+            generated_at=generated,
+            timezone_name="America/Denver",
+            live_health=LIVE_OK,
+        )
+        sql, params = connection.instance.calls[1]
+        assert "valid_for = %s" in sql
+        assert params[1].astimezone(UTC) == expected
 
 
 def test_snapshot_uses_active_epoch_completed_days_and_existing_reports(monkeypatch):
