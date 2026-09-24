@@ -1,4 +1,4 @@
-from datetime import date, datetime, timezone
+from datetime import date
 from types import SimpleNamespace
 
 import pytest
@@ -9,6 +9,7 @@ from earthship_energy.series import local_day_bounds
 from weather_temperature_evidence import TemperaturePolicy
 import weather_temperature_config
 import weather_temperature_history
+import hourly_temperature_runtime
 
 
 def test_north_wall_quality_uses_closed_receipt_window_not_numeric_rows(monkeypatch):
@@ -16,6 +17,7 @@ def test_north_wall_quality_uses_closed_receipt_window_not_numeric_rows(monkeypa
     policy = TemperaturePolicy("AmbientWeather-WH31E", 193, -80, 160, 120)
     monkeypatch.setattr(weather_temperature_config, "load_temperature_policies",
                         lambda _path: {"north_wall": policy})
+    monkeypatch.setattr(hourly_temperature_runtime, "read_db_config", lambda _path: {})
     calls = []
 
     def read(factory, **kwargs):
@@ -28,7 +30,7 @@ def test_north_wall_quality_uses_closed_receipt_window_not_numeric_rows(monkeypa
 
     monkeypatch.setattr(weather_temperature_history, "fetch_temperature_window", read)
     result = temperature_quality.read_north_wall_quality(
-        SimpleNamespace(connect_kwargs={}), "/unused/policy", start=start, end=end,
+        "/unused/database", "/unused/policy", start=start, end=end,
         assessed_at=end, row_count=1, first_at=start, last_at=start,
     )
     assert len(calls) == 1
@@ -45,7 +47,8 @@ def test_north_wall_wrong_identity_or_unavailable_history_fails_closed(monkeypat
     monkeypatch.setattr(weather_temperature_config, "load_temperature_policies",
                         lambda _path: {"north_wall": TemperaturePolicy(
                             "AmbientWeather-WH31E", 194, -80, 160, 120)})
-    arguments = dict(settings=SimpleNamespace(connect_kwargs={}), policy_path="/unused",
+    monkeypatch.setattr(hourly_temperature_runtime, "read_db_config", lambda _path: {})
+    arguments = dict(db_config_path="/unused/database", policy_path="/unused",
                      start=start, end=end, assessed_at=end, row_count=0,
                      first_at=None, last_at=None)
     with pytest.raises(ValueError, match="identity mismatch"):
@@ -68,13 +71,13 @@ def test_daily_north_wall_opt_in_requires_complete_elapsed_evidence(monkeypatch)
                 for name, table in tables.items()]
     day = date(2026, 9, 23)
     start, end = local_day_bounds(day, config.timezone)
-    settings = object()
-    options = dict(temperature_evidence_settings=settings,
+    db_config = object()
+    options = dict(temperature_evidence_db_config=db_config,
                    temperature_evidence_policy="/unused/policy",
                    temperature_evidence_assessed_at=end)
     with pytest.raises(ValueError, match="complete temperature evidence"):
         daily.build_daily_snapshot(object(), config, resolved, day,
-                                   temperature_evidence_settings=settings)
+                                   temperature_evidence_db_config=db_config)
     with pytest.raises(ValueError, match="elapsed local day"):
         daily.build_daily_snapshot(object(), config, resolved, day,
                                    **{**options, "temperature_evidence_assessed_at": start})

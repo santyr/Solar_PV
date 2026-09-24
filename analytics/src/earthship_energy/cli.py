@@ -93,6 +93,7 @@ def _parser() -> argparse.ArgumentParser:
     aggregate.add_argument("--epochs", type=Path)
     aggregate.add_argument("--power-evidence-policy", type=Path)
     aggregate.add_argument("--temperature-evidence-policy", type=Path)
+    aggregate.add_argument("--temperature-evidence-db-config", type=Path)
     aggregate.add_argument("--jdbc-config", default=DEFAULT_JDBC_CONFIG, type=Path)
     aggregate_mode = aggregate.add_mutually_exclusive_group()
     aggregate_mode.add_argument("--dry-run", action="store_true")
@@ -252,6 +253,8 @@ def _aggregate(args) -> int:
         local_date = date.fromisoformat(args.date)
     except ValueError as exc:
         raise ValueError("--date must use YYYY-MM-DD") from exc
+    if (args.temperature_evidence_policy is None) != (args.temperature_evidence_db_config is None):
+        raise ValueError('temperature evidence requires policy and restricted database config')
     policy = load_power_policy(args.power_evidence_policy) if args.power_evidence_policy else None
     config = load_source_config(args.config)
     settings = parse_openhab_jdbc_config(args.jdbc_config)
@@ -284,7 +287,7 @@ def _aggregate(args) -> int:
             'power_evidence_cutover': policy.cutover,
         }
         temperature_options = {} if args.temperature_evidence_policy is None else {
-            'temperature_evidence_settings': settings,
+            'temperature_evidence_db_config': args.temperature_evidence_db_config,
             'temperature_evidence_policy': args.temperature_evidence_policy,
             'temperature_evidence_assessed_at': datetime.now(timezone.utc),
         }

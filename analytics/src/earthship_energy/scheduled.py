@@ -426,6 +426,7 @@ def _parser() -> argparse.ArgumentParser:
     aggregate.add_argument("--timezone", default="America/Denver")
     aggregate.add_argument("--power-evidence-policy")
     aggregate.add_argument("--temperature-evidence-policy")
+    aggregate.add_argument("--temperature-evidence-db-config")
     quality = commands.add_parser("data-quality")
     quality.add_argument("--jdbc-config", default=DEFAULT_JDBC_CONFIG)
     quality.add_argument("--timezone", default="America/Denver")
@@ -484,6 +485,8 @@ def main(argv: list[str] | None = None) -> int:
             command.extend(['--power-evidence-policy', args.power_evidence_policy])
         if args.temperature_evidence_policy:
             command.extend(['--temperature-evidence-policy', args.temperature_evidence_policy])
+        if args.temperature_evidence_db_config:
+            command.extend(['--temperature-evidence-db-config', args.temperature_evidence_db_config])
         return energy_cli.main(command)
     if args.command == "data-quality":
         now = utc_now()

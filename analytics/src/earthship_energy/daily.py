@@ -69,7 +69,7 @@ def build_daily_snapshot(
     power_evidence_settings=None,
     power_evidence_table=None,
     power_evidence_cutover=None,
-    temperature_evidence_settings=None,
+    temperature_evidence_db_config=None,
     temperature_evidence_policy=None,
     temperature_evidence_assessed_at: datetime | None = None,
 ) -> dict[str, object]:
@@ -90,7 +90,7 @@ def build_daily_snapshot(
         raise ValueError('complete power evidence configuration is required')
     cutover = utc(power_evidence_cutover) if configured_power else None
     qualified_power = configured_power and end > cutover
-    temperature_options = (temperature_evidence_settings, temperature_evidence_policy,
+    temperature_options = (temperature_evidence_db_config, temperature_evidence_policy,
                            temperature_evidence_assessed_at)
     qualified_north_wall = any(option is not None for option in temperature_options)
     if qualified_north_wall and any(option is None for option in temperature_options):
@@ -312,7 +312,7 @@ def build_daily_snapshot(
             if definition.item_name != NORTH_WALL_ITEM:
                 raise ValueError('north-wall source Item identity mismatch')
             source_quality.append(read_north_wall_quality(
-                temperature_evidence_settings, temperature_evidence_policy,
+                temperature_evidence_db_config, temperature_evidence_policy,
                 start=start, end=end, assessed_at=temperature_evidence_assessed_at,
                 row_count=row_count, first_at=first_at, last_at=last_at,
             ))

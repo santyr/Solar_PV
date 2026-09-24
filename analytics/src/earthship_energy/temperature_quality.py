@@ -16,11 +16,12 @@ NORTH_WALL_ITEM = "AmbientWeatherWS2902A_WH31E_193_Temperature"
 
 
 def read_north_wall_quality(
-    settings, policy_path, *, start: datetime, end: datetime, assessed_at: datetime,
+    db_config_path, policy_path, *, start: datetime, end: datetime, assessed_at: datetime,
     row_count: int, first_at: datetime | None, last_at: datetime | None,
 ) -> dict[str, object]:
     """Fail closed on missing access, identity drift, or incomplete receipts."""
     import psycopg2
+    from hourly_temperature_runtime import read_db_config
     from weather_temperature_config import load_temperature_policies
     from weather_temperature_history import fetch_temperature_window
 
@@ -28,8 +29,9 @@ def read_north_wall_quality(
     policy = policies.get("north_wall")
     if policy is None or policy.model != "AmbientWeather-WH31E" or policy.sensor_id != 193:
         raise ValueError("north-wall receipt policy identity mismatch")
+    config = read_db_config(str(db_config_path))
     result = fetch_temperature_window(
-        lambda: psycopg2.connect(**settings.connect_kwargs, connect_timeout=3),
+        lambda: psycopg2.connect(**config, connect_timeout=3),
         start=start, end=end, assessed_at=assessed_at,
         stream="north_wall", policy=policy, include_provenance=True,
     )
