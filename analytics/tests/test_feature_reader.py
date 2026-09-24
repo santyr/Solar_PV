@@ -68,6 +68,7 @@ def test_feature_reader_uses_validated_tables_and_as_of_forecast_constraints():
     assert "issued_at <= r.at" in sql
     assert sql.count("captured_at <= r.at") == 3
     assert "valid_for = (((r.at AT TIME ZONE %s)::date + 1)::timestamp AT TIME ZONE %s)" in " ".join(sql.split())
+    assert "payload->>'forecast_day' = (r.at AT TIME ZONE %s)::date::text" in " ".join(sql.split())
     assert "ftemp.issued_at IS NULL OR frad.issued_at IS NULL" in sql
     assert "public.item0001" in sql
     assert "public.item0007" in sql
@@ -76,6 +77,7 @@ def test_feature_reader_uses_validated_tables_and_as_of_forecast_constraints():
         START, END, 15,
         "America/Denver", "America/Denver",
         "America/Denver", "America/Denver",
+        "America/Denver",
     )
 
 

@@ -135,11 +135,13 @@ def fetch_ui_health_and_forecast(
             """SELECT issued_at, valid_for, value
                FROM energy_analytics.forecast_snapshots
                WHERE metric = 'daily_pv_kwh'
+                 AND payload->>'forecast_day' = %s
                  AND issued_at <= %s AND valid_for = %s
                  AND captured_at <= %s
                ORDER BY issued_at DESC, captured_at DESC
                LIMIT 1""",
-            (generated_at, forecast_target_end, generated_at),
+            (generated_at.astimezone(timezone).date().isoformat(),
+             generated_at, forecast_target_end, generated_at),
         )
         forecast_row = cursor.fetchone()
 

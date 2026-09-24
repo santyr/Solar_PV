@@ -253,6 +253,7 @@ def fetch_feature_rows(
           SELECT issued_at, valid_for, value
           FROM energy_analytics.forecast_snapshots
           WHERE metric = 'daily_pv_kwh'
+            AND payload->>'forecast_day' = (r.at AT TIME ZONE %s)::date::text
             AND issued_at <= r.at
             AND captured_at <= r.at
             AND valid_for =
@@ -286,6 +287,7 @@ def fetch_feature_rows(
             (
                 start, end_exclusive, cadence_minutes,
                 timezone_name, timezone_name, timezone_name, timezone_name,
+                timezone_name,
             ),
         )
         rows = [dict(zip(FEATURE_FIELDS, row)) for row in cursor.fetchall()]

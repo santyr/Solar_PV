@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from dataclasses import dataclass
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timedelta
 from math import isfinite
 from typing import Iterable
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -154,7 +154,10 @@ def snapshots_from_openhab_detail(payload: dict[str, object]) -> list[ForecastSn
         if not isinstance(day, dict):
             raise ValueError("forecast day must be an object")
         try:
-            valid_day = datetime.combine(date.fromisoformat(day["date"]), time(), zone)
+            forecast_day = date.fromisoformat(day["date"])
+            # A daily summary covers the named local day; its valid-for instant
+            # is the following local midnight, including across DST changes.
+            valid_day = datetime.combine(forecast_day + timedelta(days=1), time(), zone)
         except (KeyError, TypeError, ValueError) as exc:
             raise ValueError("forecast day date is invalid") from exc
         summary = day.get("summary", {})
@@ -176,7 +179,7 @@ def snapshots_from_openhab_detail(payload: dict[str, object]) -> list[ForecastSn
                     metric=metric,
                     value=value,
                     unit=unit,
-                    payload=provenance,
+                    payload={**provenance, "forecast_day": forecast_day.isoformat()},
                 ))
         for hour in hours:
             if not isinstance(hour, dict):

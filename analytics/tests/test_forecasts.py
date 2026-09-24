@@ -106,8 +106,8 @@ def test_openhab_detail_preserves_issue_and_valid_times():
     by_metric = {snapshot.metric: snapshot for snapshot in snapshots}
     assert by_metric["temperature_f"].issued_at.isoformat() == payload["generatedAt"]
     assert by_metric["temperature_f"].valid_for.isoformat() == payload["days"][0]["hours"][0]["at"]
-    assert by_metric["daily_pv_kwh"].valid_for.isoformat() == "2026-08-21T00:00:00-06:00"
-    assert by_metric["daily_pv_kwh"].payload == {"forecast_version": 1}
+    assert by_metric["daily_pv_kwh"].valid_for.isoformat() == "2026-08-22T00:00:00-06:00"
+    assert by_metric["daily_pv_kwh"].payload == {"forecast_version": 1, "forecast_day": "2026-08-21"}
 
 
 def test_v2_preserves_corrected_values_and_provenance():
@@ -207,14 +207,15 @@ def test_openhab_detail_validates_past_metrics_before_omitting(version):
 
 
 @pytest.mark.parametrize("version", [1, 2])
-def test_same_day_summary_before_issue_is_omitted_for_both_versions(version):
+def test_same_day_summary_remains_valid_until_next_midnight_for_both_versions(version):
     payload = detail_v2()
     payload["version"] = version
     if version == 1:
         payload.pop("temperatureAdjustment")
     payload["generatedAt"] = "2026-09-06T06:40:29-06:00"
     rows = snapshots_from_openhab_detail(payload)
-    assert [row.metric for row in rows] == ["temperature_f"]
+    assert [row.metric for row in rows] == ["daily_pv_kwh", "temperature_f"]
+    assert rows[0].valid_for.isoformat() == "2026-09-07T00:00:00-06:00"
 
 
 @pytest.mark.parametrize("version", [1, 2])
@@ -228,7 +229,7 @@ def test_next_day_midnight_uses_dst_aware_site_offset(version):
     payload["days"][0]["hours"][0]["at"] = "2026-11-01T11:00:00-07:00"
     rows = snapshots_from_openhab_detail(payload)
     by_metric = {row.metric: row for row in rows}
-    assert by_metric["daily_pv_kwh"].valid_for.isoformat() == "2026-11-01T00:00:00-06:00"
+    assert by_metric["daily_pv_kwh"].valid_for.isoformat() == "2026-11-02T00:00:00-07:00"
     assert by_metric["temperature_f"].valid_for.isoformat() == "2026-11-01T11:00:00-07:00"
 
 
@@ -260,6 +261,7 @@ def test_openhab_detail_omits_periods_already_started_before_issue():
     snapshots = snapshots_from_openhab_detail(payload)
 
     assert [(row.metric, row.valid_for.hour) for row in snapshots] == [
+        ("daily_high_f", 0),
         ("temperature_f", 11)
     ]
 

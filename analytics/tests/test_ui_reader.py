@@ -82,10 +82,12 @@ def test_health_and_forecast_reader_is_schema_bounded_and_time_bounded():
     assert "issued_at <= %s" in forecast_sql
     assert "captured_at <= %s" in forecast_sql
     assert "valid_for = %s" in forecast_sql
+    assert "payload->>'forecast_day' = %s" in forecast_sql
     assert "LIMIT 1" in forecast_sql
-    assert forecast_params[0] == NOW
-    assert forecast_params[1].astimezone(UTC) == valid
-    assert forecast_params[2] == NOW
+    assert forecast_params[0] == "2026-08-20"
+    assert forecast_params[1] == NOW
+    assert forecast_params[2].astimezone(UTC) == valid
+    assert forecast_params[3] == NOW
     assert forecast["status"] == "current"
     assert forecast["pv24hKwh"] == 7.2
     assert health == {
@@ -141,7 +143,7 @@ def test_daily_pv_selection_uses_next_local_midnight_across_dst():
         )
         sql, params = connection.instance.calls[1]
         assert "valid_for = %s" in sql
-        assert params[1].astimezone(UTC) == expected
+        assert params[2].astimezone(UTC) == expected
 
 
 def test_snapshot_uses_active_epoch_completed_days_and_existing_reports(monkeypatch):
