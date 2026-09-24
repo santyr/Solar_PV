@@ -41,6 +41,11 @@ SOURCE_OPTIONAL_FIELDS = {
     "role",
     "stale_after_seconds",
 }
+ROOM_SAMPLE_ITEMS = {
+    "thermal.indoor_illuminance": ("LivingOffice_Shade_Illuminance", "illuminance"),
+    "thermal.room_occupancy": ("LivingOffice_Shade_Occupancy", "switch"),
+    "thermal.room_temperature_c": ("LivingOffice_Shade_Temperature", "degF"),
+}
 
 
 @dataclass(frozen=True)
@@ -89,6 +94,12 @@ class MetricSource:
             or source.raw_unit != "datetime"
         ):
             raise ConfigError("local-date schedule requires its own derived datetime Item")
+        if source.stale_policy == "room_device_sample_ttl" and (
+            (source.item_name, source.raw_unit) != ROOM_SAMPLE_ITEMS.get(source.canonical_name)
+            or source.freshness_item != "LivingOffice_Shade_Temperature"
+            or source.stale_after_seconds != 1800
+        ):
+            raise ConfigError("room device sample policy requires exact Living Office identity and TTL")
         return source
 
 

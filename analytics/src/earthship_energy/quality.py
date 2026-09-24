@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
+from math import isfinite
 from zoneinfo import ZoneInfo
 
 from .bms_evidence import SocInterval
@@ -87,6 +88,22 @@ def _parse_aware_datetime(raw: str) -> datetime | None:
     return value
 
 
+def _valid_room_primary(canonical_name: str, raw_value: str) -> bool:
+    if canonical_name == "thermal.room_occupancy":
+        return raw_value.strip().upper() in {"ON", "OFF"}
+    try:
+        value = float(raw_value)
+    except (TypeError, ValueError):
+        return False
+    if not isfinite(value):
+        return False
+    if canonical_name == "thermal.indoor_illuminance":
+        return 0 <= value <= 200_000
+    if canonical_name == "thermal.room_temperature_c":
+        return -40 <= value <= 140  # Persisted Item is in degrees Fahrenheit.
+    return False
+
+
 def assess_source_quality(
     *,
     canonical_name: str,
@@ -100,6 +117,7 @@ def assess_source_quality(
     freshness_item: str | None,
     freshness_points: list[tuple[datetime, str]],
     site_timezone: str | None = None,
+    primary_points: list[tuple[datetime, str]] | None = None,
 ) -> dict[str, object]:
     """Measure coverage from (original_observed_at, raw_value) health evidence.
 
@@ -128,6 +146,22 @@ def assess_source_quality(
                 "reason": "no explicit freshness companion",
             },
         }
+
+    if stale_policy == "room_device_sample_ttl":
+        if (canonical_name not in {
+                "thermal.indoor_illuminance", "thermal.room_occupancy",
+                "thermal.room_temperature_c"}
+                or freshness_item != "LivingOffice_Shade_Temperature"
+                or stale_after_seconds != 1800):
+            raise ValueError("room device sample policy identity or TTL mismatch")
+        if primary_points is None:
+            raise ValueError("room device sample policy requires primary history")
+        for observed_at, _ in primary_points:
+            if observed_at.tzinfo is None or observed_at.utcoffset() is None:
+                raise ValueError("primary observation timestamps must be timezone-aware")
+        ordered_primary = sorted(primary_points, key=lambda point: point[0])
+    else:
+        ordered_primary = []
 
     zone = None
     target_day = None
@@ -169,6 +203,21 @@ def assess_source_quality(
                 authorized = seconds if float(raw_value) == 1.0 else 0.0
             except ValueError:
                 authorized = 0.0
+        elif stale_policy == "room_device_sample_ttl":
+            try:
+                sample = float(raw_value)
+            except (TypeError, ValueError):
+                sample = float("nan")
+            if isfinite(sample) and -40 <= sample <= 140:
+                expiry = observed_at + timedelta(seconds=stale_after_seconds)
+                healthy_end = min(interval_end, expiry)
+                for primary_index, (primary_at, primary_value) in enumerate(ordered_primary):
+                    primary_end = (ordered_primary[primary_index + 1][0]
+                                   if primary_index + 1 < len(ordered_primary) else window_end)
+                    left = max(interval_start, primary_at)
+                    right = min(healthy_end, primary_end)
+                    if right > left and _valid_room_primary(canonical_name, primary_value):
+                        authorized += (right - left).total_seconds()
         elif stale_policy == "local_date_must_match":
             scheduled = _parse_aware_datetime(raw_value)
             if (scheduled is not None
@@ -196,5 +245,7 @@ def assess_source_quality(
             "stale_after_seconds": stale_after_seconds,
             "valid_seconds": valid_seconds,
             "window_seconds": window_seconds,
+            **({"primary_observations": len(ordered_primary)}
+               if stale_policy == "room_device_sample_ttl" else {}),
         },
     }

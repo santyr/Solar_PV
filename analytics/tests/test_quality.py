@@ -69,6 +69,79 @@ def test_source_without_health_companion_is_explicitly_unverified():
     assert result["quality"] == "freshness_unverified"
 
 
+def test_room_device_sample_ttl_qualifies_only_bounded_valid_temperature_updates():
+    result = assess_source_quality(
+        canonical_name="thermal.room_occupancy",
+        row_count=2,
+        first_at=START + timedelta(minutes=5),
+        last_at=START + timedelta(minutes=35),
+        window_start=START,
+        window_end=END,
+        stale_policy="room_device_sample_ttl",
+        stale_after_seconds=1800,
+        freshness_item="LivingOffice_Shade_Temperature",
+        freshness_points=[
+            (START - timedelta(minutes=5), "70.0"),
+            (START + timedelta(minutes=20), "70.5"),
+            (START + timedelta(minutes=45), "999"),
+        ],
+        primary_points=[(START - timedelta(minutes=10), "OFF")],
+    )
+    assert result["coverage"] == 45 / 60
+    assert result["quality"] == "partial"
+    assert result["stale_intervals"] == 1
+
+
+def test_room_device_sample_ttl_needs_primary_observation_and_rejects_bad_value():
+    common = dict(
+        canonical_name="thermal.room_occupancy",
+        first_at=None,
+        last_at=None,
+        window_start=START,
+        window_end=END,
+        stale_policy="room_device_sample_ttl",
+        stale_after_seconds=1800,
+        freshness_item="LivingOffice_Shade_Temperature",
+        freshness_points=[(START, "70"), (START + timedelta(minutes=30), "70")],
+        primary_points=[],
+    )
+    missing = assess_source_quality(**common, row_count=0)
+    assert missing["coverage"] == 0
+    assert missing["quality"] == "insufficient_data"
+    invalid = assess_source_quality(
+        **{**common, "first_at": START, "last_at": START,
+           "freshness_points": [(START, "nan"),
+                                (START + timedelta(minutes=30), "inf")],
+           "primary_points": [(START, "OFF")]},
+        row_count=1,
+    )
+    assert invalid["coverage"] == 0
+
+
+def test_room_device_sample_ttl_does_not_backfill_missing_or_invalid_primary_state():
+    result = assess_source_quality(
+        canonical_name="thermal.room_occupancy",
+        row_count=2,
+        first_at=START + timedelta(minutes=20),
+        last_at=START + timedelta(minutes=40),
+        window_start=START,
+        window_end=END,
+        stale_policy="room_device_sample_ttl",
+        stale_after_seconds=1800,
+        freshness_item="LivingOffice_Shade_Temperature",
+        freshness_points=[
+            (START, "70"), (START + timedelta(minutes=20), "70"),
+            (START + timedelta(minutes=40), "70"),
+        ],
+        primary_points=[
+            (START + timedelta(minutes=20), "UNDEF"),
+            (START + timedelta(minutes=40), "OFF"),
+        ],
+    )
+    assert result["coverage"] == 20 / 60
+    assert result["quality"] == "insufficient_data"
+
+
 def test_astro_self_dated_schedule_qualifies_only_matching_local_day():
     start, end = local_day_bounds(date(2026, 9, 23), "America/Denver")
     matching = (start + timedelta(hours=6, minutes=55)).isoformat()

@@ -325,6 +325,10 @@ def build_daily_snapshot(
             fetch_freshness_observations(connection, freshness_table, start, end)
             if freshness_table is not None else []
         )
+        primary_points = (
+            fetch_freshness_observations(connection, resolved.table_name, start, end)
+            if definition.stale_policy == "room_device_sample_ttl" else None
+        )
         source_quality.append(assess_source_quality(
             canonical_name=resolved.canonical_name,
             row_count=row_count,
@@ -337,6 +341,7 @@ def build_daily_snapshot(
             freshness_item=definition.freshness_item,
             freshness_points=freshness_points,
             site_timezone=config.timezone,
+            primary_points=primary_points,
         ))
 
     quality_by_name = {row["canonical_name"]: row for row in source_quality}

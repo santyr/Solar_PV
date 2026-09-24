@@ -74,6 +74,21 @@ def test_local_date_policy_rejects_other_sources_as_freshness_basis(tmp_path):
         load_source_config(path)
 
 
+def test_room_sample_policy_is_limited_to_the_three_living_office_items(tmp_path):
+    sources = {source.canonical_name: source for source in load_source_config().sources}
+    assert {name for name, source in sources.items()
+            if source.stale_policy == "room_device_sample_ttl"} == {
+                "thermal.indoor_illuminance", "thermal.room_occupancy",
+                "thermal.room_temperature_c"}
+    source = minimal_source(name="thermal.room_occupancy", item="Other_Occupancy", required=False)
+    source.update(stale_policy="room_device_sample_ttl", raw_unit="switch",
+                  freshness_item="LivingOffice_Shade_Temperature", stale_after_seconds=1800)
+    path = write_config(tmp_path, {"version": 1, "timezone": "America/Denver",
+                                   "sources": [source]})
+    with pytest.raises(ConfigError, match="exact Living Office identity"):
+        load_source_config(path)
+
+
 def test_duplicate_canonical_names_are_rejected(tmp_path):
     source = minimal_source()
     path = write_config(
