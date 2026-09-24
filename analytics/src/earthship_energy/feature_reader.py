@@ -255,9 +255,9 @@ def fetch_feature_rows(
           WHERE metric = 'daily_pv_kwh'
             AND issued_at <= r.at
             AND captured_at <= r.at
-            AND (valid_for AT TIME ZONE %s)::date =
-                (r.at AT TIME ZONE %s)::date
-          ORDER BY issued_at DESC
+            AND valid_for =
+                (((r.at AT TIME ZONE %s)::date + 1)::timestamp AT TIME ZONE %s)
+          ORDER BY issued_at DESC, captured_at DESC
           LIMIT 1
         ) fpv ON true
         LEFT JOIN LATERAL (
