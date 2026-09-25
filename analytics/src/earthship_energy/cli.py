@@ -294,13 +294,16 @@ def _aggregate(args) -> int:
         snapshot = build_daily_snapshot(connection, config, resolved, local_date,
                                         bank_epoch=epoch, **power_options,
                                         **temperature_options)
+        if policy is not None:
+            if snapshot.get('power_accounting',{}).get('policy') != 'qualified_power_evidence_v1':
+                raise ValueError('qualified writer requires a post-cutover daily snapshot')
+            # A qualified dry run must exercise the same reference-data gate
+            # as apply; otherwise a preview can pass while the scheduled
+            # writer fails on stale source metadata.
+            verify_reference_data(connection, config, epochs)
         if args.apply:
             if policy is None:
                 seed_reference_data(connection, config, epochs)
-            else:
-                if snapshot.get('power_accounting',{}).get('policy') != 'qualified_power_evidence_v1':
-                    raise ValueError('qualified writer requires a post-cutover daily snapshot')
-                verify_reference_data(connection, config, epochs)
             result = materialize_daily_snapshot(
                 connection, snapshot, epoch.epoch_id
             )

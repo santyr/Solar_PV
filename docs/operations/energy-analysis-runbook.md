@@ -40,8 +40,17 @@ PYTHONPATH=src python3 -m earthship_energy.cli export-features \
 Daily writes are idempotent and confined to `energy_analytics`. Migration and
 the initial bounded backfill require the verified backup manifest documented in
 `recovery-and-backup.md`. Recurring aggregation first verifies that no schema
-migration is pending, then updates only compact analytics rows; it does not
-rehash the migration backup. Raw `public.itemNNNN` history is read-only.
+migration is pending, then appends a qualified daily revision or updates the
+legacy compact analytics rows; it does not rehash the migration backup. Raw
+`public.itemNNNN` history is read-only.
+For qualified-power days, `aggregate --dry-run` now checks the same seeded
+source and bank references as `--apply`. A source-definition edit must be
+reconciled against `energy_analytics.metric_sources` before the scheduled
+writer; a successful snapshot calculation alone is not release readiness.
+Never let the restricted daily writer seed or silently rewrite reference
+metadata. Diagnose exact differences read-only, reconcile only reviewed rows
+with the owning role, then rerun the restricted dry run before a missed-day
+apply.
 
 The separate qualified AC-day command is explicit and unscheduled. It accepts
 only a completed America/Denver local day within both the independent AC

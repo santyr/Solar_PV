@@ -42,13 +42,17 @@ def test_cli_passes_explicit_policy_to_daily_reader(tmp_path,monkeypatch,capsys)
     monkeypatch.setattr(cli,'connect_read_only',lambda _:object())
     monkeypatch.setattr(cli,'fetch_inventory',lambda _:([(648,'Power_Evidence_JSON')],{'item0648'}))
     monkeypatch.setattr(cli,'resolve_sources',lambda *_:[])
-    def daily(*args,**kwargs):captured.update(kwargs);return {'status':'ok'}
+    def daily(*args,**kwargs):
+        captured.update(kwargs)
+        return {'status':'ok','power_accounting':{'policy':'qualified_power_evidence_v1'}}
     monkeypatch.setattr(cli,'build_daily_snapshot',daily)
+    monkeypatch.setattr(cli,'verify_reference_data',lambda *args:captured.update(reference_checked=True))
     assert cli.main(['aggregate','--date','2026-09-21','--dry-run',
                      '--power-evidence-policy',str(write_policy(tmp_path))])==0
     assert captured['power_evidence_settings'] is settings
     assert captured['power_evidence_table']=='item0648'
     assert captured['power_evidence_cutover'].tzinfo is not None
+    assert captured['reference_checked'] is True
 
 
 def test_bad_policy_refused_before_any_connection(tmp_path,monkeypatch,capsys):

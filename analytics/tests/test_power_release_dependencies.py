@@ -93,6 +93,27 @@ def test_qualified_apply_verifies_references_without_seed_writes(tmp_path,monkey
     assert calls==['verify','store']
 
 
+def test_qualified_dry_run_refuses_reference_drift_without_writes(tmp_path,monkeypatch,capsys):
+    calls=[]
+    monkeypatch.setattr(cli,'parse_openhab_jdbc_config',lambda _:object())
+    monkeypatch.setattr(cli,'connect_read_only',lambda _:object())
+    monkeypatch.setattr(cli,'fetch_inventory',lambda _:([(648,'Power_Evidence_JSON')],{'item0648'}))
+    monkeypatch.setattr(cli,'resolve_sources',lambda *a:[])
+    monkeypatch.setattr(cli,'build_daily_snapshot',lambda *a,**k:{
+        'status':'ok','mode':'read_only_dry_run',
+        'power_accounting':{'policy':'qualified_power_evidence_v1'}})
+    def drift(*args):
+        calls.append('verify')
+        raise ValueError('source reference drift: solar.sunrise_at')
+    monkeypatch.setattr(cli,'verify_reference_data',drift)
+    monkeypatch.setattr(cli,'seed_reference_data',lambda *a:pytest.fail('seed write'))
+    monkeypatch.setattr(cli,'materialize_daily_snapshot',lambda *a:pytest.fail('daily write'))
+    assert cli.main(['aggregate','--date','2026-09-21','--dry-run',
+        '--power-evidence-policy',str(write_policy(tmp_path))])==2
+    assert calls==['verify']
+    assert 'source reference drift: solar.sunrise_at' in capsys.readouterr().err
+
+
 @pytest.mark.parametrize('minute,severity,expected',[(20,'Routine','2026-09-19'),(30,'Actionable','2026-09-20')])
 def test_monitor_deadline_follows_existing_0021_writer(minute,severity,expected):
     now=datetime(2026,9,21,6,minute,tzinfo=timezone.utc)
