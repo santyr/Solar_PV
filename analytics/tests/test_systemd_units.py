@@ -39,4 +39,4 @@ def test_routine_units_never_invoke_codex_or_change_openhab():
 
 def test_backup_unit_names_the_verified_same_host_manifest():
     body = (UNIT_DIR / "energy-backup-check.service").read_text()
-    assert "/home/sat/backups/earthship-energy/full-restore-0lnrkogj/backup-manifest.json" in body
+    assert "/home/sat/backups/earthship-energy/full-restore-c1j2gw8a/backup-manifest.json" in body

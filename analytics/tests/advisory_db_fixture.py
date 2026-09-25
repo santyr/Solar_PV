@@ -121,4 +121,4 @@ def advisory_db():
         )
     finally:
         if created:
-            docker(["rm", "--force", name])
+            docker(["rm", "--force", "--volumes", name])

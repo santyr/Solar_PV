@@ -6,7 +6,7 @@ Type=oneshot
 WorkingDirectory=/home/sat/Solar_PV/analytics
 Environment=PYTHONPATH=/home/sat/Solar_PV/analytics/src
 EnvironmentFile=-%h/.config/hex/openhab.env
-ExecStart=/usr/bin/flock --nonblock %t/energy-backup-check.lock /usr/bin/python3 -m earthship_energy.scheduled backup-check --manifest /home/sat/backups/earthship-energy/full-restore-0lnrkogj/backup-manifest.json
+ExecStart=/usr/bin/flock --nonblock %t/energy-backup-check.lock /usr/bin/python3 -m earthship_energy.scheduled backup-check --manifest /home/sat/backups/earthship-energy/full-restore-c1j2gw8a/backup-manifest.json
 SuccessExitStatus=10 20
 TimeoutStartSec=600
 UMask=0077

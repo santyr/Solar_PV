@@ -76,6 +76,20 @@ adopt the new reference; retain the existing weekly timer.
 
 ## Energy analytics Item restore evidence
 
+The September 25 full-database data refresh under
+`/home/sat/backups/earthship-energy/full-restore-c1j2gw8a/` captured after
+qualified September 24 daily snapshot ID 5. Its private 0700/0600 archive
+and manifest report 515/515 source-versus-isolated-restore table fingerprints
+matching, including five `energy_analytics.daily_power_snapshots` rows. The
+archive SHA-256 is
+`0d3901d3c47cd6044c87ea0d2898a5f748d9871acfe14a342b9767725d1b5b87`.
+The exact owned networkless restore container and its anonymous data volume
+were removed after verification. A pure monitor assessment found the point
+fresh, readable, restore-verified and hash-matching. The Git-owned monitor
+unit now names this manifest; same-host-only storage remains Actionable, not
+off-host disaster recovery. This data-only rehearsal does not newly qualify
+roles/ACLs, OpenHAB configuration or protected-control restart behavior.
+
 Before provisioning `Energy_Analytics_JSON`, the earthship-ui transaction tool
 captures the exact prior Item configuration or verified absence in a private
 receipt. Keep that receipt with its apply/readback/closure evidence; it is the
