@@ -27,6 +27,7 @@ from .ac_policy import load_ac_policy
 from .ac_snapshot_reader import read_ac_snapshots
 from .ac_ui import build_ac_ui_payload
 from .reader import ITEM_TABLE
+from .ui_payload import encode_energy_ui_payload
 from .ui_publish import DEFAULT_OPENHAB_URL, publish_energy_ui_state
 from .ui_reader import build_energy_ui_snapshot, fetch_live_subsystem_health
 
@@ -457,6 +458,7 @@ def _parser() -> argparse.ArgumentParser:
     ui_publish.add_argument("--openhab-url", default=DEFAULT_OPENHAB_URL)
     ui_publish.add_argument("--power-evidence-policy")
     ui_publish.add_argument("--ac-evidence-policy")
+    ui_publish.add_argument("--dry-run", action="store_true")
     return parser
 
 
@@ -614,6 +616,22 @@ def main(argv: list[str] | None = None) -> int:
                 payload = build_ac_ui_payload(payload, policy=ac_policy, ac_rows=ac_rows)
         finally:
             connection.close()
+        if args.dry_run:
+            encoded = encode_energy_ui_payload(payload)
+            result = {
+                "schema": "earthship-energy-ui-publication/v1",
+                "status": "dry_run",
+                "item": "Energy_Analytics_JSON",
+                "generatedAt": payload["generatedAt"],
+                "payloadSchema": payload["schema"],
+                "bytes": len(encoded),
+                "sha256": hashlib.sha256(encoded).hexdigest(),
+            }
+            if "acLoad" in payload:
+                result["acLoadStatus"] = payload["acLoad"]["status"]
+                result["acLoadDate"] = (payload["acLoad"]["latest"] or {}).get("date")
+            print(json.dumps(result, sort_keys=True, separators=(",", ":")))
+            return 0
         result = publish_energy_ui_state(
             payload, base_url=args.openhab_url,
             token=os.environ.get("OPENHAB_TOKEN", ""),

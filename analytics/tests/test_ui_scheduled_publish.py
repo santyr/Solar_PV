@@ -9,7 +9,7 @@ from earthship_energy.config import load_source_config
 UTC = timezone.utc
 
 
-def test_ac_v4_publication_is_opt_in_and_reads_before_one_write(monkeypatch, tmp_path):
+def test_ac_v4_publication_is_opt_in_and_reads_before_one_write(monkeypatch, tmp_path, capsys):
     now = datetime(2026, 9, 25, 12, tzinfo=UTC)
     calls = []
     class Connection:
@@ -27,7 +27,8 @@ def test_ac_v4_publication_is_opt_in_and_reads_before_one_write(monkeypatch, tmp
     monkeypatch.setattr('earthship_energy.scheduled.fetch_live_subsystem_health', lambda *_a, **_k: {})
     monkeypatch.setattr('earthship_energy.scheduled.load_epoch_config', lambda _: [])
     monkeypatch.setattr('earthship_energy.scheduled.build_energy_ui_snapshot',
-                        lambda *_a, **_k: {'schema': 'earthship-energy-ui/v3'})
+                        lambda *_a, **_k: {'schema': 'earthship-energy-ui/v3',
+                                            'generatedAt': now.isoformat()})
     def read(_settings, *, policy, start_date, end_date, as_of):
         calls.append(('read', start_date.isoformat(), end_date.isoformat(), as_of))
         assert policy.topology_until is None
@@ -35,7 +36,9 @@ def test_ac_v4_publication_is_opt_in_and_reads_before_one_write(monkeypatch, tmp
     monkeypatch.setattr('earthship_energy.scheduled.read_ac_snapshots', read)
     monkeypatch.setattr('earthship_energy.scheduled.build_ac_ui_payload',
                         lambda base, *, policy, ac_rows: calls.append(('project', base['schema'], ac_rows))
-                        or {'schema': 'earthship-energy-ui/v4'})
+                        or dict(base, schema='earthship-energy-ui/v4',
+                                acLoad={'status': 'observed',
+                                        'latest': {'date': '2026-09-24'}}))
     def publish(payload, **_):
         assert connection.closed
         calls.append(('publish', payload['schema']))
@@ -55,6 +58,22 @@ def test_ac_v4_publication_is_opt_in_and_reads_before_one_write(monkeypatch, tmp
     assert calls == [('read', '2026-09-23', '2026-09-25', now),
                      ('project', 'earthship-energy-ui/v3', [{'selected': 'revision'}]),
                      'close', ('publish', 'earthship-energy-ui/v4')]
+    capsys.readouterr()
+    calls.clear()
+    monkeypatch.setattr('earthship_energy.scheduled.encode_energy_ui_payload',
+                        lambda payload: b'validated-v4' if payload['schema'] == 'earthship-energy-ui/v4'
+                        else pytest.fail('unexpected payload'))
+    assert main(['energy-ui-publish', '--power-evidence-policy', str(power),
+                 '--ac-evidence-policy', str(ac), '--dry-run']) == 0
+    assert calls == [('read', '2026-09-23', '2026-09-25', now),
+                     ('project', 'earthship-energy-ui/v3', [{'selected': 'revision'}]),
+                     'close']
+    preview = json.loads(capsys.readouterr().out)
+    assert preview['status'] == 'dry_run'
+    assert preview['payloadSchema'] == 'earthship-energy-ui/v4'
+    assert preview['bytes'] == len(b'validated-v4')
+    assert preview['acLoadStatus'] == 'observed'
+    assert preview['acLoadDate'] == '2026-09-24'
 
 
 def test_ac_v4_refuses_without_power_policy_before_db(monkeypatch):

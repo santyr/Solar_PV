@@ -70,6 +70,21 @@ to publish v3. Do not add the flag until the first completed AC day, production
 evidence checks, and a reviewed v4 dry run pass. A bad latest AC revision must
 fail publication, never fall back to an older revision or legacy load estimate.
 
+Use the same read path without a token or OpenHAB write to preview the exact
+encoded v4 payload contract and digest:
+
+```bash
+PYTHONPATH=src python3 -m earthship_energy.scheduled energy-ui-publish \
+  --jdbc-config /home/sat/.config/hex/energy-power-reader.jdbc \
+  --power-evidence-policy config/power-evidence.json \
+  --ac-evidence-policy config/ac-evidence.json --dry-run
+```
+
+The preview emits only schema, AC status/date, byte count and SHA-256, not the
+payload body. It does not create an AC revision or publish an Item. An
+`unavailable` AC status while the daily table is empty is expected, even if
+the completed-day `ac-day --dry-run` passed.
+
 Daily PV products include input/output energy, MPPT energy ratio, productive
 window and hours, and energy on each side of observed solar noon. Solar noon
 is the midpoint of the persisted `Sun_Rise_End` and `Sun_Set_Start` events,
