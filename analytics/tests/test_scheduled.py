@@ -222,6 +222,30 @@ def test_daily_aggregate_command_uses_previous_site_day(monkeypatch):
                              "--temperature-evidence-db-config", "/private/temperature-db.json"]
 
 
+def test_ac_day_command_uses_previous_denver_day_and_exact_policies(monkeypatch):
+    calls = []
+    monkeypatch.setattr(
+        "earthship_energy.scheduled.utc_now",
+        lambda: datetime(2026, 11, 2, 7, 30, tzinfo=UTC),
+    )
+    monkeypatch.setattr(
+        "earthship_energy.scheduled.energy_cli.main",
+        lambda argv: calls.append(argv) or 0,
+    )
+
+    assert main([
+        "ac-day", "--jdbc-config", "/private/writer.jdbc",
+        "--power-evidence-policy", "/private/power.json",
+        "--ac-evidence-policy", "/private/ac.json",
+    ]) == 0
+    assert calls == [[
+        "ac-day", "--date", "2026-11-01",
+        "--ac-evidence-policy", "/private/ac.json",
+        "--power-evidence-policy", "/private/power.json",
+        "--jdbc-config", "/private/writer.jdbc", "--apply",
+    ]]
+
+
 def test_data_quality_command_writes_only_actionable_event(monkeypatch, tmp_path, capsys):
     now = datetime(2026, 8, 20, 12, tzinfo=UTC)
     monkeypatch.setattr(

@@ -1,0 +1,10 @@
+[Unit]
+Description=Qualify previous local day inverter AC observation
+
+[Timer]
+OnCalendar=*-*-* 00:40:00
+Persistent=true
+RandomizedDelaySec=120
+
+[Install]
+WantedBy=timers.target

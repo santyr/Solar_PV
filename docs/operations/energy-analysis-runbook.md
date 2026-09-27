@@ -7,7 +7,8 @@
 3. Use named, reproducible SQL or report commands.
 4. Separate observed facts from forecasts and assumptions.
 5. Attach the relevant system epoch.
-6. Record a durable conclusion in Hexmem only after verification.
+6. Record a durable conclusion in the relevant repository operations tracker
+   only after verification; do not use Hexmem for this workstream.
 
 ## Commands
 
@@ -93,6 +94,17 @@ The preview emits only schema, AC status/date, byte count and SHA-256, not the
 payload body. It does not create an AC revision or publish an Item. An
 `unavailable` AC status while the daily table is empty is expected, even if
 the completed-day `ac-day --dry-run` passed.
+
+September 27 checkpoint: the September 24 day was requalified immediately
+before an append-only `ac-day --apply`. It stored revision ID 1 with payload
+SHA-256 `e774316ef29dbf50c0536191ba3c306894ace16e013199b96af714aca4038deb`.
+The restricted v4 dry run now selects that date with AC status `observed`,
+while the live OpenHAB Item remains v3. September 25 and 26 also pass strict
+completed-day dry runs but have not been stored. A new source-only
+`energy-ac-day.service` and timer compute the previous Denver day at 00:40;
+they are **not installed or enabled** until the populated-revision restore,
+retry/failure behavior, and retention checks pass. The installed v3 publisher
+remains unchanged.
 
 Daily PV products include input/output energy, MPPT energy ratio, productive
 window and hours, and energy on each side of observed solar noon. Solar noon

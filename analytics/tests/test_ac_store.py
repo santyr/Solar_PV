@@ -47,6 +47,39 @@ def test_idempotent_append_only_revisions_and_no_legacy_write(advisory_db):
             assert cursor.fetchone()[0] == 0
 
 
+def test_commit_failure_rolls_back_ac_revision(advisory_db):
+    payload, policy = observation(day=date(2026, 9, 18))
+
+    class FailingCommit:
+        def __init__(self, connection):
+            self.connection = connection
+            self.autocommit = connection.autocommit
+
+        def cursor(self):
+            return self.connection.cursor()
+
+        def commit(self):
+            raise RuntimeError('injected commit failure')
+
+        def rollback(self):
+            self.connection.rollback()
+
+    with closing(advisory_db.connect_owner()) as connection:
+        with connection.cursor() as cursor:
+            cursor.execute('SELECT count(*) FROM energy_analytics.daily_ac_snapshots')
+            before = cursor.fetchone()[0]
+        with pytest.raises(RuntimeError, match='injected commit failure'):
+            store_ac_snapshot(FailingCommit(connection), payload, policy)
+        with connection.cursor() as cursor:
+            cursor.execute('SELECT count(*) FROM energy_analytics.daily_ac_snapshots')
+            assert cursor.fetchone()[0] == before
+        # A fresh attempt after the failed transaction gets one valid revision.
+        assert store_ac_snapshot(connection, payload, policy)['inserted']
+        with connection.cursor() as cursor:
+            cursor.execute('SELECT count(*) FROM energy_analytics.daily_ac_snapshots')
+            assert cursor.fetchone()[0] == before + 1
+
+
 @pytest.mark.parametrize('operation', [
     'UPDATE energy_analytics.daily_ac_snapshots SET computed_at=now()',
     'DELETE FROM energy_analytics.daily_ac_snapshots',

@@ -6,6 +6,7 @@ JOBS = (
     "energy-data-quality",
     "energy-forecast-snapshot",
     "energy-daily-aggregate",
+    "energy-ac-day",
     "energy-backup-check",
     "energy-monthly-report",
 )
@@ -40,3 +41,15 @@ def test_routine_units_never_invoke_codex_or_change_openhab():
 def test_backup_unit_names_the_verified_same_host_manifest():
     body = (UNIT_DIR / "energy-backup-check.service").read_text()
     assert "/home/sat/backups/earthship-energy/full-restore-c1j2gw8a/backup-manifest.json" in body
+
+
+def test_ac_day_unit_is_scoped_to_restricted_writer_and_never_publishes():
+    service = (UNIT_DIR / "energy-ac-day.service").read_text()
+    timer = (UNIT_DIR / "energy-ac-day.timer").read_text()
+    assert "energy-power-writer.jdbc" in service
+    assert "--power-evidence-policy /home/sat/Solar_PV/analytics/config/power-evidence.json" in service
+    assert "--ac-evidence-policy /home/sat/Solar_PV/analytics/config/ac-evidence.json" in service
+    assert "earthship_energy.scheduled ac-day" in service
+    assert "OPENHAB_TOKEN" not in service
+    assert "energy-ui-publish" not in service
+    assert "OnCalendar=*-*-* 00:40:00" in timer
