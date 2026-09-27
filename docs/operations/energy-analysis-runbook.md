@@ -104,7 +104,9 @@ completed-day dry runs but have not been stored. A new source-only
 `energy-ac-day.service` and timer compute the previous Denver day at 00:40;
 they are **not installed or enabled** until the populated-revision restore,
 retry/failure behavior, and retention checks pass. The installed v3 publisher
-remains unchanged.
+remains unchanged. The v4 `zz-qualified-ac.conf` publisher drop-in is likewise
+source-only until the same release gates are reviewed; it overrides the
+existing v3 `qualified-power.conf` only when deliberately installed.
 
 Daily PV products include input/output energy, MPPT energy ratio, productive
 window and hours, and energy on each side of observed solar noon. Solar noon

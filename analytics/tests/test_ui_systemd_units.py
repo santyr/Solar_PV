@@ -23,3 +23,14 @@ def test_energy_ui_publisher_unit_is_hardened_and_observational():
     assert "OnCalendar=*-*-* *:0/5:00" in timer
     assert "Persistent=true" in timer
     assert "WantedBy=timers.target" in timer
+
+
+def test_v4_ac_dropin_is_explicit_and_does_not_change_base_unit():
+    dropin = (UNIT_DIR / "energy-ui-publish.service.d" /
+              "zz-qualified-ac.conf").read_text()
+    assert "ExecStart=\nExecStart=/usr/bin/flock" in dropin
+    assert "--jdbc-config /home/sat/.config/hex/energy-power-reader.jdbc" in dropin
+    assert "--power-evidence-policy /home/sat/Solar_PV/analytics/config/power-evidence.json" in dropin
+    assert "--ac-evidence-policy /home/sat/Solar_PV/analytics/config/ac-evidence.json" in dropin
+    assert "OPENHAB_TOKEN" not in dropin
+    assert "--dry-run" not in dropin
