@@ -68,16 +68,16 @@ After the first complete day and live stream qualification, the same exact
 command may use `--apply` to append a daily AC revision. It checks for pending
 migrations, re-reads the topology policy before writing, and never updates a
 prior revision. It does not publish a UI value or infer an AC/DC balance.
-September 24 is not complete until September 25 06:00Z. A scheduled writer
-and v4 UI publisher remain separately gated.
+September 24 was not complete until September 25 06:00Z. The scheduled writer
+and v4 UI publisher remained separately gated until the September 27 recovery
+and source-evidence review described below.
 
 The `energy-ui-publish` CLI now accepts an optional `--ac-evidence-policy`
 only alongside `--power-evidence-policy` and `America/Denver`. With that flag,
 it selects bounded latest AC revisions, builds the separate v4 AC section, and
 validates the complete payload before the single OpenHAB publication. The
-installed five-minute service intentionally has no AC flag, so it continues
-to publish v3. Do not add the flag until the first completed AC day, production
-evidence checks, and a reviewed v4 dry run pass. A bad latest AC revision must
+base five-minute service has no AC flag; the installed `zz-qualified-ac.conf`
+override now supplies it and publishes v4. A bad latest AC revision must
 fail publication, never fall back to an older revision or legacy load estimate.
 
 Use the same read path without a token or OpenHAB write to preview the exact
@@ -98,15 +98,19 @@ the completed-day `ac-day --dry-run` passed.
 September 27 checkpoint: the September 24 day was requalified immediately
 before an append-only `ac-day --apply`. It stored revision ID 1 with payload
 SHA-256 `e774316ef29dbf50c0536191ba3c306894ace16e013199b96af714aca4038deb`.
-The restricted v4 dry run now selects that date with AC status `observed`,
-while the live OpenHAB Item remains v3. September 25 and 26 also pass strict
-completed-day dry runs but have not been stored. A new source-only
-`energy-ac-day.service` and timer compute the previous Denver day at 00:40;
-they are **not installed or enabled** until the populated-revision restore,
-retry/failure behavior, and retention checks pass. The installed v3 publisher
-remains unchanged. The v4 `zz-qualified-ac.conf` publisher drop-in is likewise
-source-only until the same release gates are reviewed; it overrides the
-existing v3 `qualified-power.conf` only when deliberately installed.
+An isolated full restore of all 515 tables, including the first AC revision,
+passed at `/home/sat/backups/earthship-energy/full-restore-e66yrzn3/`.
+September 25 and 26 then passed strict completed-day dry runs and were stored
+as append-only revisions 3 and 4; fresh-process retries inserted no duplicate.
+The restricted v4 preview selected September 26 with AC status `observed`.
+After reviewed unit installation, the natural 15:15 MDT publisher run emitted
+`earthship-energy-ui/v4` to the live OpenHAB Item, showing 6.122461860277783
+kWh and 99.947118055556% coverage for September 26. The 00:40 local AC-day
+timer is installed and enabled; its first scheduled next-day execution still
+requires readback. The v4 `zz-qualified-ac.conf` drop-in overrides the older
+v3 `qualified-power.conf`. DC PV and AC load remain separate, with no inferred
+energy balance. The recovery point is same-host only and predates revisions 3
+and 4; it is not off-host disaster recovery.
 
 Daily PV products include input/output energy, MPPT energy ratio, productive
 window and hours, and energy on each side of observed solar noon. Solar noon

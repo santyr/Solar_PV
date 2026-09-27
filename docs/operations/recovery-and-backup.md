@@ -101,3 +101,14 @@ The existing PostgreSQL restore point remains same-host only. The operator has
 deferred an off-host destination, so `energy-backup-check` must continue to
 report `Actionable`; neither the Item receipt nor analytics publication changes
 that disaster-recovery limitation.
+
+On September 27, the first populated AC daily revision was included in a new
+full 515-table snapshot and isolated restore at
+`/home/sat/backups/earthship-energy/full-restore-e66yrzn3/`. All table
+fingerprints matched, archive SHA-256 was
+`3addab90dfc970294c04c111581f6120a0844c7acd5460559667063937279a38`,
+and the owned restore container and volume were removed. The installed
+backup-check service now selects this manifest. The read-only checker found
+the archive fresh, readable and restore-verified, but still Actionable because
+storage is same-host only. Later AC revisions 3 and 4 were appended after
+this snapshot; they are not part of this recovery point.

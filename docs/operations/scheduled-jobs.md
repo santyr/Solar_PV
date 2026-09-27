@@ -12,21 +12,22 @@ writes Hexmem, or controls hardware.
 | `energy-data-quality` | hourly at :20 | Check source inventory, current required-source health, previous-day quality-approved aggregate, forecast age | JDBC config, source contract and freshness companions | structured journal JSON; actionable pending event | No | Routine / Interesting / Actionable | `systemctl --user start energy-data-quality.service` |
 | `energy-forecast-snapshot` | every 2 hours at :10 | Preserve the current additive OpenHAB forecast with issue/valid timestamps | `Forecast_10Day_JSON`, JDBC config | deduplicated `forecast_snapshots` rows | No | nonzero exit on malformed/unavailable input | `systemctl --user start energy-forecast-snapshot.service` |
 | `energy-daily-aggregate` | 00:20 local | Idempotently materialize the previous local day | raw JDBC history, source/epoch contracts | four daily tables plus source quality | No | nonzero exit; pending migrations refuse the run | `systemctl --user start energy-daily-aggregate.service` |
+| `energy-ac-day` | 00:40 local | Qualify and append the previous Denver day's inverter AC output | validated AC Item history and checked-in evidence policies | append-only `daily_ac_snapshots` revision | No | nonzero exit; incomplete or unqualified day refuses the run | `systemctl --user start energy-ac-day.service` |
 | `energy-backup-check` | Sunday 03:30 | Check restore evidence freshness and archive readability | verified backup manifest/archive | structured result; actionable pending event | No | current same-host-only backup remains Actionable | `systemctl --user start energy-backup-check.service` |
 | `energy-monthly-report` | first day 07:15 | Prepare the previous month for human/Codex review | compact daily products | private versioned JSON plus pending-review event | No | Interesting means review is pending | `systemctl --user start energy-monthly-report.service` |
-| `energy-ui-publish` | every 5 minutes | Publish a closed observational UI snapshot | quality-approved analytics products | `Energy_Analytics_JSON` state only | No | nonzero exit; no write after validation failure | `systemctl --user start energy-ui-publish.service` |
+| `energy-ui-publish` | every 5 minutes | Publish a closed observational v4 UI snapshot | quality-approved analytics products and latest qualified AC revision | `Energy_Analytics_JSON` state only | No | nonzero exit; no write after validation failure | `systemctl --user start energy-ui-publish.service` |
 
 The existing `openhab-sanity.timer` continues to own ten-minute live Item,
 rule, algorithm, and persistence health. The existing `forecast-json.timer`
 continues to refresh the OpenHAB/UI forecast every two hours. The analytics
 snapshot runs afterward and does not replace either job.
 
-The `energy-ui-publish` job emits `earthship-energy-ui/v2` following verified
-reader-first deployment on 2026-09-05. Its two daily-use fields come from the
-latest persisted battery row and remain null unless that row's battery quality
-is `ok`; a partial day must not be presented as a trusted daily total. This
-reader-first order keeps the observational Item readable throughout the
-transition.
+The `energy-ui-publish` job emits `earthship-energy-ui/v4` after the September
+27 qualified AC release. AC load is a separate observed inverter-output
+figure, valid under the operator's inverter-only topology attestation; the UI
+must not subtract it from DC PV. A missing or invalid latest AC revision
+must not silently fall back to older data. The AC writer's first natural 00:40
+run remains to be observed.
 
 The same release restored forecast capture from the real version-2 detail
 payload: the attended run succeeded and stored 1,446 rows with issue time
@@ -48,9 +49,12 @@ Reviewed units live in `deploy/systemd/user/`. Production expects the repo at
 
 ```bash
 install -m 0644 deploy/systemd/user/energy-* ~/.config/systemd/user/
+install -m 0644 deploy/systemd/user/energy-ui-publish.service.d/zz-qualified-ac.conf \
+  ~/.config/systemd/user/energy-ui-publish.service.d/zz-qualified-ac.conf
 systemctl --user daemon-reload
 systemctl --user enable --now energy-data-quality.timer \
   energy-forecast-snapshot.timer energy-daily-aggregate.timer \
+  energy-ac-day.timer \
   energy-backup-check.timer energy-monthly-report.timer \
   energy-ui-publish.timer
 systemctl --user list-timers 'energy-*'
@@ -80,14 +84,13 @@ deduplicated JSON below:
 ~/.local/state/earthship-energy/reports/YYYY-MM/energy-monthly.json
 ```
 
-Codex processes these during an attended review, verifies the conclusion from
-the named report/query, and only then records a durable semantic conclusion in
-Hexmem. Routine timer results remain in PostgreSQL/journald and never enter
-Hexmem. AI downtime therefore cannot stop telemetry, aggregation, or safety.
+Codex processes these during an attended review and verifies the conclusion
+from the named report/query. Routine timer results remain in
+PostgreSQL/journald. AI downtime cannot stop telemetry, aggregation, or safety.
 
 ## Backup limitation
 
-The 2026-08-20 archive is checksum- and restore-verified but resides on the
+The September 27 archive is checksum- and restore-verified but resides on the
 same host and filesystem as PostgreSQL. The backup checker intentionally emits
 Actionable until an encrypted off-host or separately mounted destination is
 provided and verified. It does not claim disaster recovery and does not copy
@@ -103,6 +106,7 @@ rollback is confirmed. Keep daily rows and publication evidence intact.
 ```bash
 systemctl --user disable --now energy-data-quality.timer \
   energy-forecast-snapshot.timer energy-daily-aggregate.timer \
+  energy-ac-day.timer \
   energy-backup-check.timer energy-monthly-report.timer \
   energy-ui-publish.timer
 systemctl --user daemon-reload
