@@ -220,6 +220,10 @@ def test_daily_aggregate_command_uses_previous_site_day(monkeypatch):
                  "--temperature-evidence-db-config", "/private/temperature-db.json"]) == 0
     assert calls[1][-4:] == ["--temperature-evidence-policy", "/private/temperature.json",
                              "--temperature-evidence-db-config", "/private/temperature-db.json"]
+    assert main(["daily-aggregate", "--switch-evidence-policy", "/policy/switch.json",
+                 "--switch-evidence-db-config", "/private/switch-reader.jdbc"]) == 0
+    assert calls[2][-4:] == ["--switch-evidence-policy", "/policy/switch.json",
+                             "--switch-evidence-db-config", "/private/switch-reader.jdbc"]
 
 
 def test_ac_day_command_uses_previous_denver_day_and_exact_policies(monkeypatch):

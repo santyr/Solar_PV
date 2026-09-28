@@ -35,6 +35,7 @@ from .power_reader import read_power_history
 from .power_evidence import BOUNDS, utc
 from .power_intervals import account_power_intervals, account_common_power
 from .temperature_quality import NORTH_WALL_ITEM, NORTH_WALL_SOURCE, read_north_wall_quality
+from .switch_quality import SWITCH_SOURCES, read_switch_quality
 
 
 REQUIRED_DAILY = {
@@ -72,6 +73,9 @@ def build_daily_snapshot(
     temperature_evidence_db_config=None,
     temperature_evidence_policy=None,
     temperature_evidence_assessed_at: datetime | None = None,
+    switch_evidence_db_config=None,
+    switch_evidence_cutover: datetime | None = None,
+    switch_evidence_assessed_at: datetime | None = None,
 ) -> dict[str, object]:
     tables = {
         source.canonical_name: source.table_name
@@ -102,6 +106,17 @@ def build_daily_snapshot(
         raise ValueError('north-wall evidence requires an elapsed local day')
     if qualified_north_wall and NORTH_WALL_SOURCE not in tables:
         raise ValueError('north-wall source unresolved')
+    switch_options = (switch_evidence_db_config, switch_evidence_cutover,
+                      switch_evidence_assessed_at)
+    configured_switch = any(option is not None for option in switch_options)
+    if configured_switch and any(option is None for option in switch_options):
+        raise ValueError('complete switch evidence configuration is required')
+    switch_cutover = utc(switch_evidence_cutover) if configured_switch else None
+    qualified_switch = configured_switch and end > switch_cutover
+    if qualified_switch and end > utc(switch_evidence_assessed_at):
+        raise ValueError('switch evidence requires an elapsed local day')
+    if qualified_switch and set(SWITCH_SOURCES) - set(tables):
+        raise ValueError('switch source unresolved')
     power_history = None
     power_stats = None
     if qualified_power:
@@ -266,18 +281,40 @@ def build_daily_snapshot(
             [] if qualified_power else series("pv.input_power_w"), solar_noon, end
         )
 
+    switch_quality = None
+    switch_stats = {}
+    if qualified_switch:
+        switch_stats = {name: fetch_observation_stats(connection, tables[name], start, end)
+                        for name in SWITCH_SOURCES}
+        switch_quality = read_switch_quality(
+            switch_evidence_db_config, local_date=local_date,
+            assessed_at=switch_evidence_assessed_at, cutover=switch_cutover,
+            site_timezone=config.timezone, statistics=switch_stats,
+        )
+        if set(switch_quality) != set(SWITCH_SOURCES):
+            raise ValueError('incomplete switch source quality')
     active_loads = {}
     for canonical, label in (
         ("load.dishwasher_state", "dishwasher"),
         ("load.shurflo_pump_state", "shurflo_pump"),
     ):
         if canonical in tables:
-            states = fetch_text_series(connection, tables[canonical], start, end)
-            active_loads[label] = {
-                "state_on_hours": state_duration_seconds(states, "ON") / 3600.0,
-                "measurement": "switch_state_only",
-                "energy_kwh": None,
-            }
+            if qualified_switch:
+                quality = switch_quality[canonical]['quality']
+                active_loads[label] = {
+                    "state_on_hours": (switch_quality[canonical]['detail']['observed_on_seconds'] / 3600.0
+                                       if quality == 'ok' else None),
+                    "measurement": ("source_bound_switch_observed" if quality == 'ok'
+                                    else "withheld_incomplete_switch_evidence"),
+                    "energy_kwh": None,
+                }
+            else:
+                states = fetch_text_series(connection, tables[canonical], start, end)
+                active_loads[label] = {
+                    "state_on_hours": state_duration_seconds(states, "ON") / 3600.0,
+                    "measurement": "switch_state_only",
+                    "energy_kwh": None,
+                }
     load_payload = asdict(load)
     load_payload["active_loads"] = active_loads
     weather_payload = asdict(weather)
@@ -305,9 +342,12 @@ def build_daily_snapshot(
                 reason=evidence_errors.get((start, end)),
             ))
             continue
-        row_count, first_at, last_at = fetch_observation_stats(
-            connection, resolved.table_name, start, end
-        )
+        row_count, first_at, last_at = (switch_stats[resolved.canonical_name]
+            if qualified_switch and resolved.canonical_name in SWITCH_SOURCES
+            else fetch_observation_stats(connection, resolved.table_name, start, end))
+        if qualified_switch and resolved.canonical_name in SWITCH_SOURCES:
+            source_quality.append(switch_quality[resolved.canonical_name])
+            continue
         if qualified_north_wall and resolved.canonical_name == NORTH_WALL_SOURCE:
             if definition.item_name != NORTH_WALL_ITEM:
                 raise ValueError('north-wall source Item identity mismatch')

@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "policy": "source_bound_tplink_switch_v1",
+  "item_name": "TPLink_Switch_Evidence_JSON",
+  "basis": "tplink_hs103_switch_report_v1",
+  "fields": ["load.dishwasher_state", "load.shurflo_pump_state"],
+  "cutover": "2026-09-28T16:36:40.989+00:00"
+}

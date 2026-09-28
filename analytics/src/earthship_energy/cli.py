@@ -14,6 +14,7 @@ from zoneinfo import ZoneInfo
 from .config import ConfigError, load_source_config
 from .daily import build_daily_snapshot
 from .power_policy import load_power_policy
+from .switch_quality import load_switch_policy
 from .ac_policy import load_ac_policy
 from .ac_accounting import read_ac_day_accounting
 from .ac_store import store_ac_snapshot
@@ -94,6 +95,8 @@ def _parser() -> argparse.ArgumentParser:
     aggregate.add_argument("--power-evidence-policy", type=Path)
     aggregate.add_argument("--temperature-evidence-policy", type=Path)
     aggregate.add_argument("--temperature-evidence-db-config", type=Path)
+    aggregate.add_argument("--switch-evidence-policy", type=Path)
+    aggregate.add_argument("--switch-evidence-db-config", type=Path)
     aggregate.add_argument("--jdbc-config", default=DEFAULT_JDBC_CONFIG, type=Path)
     aggregate_mode = aggregate.add_mutually_exclusive_group()
     aggregate_mode.add_argument("--dry-run", action="store_true")
@@ -255,7 +258,10 @@ def _aggregate(args) -> int:
         raise ValueError("--date must use YYYY-MM-DD") from exc
     if (args.temperature_evidence_policy is None) != (args.temperature_evidence_db_config is None):
         raise ValueError('temperature evidence requires policy and restricted database config')
+    if (args.switch_evidence_policy is None) != (args.switch_evidence_db_config is None):
+        raise ValueError('switch evidence requires policy and restricted database config')
     policy = load_power_policy(args.power_evidence_policy) if args.power_evidence_policy else None
+    switch_policy = load_switch_policy(args.switch_evidence_policy) if args.switch_evidence_policy else None
     config = load_source_config(args.config)
     settings = parse_openhab_jdbc_config(args.jdbc_config)
     if args.apply:
@@ -291,9 +297,14 @@ def _aggregate(args) -> int:
             'temperature_evidence_policy': args.temperature_evidence_policy,
             'temperature_evidence_assessed_at': datetime.now(timezone.utc),
         }
+        switch_options = {} if switch_policy is None else {
+            'switch_evidence_db_config': args.switch_evidence_db_config,
+            'switch_evidence_cutover': switch_policy.cutover,
+            'switch_evidence_assessed_at': datetime.now(timezone.utc),
+        }
         snapshot = build_daily_snapshot(connection, config, resolved, local_date,
                                         bank_epoch=epoch, **power_options,
-                                        **temperature_options)
+                                        **temperature_options, **switch_options)
         if policy is not None:
             if snapshot.get('power_accounting',{}).get('policy') != 'qualified_power_evidence_v1':
                 raise ValueError('qualified writer requires a post-cutover daily snapshot')

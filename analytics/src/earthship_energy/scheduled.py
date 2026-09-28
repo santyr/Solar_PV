@@ -428,6 +428,8 @@ def _parser() -> argparse.ArgumentParser:
     aggregate.add_argument("--power-evidence-policy")
     aggregate.add_argument("--temperature-evidence-policy")
     aggregate.add_argument("--temperature-evidence-db-config")
+    aggregate.add_argument("--switch-evidence-policy")
+    aggregate.add_argument("--switch-evidence-db-config")
     ac_day = commands.add_parser("ac-day")
     ac_day.add_argument("--jdbc-config", required=True)
     ac_day.add_argument("--power-evidence-policy", required=True)
@@ -493,6 +495,10 @@ def main(argv: list[str] | None = None) -> int:
             command.extend(['--temperature-evidence-policy', args.temperature_evidence_policy])
         if args.temperature_evidence_db_config:
             command.extend(['--temperature-evidence-db-config', args.temperature_evidence_db_config])
+        if args.switch_evidence_policy:
+            command.extend(['--switch-evidence-policy', args.switch_evidence_policy])
+        if args.switch_evidence_db_config:
+            command.extend(['--switch-evidence-db-config', args.switch_evidence_db_config])
         return energy_cli.main(command)
     if args.command == "ac-day":
         return energy_cli.main([
