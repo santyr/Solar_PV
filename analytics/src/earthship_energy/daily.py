@@ -36,6 +36,7 @@ from .power_evidence import BOUNDS, utc
 from .power_intervals import account_power_intervals, account_common_power
 from .temperature_quality import NORTH_WALL_ITEM, NORTH_WALL_SOURCE, read_north_wall_quality
 from .switch_quality import SWITCH_SOURCES, read_switch_quality
+from .bms_aux_quality import FIELDS as BMS_AUX_FIELDS, read_bms_aux_quality
 
 
 REQUIRED_DAILY = {
@@ -76,6 +77,9 @@ def build_daily_snapshot(
     switch_evidence_db_config=None,
     switch_evidence_cutover: datetime | None = None,
     switch_evidence_assessed_at: datetime | None = None,
+    bms_aux_evidence_db_config=None,
+    bms_aux_evidence_cutover: datetime | None = None,
+    bms_aux_evidence_assessed_at: datetime | None = None,
 ) -> dict[str, object]:
     tables = {
         source.canonical_name: source.table_name
@@ -117,6 +121,17 @@ def build_daily_snapshot(
         raise ValueError('switch evidence requires an elapsed local day')
     if qualified_switch and set(SWITCH_SOURCES) - set(tables):
         raise ValueError('switch source unresolved')
+    bms_aux_options = (bms_aux_evidence_db_config, bms_aux_evidence_cutover,
+                       bms_aux_evidence_assessed_at)
+    configured_bms_aux = any(option is not None for option in bms_aux_options)
+    if configured_bms_aux and any(option is None for option in bms_aux_options):
+        raise ValueError('complete BMS auxiliary evidence configuration is required')
+    bms_aux_cutover = utc(bms_aux_evidence_cutover) if configured_bms_aux else None
+    qualified_bms_aux = configured_bms_aux and end > bms_aux_cutover
+    if qualified_bms_aux and end > utc(bms_aux_evidence_assessed_at):
+        raise ValueError('BMS auxiliary evidence requires an elapsed local day')
+    if qualified_bms_aux and set(BMS_AUX_FIELDS) - set(tables):
+        raise ValueError('BMS auxiliary source unresolved')
     power_history = None
     power_stats = None
     if qualified_power:
@@ -293,6 +308,18 @@ def build_daily_snapshot(
         )
         if set(switch_quality) != set(SWITCH_SOURCES):
             raise ValueError('incomplete switch source quality')
+    bms_aux_quality = None
+    bms_aux_stats = {}
+    if qualified_bms_aux:
+        bms_aux_stats = {name: fetch_observation_stats(connection, tables[name], start, end)
+                         for name in BMS_AUX_FIELDS}
+        bms_aux_quality = read_bms_aux_quality(
+            bms_aux_evidence_db_config, local_date=local_date,
+            assessed_at=bms_aux_evidence_assessed_at, cutover=bms_aux_cutover,
+            site_timezone=config.timezone, statistics=bms_aux_stats,
+        )
+        if set(bms_aux_quality) != set(BMS_AUX_FIELDS):
+            raise ValueError('incomplete BMS auxiliary source quality')
     active_loads = {}
     for canonical, label in (
         ("load.dishwasher_state", "dishwasher"),
@@ -347,6 +374,9 @@ def build_daily_snapshot(
             else fetch_observation_stats(connection, resolved.table_name, start, end))
         if qualified_switch and resolved.canonical_name in SWITCH_SOURCES:
             source_quality.append(switch_quality[resolved.canonical_name])
+            continue
+        if qualified_bms_aux and resolved.canonical_name in BMS_AUX_FIELDS:
+            source_quality.append(bms_aux_quality[resolved.canonical_name])
             continue
         if qualified_north_wall and resolved.canonical_name == NORTH_WALL_SOURCE:
             if definition.item_name != NORTH_WALL_ITEM:

@@ -224,6 +224,10 @@ def test_daily_aggregate_command_uses_previous_site_day(monkeypatch):
                  "--switch-evidence-db-config", "/private/switch-reader.jdbc"]) == 0
     assert calls[2][-4:] == ["--switch-evidence-policy", "/policy/switch.json",
                              "--switch-evidence-db-config", "/private/switch-reader.jdbc"]
+    assert main(["daily-aggregate", "--bms-aux-evidence-policy", "/policy/bms-aux.json",
+                 "--bms-aux-evidence-db-config", "/private/bms-aux-reader.jdbc"]) == 0
+    assert calls[3][-4:] == ["--bms-aux-evidence-policy", "/policy/bms-aux.json",
+                             "--bms-aux-evidence-db-config", "/private/bms-aux-reader.jdbc"]
 
 
 def test_ac_day_command_uses_previous_denver_day_and_exact_policies(monkeypatch):

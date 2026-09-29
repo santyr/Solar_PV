@@ -15,6 +15,7 @@ from .config import ConfigError, load_source_config
 from .daily import build_daily_snapshot
 from .power_policy import load_power_policy
 from .switch_quality import load_switch_policy
+from .bms_aux_quality import load_bms_aux_policy
 from .ac_policy import load_ac_policy
 from .ac_accounting import read_ac_day_accounting
 from .ac_store import store_ac_snapshot
@@ -97,6 +98,8 @@ def _parser() -> argparse.ArgumentParser:
     aggregate.add_argument("--temperature-evidence-db-config", type=Path)
     aggregate.add_argument("--switch-evidence-policy", type=Path)
     aggregate.add_argument("--switch-evidence-db-config", type=Path)
+    aggregate.add_argument("--bms-aux-evidence-policy", type=Path)
+    aggregate.add_argument("--bms-aux-evidence-db-config", type=Path)
     aggregate.add_argument("--jdbc-config", default=DEFAULT_JDBC_CONFIG, type=Path)
     aggregate_mode = aggregate.add_mutually_exclusive_group()
     aggregate_mode.add_argument("--dry-run", action="store_true")
@@ -260,8 +263,12 @@ def _aggregate(args) -> int:
         raise ValueError('temperature evidence requires policy and restricted database config')
     if (args.switch_evidence_policy is None) != (args.switch_evidence_db_config is None):
         raise ValueError('switch evidence requires policy and restricted database config')
+    if (args.bms_aux_evidence_policy is None) != (args.bms_aux_evidence_db_config is None):
+        raise ValueError('BMS auxiliary evidence requires policy and restricted database config')
     policy = load_power_policy(args.power_evidence_policy) if args.power_evidence_policy else None
     switch_policy = load_switch_policy(args.switch_evidence_policy) if args.switch_evidence_policy else None
+    bms_aux_policy = (load_bms_aux_policy(args.bms_aux_evidence_policy)
+                      if args.bms_aux_evidence_policy else None)
     config = load_source_config(args.config)
     settings = parse_openhab_jdbc_config(args.jdbc_config)
     if args.apply:
@@ -302,9 +309,15 @@ def _aggregate(args) -> int:
             'switch_evidence_cutover': switch_policy.cutover,
             'switch_evidence_assessed_at': datetime.now(timezone.utc),
         }
+        bms_aux_options = {} if bms_aux_policy is None else {
+            'bms_aux_evidence_db_config': args.bms_aux_evidence_db_config,
+            'bms_aux_evidence_cutover': bms_aux_policy.cutover,
+            'bms_aux_evidence_assessed_at': datetime.now(timezone.utc),
+        }
         snapshot = build_daily_snapshot(connection, config, resolved, local_date,
                                         bank_epoch=epoch, **power_options,
-                                        **temperature_options, **switch_options)
+                                        **temperature_options, **switch_options,
+                                        **bms_aux_options)
         if policy is not None:
             if snapshot.get('power_accounting',{}).get('policy') != 'qualified_power_evidence_v1':
                 raise ValueError('qualified writer requires a post-cutover daily snapshot')
