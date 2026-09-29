@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "policy": "source_bound_bms_aux_v1",
+  "item_name": "BMS_Aux_Evidence_JSON",
+  "basis": "discover_bms_190_native_aux_v1",
+  "fields": ["battery.remaining_ah", "battery.temperature_raw"],
+  "cutover": "2026-09-29T05:14:44.776000+00:00"
+}

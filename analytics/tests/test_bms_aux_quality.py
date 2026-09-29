@@ -1,6 +1,7 @@
 from dataclasses import replace
 from datetime import date, datetime, timedelta, timezone
 import json
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -32,6 +33,12 @@ def test_policy_rejects_drift_and_duplicate_keys(tmp_path):
     path.write_text(json.dumps(payload)[:-1] + ',"version":1}')
     with pytest.raises(ValueError, match='cannot load valid'):
         bms_aux_quality.load_bms_aux_policy(path)
+
+
+def test_checked_in_policy_pins_first_durable_production_receipt():
+    path = Path(__file__).resolve().parents[1] / 'config/bms-aux-evidence.json'
+    policy = bms_aux_quality.load_bms_aux_policy(path)
+    assert policy.cutover.isoformat() == '2026-09-29T05:14:44.776000+00:00'
 
 
 def test_restricted_reader_maps_both_fields_and_refuses_identity_drift(monkeypatch):
