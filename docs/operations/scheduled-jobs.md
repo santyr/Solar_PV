@@ -26,8 +26,14 @@ The `energy-ui-publish` job emits `earthship-energy-ui/v4` after the September
 27 qualified AC release. AC load is a separate observed inverter-output
 figure, valid under the operator's inverter-only topology attestation; the UI
 must not subtract it from DC PV. A missing or invalid latest AC revision
-must not silently fall back to older data. The AC writer's first natural 00:40
-run remains to be observed.
+must not silently fall back to older data. The first natural AC writer run
+has since been observed: September 28 at 00:41 MDT appended the September 27
+day as revision 7, and the September 29 natural run appended the September 28
+day as revision 8; both exited zero. At the September 29 readback the live v4
+Item selected revision 8 with 4.0010307955555735 kWh observed inverter AC
+output and 99.99622569444493% coverage. The next 00:40 timer is enabled and
+waiting. Off-host recovery and the separately flagged switch-state quality
+rows remain open; this result does not turn AC output into a DC/PV balance.
 
 The same release restored forecast capture from the real version-2 detail
 payload: the attended run succeeded and stored 1,446 rows with issue time
