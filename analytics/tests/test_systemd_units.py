@@ -53,3 +53,17 @@ def test_ac_day_unit_is_scoped_to_restricted_writer_and_never_publishes():
     assert "OPENHAB_TOKEN" not in service
     assert "energy-ui-publish" not in service
     assert "OnCalendar=*-*-* 00:40:00" in timer
+
+
+def test_staged_switch_quality_dropin_preserves_current_daily_sources():
+    body = (UNIT_DIR / 'energy-daily-aggregate.service.d' / 'zz-qualified-switch.conf').read_text()
+    assert 'STAGED ONLY' in body
+    assert 'ExecStart=' in body
+    assert '--jdbc-config /home/sat/.config/hex/energy-power-writer.jdbc' in body
+    assert '--power-evidence-policy /home/sat/Solar_PV/analytics/config/power-evidence.json' in body
+    assert '--temperature-evidence-policy /home/sat/.config/hex/weather-temperature-policy.json' in body
+    assert '--temperature-evidence-db-config /home/sat/.config/hex/weather-temperature-db.json' in body
+    assert '--switch-evidence-policy /home/sat/Solar_PV/analytics/config/switch-evidence.json' in body
+    assert '--switch-evidence-db-config /home/sat/.config/hex/energy-power-reader.jdbc' in body
+    assert 'PYTHONPATH=/home/sat/Solar_PV/analytics/src:/home/sat/earthship-ui/openhab/scripts' in body
+    assert 'OPENHAB_TOKEN' not in body

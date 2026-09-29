@@ -3,9 +3,9 @@
 The Earthship OpenHAB collector began durable source-bound switch receipts at
 2026-09-28 16:36:40.989 UTC. `analytics/config/switch-evidence.json` fixes that
 cutover, the exact `TPLink_Switch_Evidence_JSON` Item, both canonical fields and
-the v1 basis. No earlier local day is eligible. The first *possible* complete
-Denver day is September 29, assessable no earlier than September 30 after the
-next natural midnight and a strict history check.
+the v1 basis. No earlier local day is eligible. The originally possible
+September 29 complete day is superseded by the versioned collector cutover
+below; it must not be used to activate this reader.
 
 The optional `aggregate` arguments are `--switch-evidence-policy` and
 `--switch-evidence-db-config`; both are required together. Without them,
@@ -15,15 +15,16 @@ read-only repeatable-read transaction resolves exactly the evidence Item and
 bounded JDBC table. The shared Earthship reader rejects malformed, duplicated,
 missing or out-of-order receipts, sequence gaps, unbarriered restarts,
 pre-cutover/incomplete days and unsupported values. It scores each switch
-independently, with a 90-second midnight carry-in. `ok` requires continuous
+independently, with a version-bounded midnight carry-in (at most 95 seconds).
+`ok` requires continuous
 closed-window coverage and no in-day unavailable barrier; partial days do not
 show a full-day ON-hour number. The old change-only Switch Item history supplies
 only row statistics, never freshness authority.
 
 This is source-only preparation, not permission to release the quality row.
-The existing `energy_power_reader` role lacks SELECT on the exact new table
-`public.item0656`. A narrow read-only grant is requested separately. After
-that grant, run an isolated completed-day read, a dry-run aggregate with the
+The exact `energy_power_reader` SELECT grant on `public.item0656` was later
+applied and read back, without write privileges. After a complete v2 day,
+run an isolated completed-day read, a dry-run aggregate with the
 paired flags and both policy identities, and natural fault/restart and
 withdrawal/recovery checks. Only then install a reversible daily-service
 drop-in, observe its next natural aggregate, and verify the subsequent UI
@@ -37,3 +38,26 @@ withholding refinement; focused integration tests passed afterward. The one
 unrelated pre-existing backup-unit test had expected the older restore point;
 its assertion was updated to the current installed and documented verified
 manifest without changing the backup unit.
+
+## September 29 versioned source cadence correction
+
+The observational collector's v1 90-second TTL was a few milliseconds shorter
+than normal binding-origin report intervals, which reached 90.054 seconds
+without an unavailable barrier. Its strict reader correctly found many small
+coverage gaps, so September 29 cannot qualify. Earthship UI commit `9965c37`
+added v2 receipts with a bounded 95-second TTL and a new unavailable startup
+epoch while preserving exact 90-second parsing for historical v1. The
+`earthship-ui/docs/operations/2026-09-29-tplink-switch-evidence-v2-cutover.md`
+receipt records natural v2 sequences 1–3 after the guarded 04:50 MDT rule
+replacement. The restricted reader strictly parsed later v2 JDBC rows in a
+read-only transaction. No earlier gaps were backfilled or relabeled.
+
+The first possible complete v2 Denver day is September 30, assessable after
+its midnight on October 1. A **staged-only** `zz-qualified-switch.conf`
+daily-service drop-in preserves current power and temperature flags while
+adding the paired switch policy and restricted reader path. It is not
+installed. The drop-in passed systemd's user-unit parser and 30 focused
+unit/scheduled tests; the full analytics suite passed 880 tests against the
+candidate v2 reader. Install only after strict complete-day, source
+fault/restart and withdrawal/recovery checks, then verify the next natural
+daily aggregate and UI publisher. Historical days remain unchanged.
