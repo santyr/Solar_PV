@@ -18,6 +18,7 @@ from zoneinfo import ZoneInfo
 
 from . import cli as energy_cli
 from .bms_evidence import current_soc_receipt_healthy
+from .bms_aux_quality import FIELDS as BMS_AUX_FIELDS, load_bms_aux_policy, read_current_bms_aux_health
 from .config import load_source_config, live_health_source_config
 from .db import connect_read_only, connect_write, parse_openhab_jdbc_config
 from .forecasts import persist_forecast_snapshots, snapshots_from_openhab_detail
@@ -283,12 +284,19 @@ def current_health_status(
     return False
 
 
-def _live_sources_ok(connection, config, resolved, now: datetime) -> bool:
+def _live_sources_ok(connection, config, resolved, now: datetime, *, bms_aux_cutover=None) -> bool:
     definitions = {source.canonical_name: source for source in config.sources}
     required = [source for source in resolved if source.required]
     if not required or any(source.freshness_table_name is None for source in required):
         return False
+    bms_aux_health = (read_current_bms_aux_health(
+        connection, generated_at=now, cutover=bms_aux_cutover)
+        if bms_aux_cutover is not None else None)
     for source in required:
+        if bms_aux_health is not None and source.canonical_name in BMS_AUX_FIELDS:
+            if source.status != 'ok' or not bms_aux_health[source.canonical_name]:
+                return False
+            continue
         if not ITEM_TABLE.fullmatch(source.freshness_table_name):
             return False
         with connection.cursor() as cursor:
@@ -321,7 +329,7 @@ def _live_sources_ok(connection, config, resolved, now: datetime) -> bool:
 
 
 def read_quality_state(
-    jdbc_config: str, now: datetime
+    jdbc_config: str, now: datetime, *, bms_aux_cutover=None,
 ) -> tuple[bool, bool, date | None, datetime | None]:
     settings = parse_openhab_jdbc_config(jdbc_config)
     connection = connect_read_only(settings)
@@ -329,7 +337,8 @@ def read_quality_state(
         items, tables = fetch_inventory(connection)
         config = live_health_source_config(load_source_config())
         resolved = resolve_sources(config, items, tables)
-        live_sources_ok = _live_sources_ok(connection, config, resolved, now)
+        live_sources_ok = _live_sources_ok(connection, config, resolved, now,
+            **({'bms_aux_cutover': bms_aux_cutover} if bms_aux_cutover is not None else {}))
         with connection.cursor() as cursor:
             cursor.execute(
                 """SELECT max(b.local_date)
@@ -348,7 +357,7 @@ def read_quality_state(
     return True, live_sources_ok, latest_aggregate, latest_forecast
 
 
-def read_qualified_quality_state(jdbc_config,now,policy,timezone_name):
+def read_qualified_quality_state(jdbc_config,now,policy,timezone_name,*,bms_aux_cutover=None):
     from .power_snapshot_reader import read_power_snapshots
     if policy.cutover > now:
         raise ValueError('qualified cutover is in the future')
@@ -367,7 +376,8 @@ def read_qualified_quality_state(jdbc_config,now,policy,timezone_name):
         items,tables=fetch_inventory(connection)
         config=live_health_source_config(load_source_config())
         resolved=resolve_sources(config,items,tables)
-        live_ok=_live_sources_ok(connection,config,resolved,now)
+        live_ok=_live_sources_ok(connection,config,resolved,now,
+            **({'bms_aux_cutover': bms_aux_cutover} if bms_aux_cutover is not None else {}))
         with connection.cursor() as cursor:
             cursor.execute('SELECT max(issued_at) FROM energy_analytics.forecast_snapshots WHERE issued_at<=%s',(now,))
             forecast=cursor.fetchone()[0]
@@ -454,6 +464,7 @@ def _parser() -> argparse.ArgumentParser:
     quality.add_argument("--jdbc-config", default=DEFAULT_JDBC_CONFIG)
     quality.add_argument("--timezone", default="America/Denver")
     quality.add_argument("--power-evidence-policy")
+    quality.add_argument("--bms-aux-evidence-policy")
     quality.add_argument(
         "--event-dir", default="~/.local/state/earthship-energy/pending-events"
     )
@@ -480,6 +491,7 @@ def _parser() -> argparse.ArgumentParser:
     ui_publish.add_argument("--openhab-url", default=DEFAULT_OPENHAB_URL)
     ui_publish.add_argument("--power-evidence-policy")
     ui_publish.add_argument("--ac-evidence-policy")
+    ui_publish.add_argument("--bms-aux-evidence-policy")
     ui_publish.add_argument("--dry-run", action="store_true")
     return parser
 
@@ -530,12 +542,16 @@ def main(argv: list[str] | None = None) -> int:
         ])
     if args.command == "data-quality":
         now = utc_now()
+        bms_aux = (load_bms_aux_policy(args.bms_aux_evidence_policy)
+                   if args.bms_aux_evidence_policy else None)
         qualified_daily=None
         if args.power_evidence_policy:
             values,qualified_daily=read_qualified_quality_state(args.jdbc_config,now,
-                load_power_policy(args.power_evidence_policy),args.timezone)
+                load_power_policy(args.power_evidence_policy),args.timezone,
+                **({'bms_aux_cutover': bms_aux.cutover} if bms_aux else {}))
         else:
-            values=read_quality_state(args.jdbc_config,now)
+            values=read_quality_state(args.jdbc_config,now,
+                **({'bms_aux_cutover': bms_aux.cutover} if bms_aux else {}))
         sources_ok,live_sources_ok,latest_aggregate,latest_forecast=values
         result = build_quality_report(
             now=now,
@@ -622,6 +638,8 @@ def main(argv: list[str] | None = None) -> int:
         return _exit_for_severity("Interesting")
     if args.command == "energy-ui-publish":
         now = utc_now()
+        bms_aux = (load_bms_aux_policy(args.bms_aux_evidence_policy)
+                   if args.bms_aux_evidence_policy else None)
         if args.ac_evidence_policy and (not args.power_evidence_policy
                                         or args.timezone != 'America/Denver'):
             raise ValueError('AC UI v4 requires qualified power policy and America/Denver')
@@ -636,7 +654,8 @@ def main(argv: list[str] | None = None) -> int:
             items, tables = fetch_inventory(connection)
             resolved = resolve_sources(source_config, items, tables)
             live_health = fetch_live_subsystem_health(
-                connection, source_config, resolved, generated_at=now
+                connection, source_config, resolved, generated_at=now,
+                bms_aux_cutover=bms_aux.cutover if bms_aux else None,
             )
             payload = build_energy_ui_snapshot(
                 connection, load_epoch_config(args.epochs), generated_at=now,

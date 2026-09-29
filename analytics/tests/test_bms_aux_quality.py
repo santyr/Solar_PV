@@ -1,13 +1,15 @@
 from dataclasses import replace
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 import json
 from types import SimpleNamespace
 
 import pytest
 
 from earthship_energy import bms_aux_quality, daily
+from earthship_energy import scheduled
 from earthship_energy.config import load_source_config
 from earthship_energy.series import local_day_bounds
+from earthship_energy.ui_reader import fetch_live_subsystem_health
 import bms_aux_history
 
 
@@ -114,3 +116,88 @@ def test_unavailable_history_fails_closed(monkeypatch):
             '/private/reader', local_date=date(2026, 9, 29), assessed_at=end,
             cutover=start, site_timezone='America/Denver',
             statistics={name: (0, None, None) for name in bms_aux_quality.FIELDS})
+
+
+def test_current_aux_receipt_replaces_held_device_present_health():
+    now = datetime(2026, 9, 29, 6, 0, tzinfo=timezone.utc)
+    ms = lambda at: int(at.timestamp() * 1000)
+    epoch = '00000000-0000-0000-0000-000000000001'
+    def receipt(sequence, recorded, *, valid):
+        fields = {}
+        for name, value in (('battery.remaining_ah', 320),
+                            ('battery.temperature_raw', 29300)):
+            fields[name] = ({'status': 'valid', 'reason': 'ok',
+                             'observedAt': ms(recorded),
+                             'validUntil': ms(recorded + timedelta(seconds=120)),
+                             'value': value}
+                            if valid else {'status': 'unavailable',
+                                           'reason': 'source_unavailable',
+                                           'observedAt': None, 'validUntil': None,
+                                           'value': None})
+        return json.dumps({'version': 1, 'basis': 'discover_bms_190_native_aux_v1',
+                           'streamEpoch': epoch, 'sequence': sequence,
+                           'recordedAt': ms(recorded), 'fields': fields})
+    previous = (now - timedelta(seconds=30),
+                receipt(1, now - timedelta(seconds=31), valid=False))
+    latest = (now - timedelta(seconds=1),
+              receipt(2, now - timedelta(seconds=2), valid=True))
+
+    class Connection:
+        def __init__(self, rows):
+            self.rows = rows
+            self.queries = []
+        def cursor(self):
+            outer = self
+            class Cursor:
+                def __enter__(self): return self
+                def __exit__(self, *_): return False
+                def execute(self, sql, params): outer.queries.append((sql, params))
+                def fetchall(self):
+                    return [(658,)] if len(outer.queries) % 2 else outer.rows
+            return Cursor()
+
+    cutover = now - timedelta(hours=1)
+    connection = Connection([latest, previous])
+    health = bms_aux_quality.read_current_bms_aux_health(
+        connection, generated_at=now, cutover=cutover)
+    assert health == {name: True for name in bms_aux_quality.FIELDS}
+    assert all('BMS_DevicePresent' not in sql for sql, _ in connection.queries)
+
+    config = load_source_config()
+    config = SimpleNamespace(sources=tuple(source for source in config.sources
+        if source.canonical_name in bms_aux_quality.FIELDS))
+    resolved = tuple(SimpleNamespace(canonical_name=name, required=True,
+        status='ok', freshness_table_name='item0001') for name in bms_aux_quality.FIELDS)
+    assert fetch_live_subsystem_health(Connection([latest, previous]), config, resolved,
+        generated_at=now, bms_aux_cutover=cutover)['bms'] == 'ok'
+    assert scheduled._live_sources_ok(Connection([latest, previous]), config, resolved,
+                                      now, bms_aux_cutover=cutover)
+
+    for rows in ([latest], [(latest[0], receipt(4, now - timedelta(seconds=2), valid=True)), previous],
+                 [(latest[0], '{bad JSON'), previous]):
+        assert not all(bms_aux_quality.read_current_bms_aux_health(
+            Connection(rows), generated_at=now, cutover=cutover).values())
+        assert fetch_live_subsystem_health(Connection(rows), config, resolved,
+            generated_at=now, bms_aux_cutover=cutover)['bms'] == 'fault'
+        assert not scheduled._live_sources_ok(Connection(rows), config, resolved,
+                                              now, bms_aux_cutover=cutover)
+    assert not all(bms_aux_quality.read_current_bms_aux_health(
+        Connection([latest, previous]), generated_at=now + timedelta(seconds=119),
+        cutover=cutover).values())
+
+
+def test_current_aux_missing_grant_does_not_fall_back_to_device_present():
+    now = datetime(2026, 9, 29, 6, 0, tzinfo=timezone.utc)
+    class Connection:
+        def cursor(self):
+            class Cursor:
+                def __enter__(self): return self
+                def __exit__(self, *_): return False
+                def execute(self, sql, _params):
+                    if 'FROM public.item0658' in sql:
+                        raise PermissionError('SELECT on item0658 denied')
+                def fetchall(self): return [(658,)]
+            return Cursor()
+    with pytest.raises(PermissionError, match='item0658 denied'):
+        bms_aux_quality.read_current_bms_aux_health(
+            Connection(), generated_at=now, cutover=now - timedelta(hours=1))

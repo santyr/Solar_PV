@@ -6,6 +6,7 @@ from datetime import date, datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
 from .bms_evidence import current_soc_receipt_healthy
+from .bms_aux_quality import FIELDS as BMS_AUX_FIELDS, read_current_bms_aux_health
 from .report_reader import fetch_daily_report_rows, fetch_module_report_rows
 from .reports import lifecycle_report, module_health_report, winter_report
 from .reader import ITEM_TABLE
@@ -37,7 +38,8 @@ def _current_health_status(policy, raw_value, now, stale_after_seconds):
     return False
 
 
-def fetch_live_subsystem_health(connection, config, resolved_sources, *, generated_at):
+def fetch_live_subsystem_health(connection, config, resolved_sources, *, generated_at,
+                                bms_aux_cutover=None):
     """Read one current, bounded freshness value per required source."""
     if generated_at.tzinfo is None or generated_at.utcoffset() is None:
         raise ValueError("generated_at must be timezone-aware")
@@ -47,10 +49,18 @@ def fetch_live_subsystem_health(connection, config, resolved_sources, *, generat
     reasons = []
     collector_ok = bool(required)
     cached = {}
+    bms_aux_health = (read_current_bms_aux_health(
+        connection, generated_at=generated_at, cutover=bms_aux_cutover)
+        if bms_aux_cutover is not None else None)
     for source in required:
         definition = definitions.get(source.canonical_name)
         table = source.freshness_table_name
-        if definition is None or source.status != "ok" or not table or not ITEM_TABLE.fullmatch(table):
+        if bms_aux_health is not None and source.canonical_name in BMS_AUX_FIELDS:
+            healthy = source.status == "ok" and bms_aux_health[source.canonical_name]
+            if source.status != "ok":
+                collector_ok = False
+                reasons.append("collector_source_contract_incomplete")
+        elif definition is None or source.status != "ok" or not table or not ITEM_TABLE.fullmatch(table):
             collector_ok = False
             reasons.append("collector_source_contract_incomplete")
             healthy = False

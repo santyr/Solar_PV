@@ -100,3 +100,51 @@ def read_bms_aux_quality(
             },
         }
     return output
+
+
+def read_current_bms_aux_health(connection, *, generated_at: datetime,
+                                cutover: datetime) -> dict[str, bool]:
+    """Assess two latest durable receipts, never a held numeric/status Item.
+
+    A missing table grant or mapping raises, so an opted-in publisher cannot
+    silently fall back to `BMS_DevicePresent`. Malformed evidence fails closed.
+    """
+    from bms_aux_evidence import BmsAuxEvidenceRefused, parse_bms_aux_receipt
+
+    from .power_evidence import utc
+
+    now, since = utc(generated_at), utc(cutover)
+    if now < since:
+        raise ValueError('BMS auxiliary cutover is in the future')
+    with connection.cursor() as cursor:
+        cursor.execute('SELECT itemid FROM public.items WHERE itemname=%s LIMIT 2',
+                       ('BMS_Aux_Evidence_JSON',))
+        matches = cursor.fetchall()
+        if (len(matches) != 1 or type(matches[0][0]) is not int
+                or not 0 <= matches[0][0] <= 2147483647):
+            raise ValueError('unique BMS auxiliary Item mapping required')
+        table = f'public.item{matches[0][0]:04d}'
+        cursor.execute(
+            f'SELECT time, CASE WHEN octet_length(value::text) <= 4096 '
+            f'THEN value::text ELSE NULL END FROM {table} '
+            'WHERE time >= %s AND time <= %s ORDER BY time DESC LIMIT 2',
+            (since, now),
+        )
+        rows = cursor.fetchall()
+    unavailable = {name: False for name in FIELDS}
+    if len(rows) != 2:
+        return unavailable
+    try:
+        previous, latest = [parse_bms_aux_receipt(raw, persisted)
+                            for persisted, raw in reversed(rows)]
+    except BmsAuxEvidenceRefused:
+        return unavailable
+    if (previous.persisted_at >= latest.persisted_at
+            or previous.recorded_at >= latest.recorded_at
+            or previous.epoch != latest.epoch
+            or previous.sequence + 1 != latest.sequence
+            or latest.sequence <= 1):
+        return unavailable
+    return {canonical: (latest.fields[field].status == 'valid'
+                        and latest.persisted_at <= now < latest.fields[field].valid_until)
+            for canonical, field in FIELDS.items()}
