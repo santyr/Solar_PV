@@ -48,6 +48,18 @@ must be `OK`. A missing companion, invalid timestamp, stale update, or
 non-healthy state is Actionable. The daily aggregate checkpoint only advances
 when battery, PV, load, and weather rows all have `quality=ok`.
 
+The forecast snapshot timer also checks at 06:45 America/Denver, five minutes
+after `forecast-intel.timer` issues its morning forecast, in addition to its
+two-hour `:10` checks. The two-hour cadence previously skipped the 06:40
+issue before the next weather-JSON refresh; OpenHAB JDBC retained that issue
+but `energy_analytics.forecast_snapshots` did not. The capture writer is
+append-only and ignores duplicate `(source, issued_at, valid_for, metric)`
+keys. A late or failed morning producer must be reported as an uncaptured
+origin, not silently represented by a preceding or following revision. After
+installation, verify the next **natural** 06:45 capture has the same issue
+timestamp and values as the 06:40 OpenHAB prediction/forecast receipt before
+using it in historical tuning. No manual forecast producer run is required.
+
 ## Installation and status
 
 Reviewed units live in `deploy/systemd/user/`. Production expects the repo at
