@@ -6,7 +6,8 @@ from zoneinfo import ZoneInfo
 import pytest
 from unittest.mock import patch
 
-from earthship_energy.bms_evidence import EvidenceSequenceError, build_soc_intervals, parse_evidence, soc_at
+from earthship_energy.bms_evidence import (EvidenceSequenceError, build_soc_intervals,
+                                           current_soc_receipt_healthy, parse_evidence, soc_at)
 from earthship_energy.reader import fetch_bms_soc_intervals
 
 BASE = datetime(2026, 9, 10, tzinfo=timezone.utc)
@@ -56,6 +57,15 @@ def test_valid_and_unavailable_records():
     assert parse_evidence(record(), at(.01)).soc == 50
     assert parse_evidence(unavailable(0), at(0)).valid_until is None
     assert parse_evidence(record(soc=0), at(0)).soc == 0
+
+
+def test_current_soc_health_uses_original_source_expiry_not_change_only_row_age():
+    assert current_soc_receipt_healthy(record(), at(1), at(119))
+    assert not current_soc_receipt_healthy(record(), at(1), at(120))
+    assert not current_soc_receipt_healthy(record(), at(121), at(121))
+    assert not current_soc_receipt_healthy(unavailable(0), at(1), at(2))
+    assert not current_soc_receipt_healthy('INVALID', at(1), at(2))
+    assert not current_soc_receipt_healthy(record(), at(3), at(2))
 
 
 @pytest.mark.parametrize('raw', ['{}', '[]', 'null', 'NULL', '{', ' '*4097,

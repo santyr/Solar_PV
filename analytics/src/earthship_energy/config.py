@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 import json
 from pathlib import Path
 import re
@@ -160,18 +160,8 @@ def default_source_config_path() -> Path:
 
 
 def live_health_source_config(config: SourceConfig) -> SourceConfig:
-    """Preserve the established live-health contract during historical cutover.
-
-    Atomic evidence currently owns daily/hourly history only. Migrating live
-    health to its two-minute expiry is a separately scoped policy change.
-    This explicit consumer contract is not a historical-reader fallback.
-    """
-    return replace(config, sources=tuple(
-        replace(source, freshness_item="BMS_Comms_Status", stale_policy="status_must_equal_OK",
-                stale_after_seconds=None)
-        if source.canonical_name == "battery.soc_pct" and source.stale_policy == "atomic_bms_evidence"
-        else source for source in config.sources
-    ))
+    """Use the same source-bound SoC receipt for history and live health."""
+    return config
 
 
 def load_source_config(path: str | Path | None = None) -> SourceConfig:

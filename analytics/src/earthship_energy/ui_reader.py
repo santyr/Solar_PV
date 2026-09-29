@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import date, datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
+from .bms_evidence import current_soc_receipt_healthy
 from .report_reader import fetch_daily_report_rows, fetch_module_report_rows
 from .reports import lifecycle_report, module_health_report, winter_report
 from .reader import ITEM_TABLE
@@ -56,11 +57,18 @@ def fetch_live_subsystem_health(connection, config, resolved_sources, *, generat
         else:
             if table not in cached:
                 with connection.cursor() as cursor:
-                    cursor.execute(
-                        f"SELECT value FROM public.{table} "
-                        "WHERE time <= %s ORDER BY time DESC LIMIT 1",
-                        (generated_at,),
-                    )
+                    if definition.stale_policy == "atomic_bms_evidence":
+                        cursor.execute(
+                            f"SELECT time, value FROM public.{table} "
+                            "WHERE time <= %s ORDER BY time DESC LIMIT 1",
+                            (generated_at,),
+                        )
+                    else:
+                        cursor.execute(
+                            f"SELECT value FROM public.{table} "
+                            "WHERE time <= %s ORDER BY time DESC LIMIT 1",
+                            (generated_at,),
+                        )
                     cached[table] = cursor.fetchone()
             row = cached[table]
             if row is None:
@@ -68,9 +76,13 @@ def fetch_live_subsystem_health(connection, config, resolved_sources, *, generat
                 reasons.append("collector_freshness_value_missing")
                 healthy = False
             else:
-                healthy = _current_health_status(
-                    definition.stale_policy, str(row[0]), generated_at,
-                    definition.stale_after_seconds,
+                healthy = (
+                    current_soc_receipt_healthy(str(row[1]), row[0], generated_at)
+                    if definition.stale_policy == "atomic_bms_evidence"
+                    else _current_health_status(
+                        definition.stale_policy, str(row[0]), generated_at,
+                        definition.stale_after_seconds,
+                    )
                 )
         name = source.canonical_name
         group = (

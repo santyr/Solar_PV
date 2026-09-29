@@ -108,6 +108,20 @@ def parse_evidence(raw: str, persisted_at: datetime) -> EvidenceRecord | None:
         return None
 
 
+def current_soc_receipt_healthy(raw: str, persisted_at: datetime, now: datetime) -> bool:
+    """A last persisted value is live only until its original source expiry."""
+    try:
+        checked_at = _utc(now)
+        persisted = _utc(persisted_at)
+        if persisted > checked_at:
+            return False
+        record = parse_evidence(raw, persisted)
+        return bool(record is not None and record.status == 'valid'
+                    and record.recorded_at <= checked_at < record.valid_until)
+    except (TypeError, ValueError):
+        return False
+
+
 def build_soc_intervals(
     observations: list[tuple[datetime, str]],
     window_start: datetime,

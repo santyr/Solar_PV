@@ -17,6 +17,7 @@ from urllib.request import Request, urlopen
 from zoneinfo import ZoneInfo
 
 from . import cli as energy_cli
+from .bms_evidence import current_soc_receipt_healthy
 from .config import load_source_config, live_health_source_config
 from .db import connect_read_only, connect_write, parse_openhab_jdbc_config
 from .forecasts import persist_forecast_snapshots, snapshots_from_openhab_detail
@@ -291,17 +292,30 @@ def _live_sources_ok(connection, config, resolved, now: datetime) -> bool:
         if not ITEM_TABLE.fullmatch(source.freshness_table_name):
             return False
         with connection.cursor() as cursor:
-            cursor.execute(
-                f"SELECT value FROM public.{source.freshness_table_name} "
-                "WHERE time <= %s ORDER BY time DESC LIMIT 1",
-                (now,),
-            )
+            if definitions[source.canonical_name].stale_policy == "atomic_bms_evidence":
+                cursor.execute(
+                    f"SELECT time, value FROM public.{source.freshness_table_name} "
+                    "WHERE time <= %s ORDER BY time DESC LIMIT 1",
+                    (now,),
+                )
+            else:
+                cursor.execute(
+                    f"SELECT value FROM public.{source.freshness_table_name} "
+                    "WHERE time <= %s ORDER BY time DESC LIMIT 1",
+                    (now,),
+                )
             row = cursor.fetchone()
         definition = definitions[source.canonical_name]
-        if row is None or not current_health_status(
-            definition.stale_policy, str(row[0]), now,
-            definition.stale_after_seconds,
-        ):
+        if row is None:
+            healthy = False
+        elif definition.stale_policy == "atomic_bms_evidence":
+            healthy = current_soc_receipt_healthy(str(row[1]), row[0], now)
+        else:
+            healthy = current_health_status(
+                definition.stale_policy, str(row[0]), now,
+                definition.stale_after_seconds,
+            )
+        if not healthy:
             return False
     return True
 
