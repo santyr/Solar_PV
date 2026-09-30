@@ -68,8 +68,11 @@ stores quantitative OpenHAB history using `public.items` and per-Item tables.
 On September 23, 2026, the operator confirmed that all current household AC
 loads are served by inverter output, without bypass or generator supplementation.
 The confirmation has no historical start timestamp or automatic future-change
-detector; AC-load accounting therefore still requires a bounded, separately
-confirmed topology period and qualified inverter-output receipts.
+detector. The operator subsequently chose to keep it valid until reporting a
+topology change. Qualified AC accounting begins at the new evidence stream's
+September 23 20:55:12.284Z cutover, not an inferred earlier topology, and each
+read is bounded to one already completed local day. A reported change must end
+that confirmed period before later days are qualified.
 
 OpenHAB may observe, alert, and execute bounded deterministic owner rules. It
 does not replace BMS/inverter protection. The current browser sends only its
@@ -131,6 +134,29 @@ restart/rollback are still open gates. Off-host backup destination remains
 operator-deferred; a same-host database restore is not disaster recovery.
 
 ## Known current gaps
+
+### Current accounting checkpoint — September 30, 2026
+
+The September 19/20 lifecycle paragraphs above retain their release-time
+state. The separate AC writer and v4 publisher were activated September 27,
+and both completed naturally on September 30. The restricted stored revision
+and live v4 Item agree on September 29 inverter output: revision 9,
+5.205524469722256 kWh and 99.996406250001% qualified coverage. Its independent
+day/window/revision provenance is carried in `acLoad`; v3-compatible load and
+DC/AC balance fields remain withheld. This is observed available-interval
+inverter output under the current topology attestation, not a full-day
+extrapolation, battery contribution estimate or conversion-loss calculation.
+See [the current shared boundary](cross-repo-contracts.md#live-qualified-ac-publication--september-2730).
+
+The observational configuration migration has also advanced beyond its
+September 20 checkpoint. Consult earthship-ui's live ownership inventory and
+canonical outstanding tracker for each verified file-owned resource; the
+earlier claim that only the Energy Item migrated is historical. Full protected-
+control recovery and the remaining attended cutovers are not established by
+an observational provider rehearsal. Off-host backup remains explicitly
+operator-deferred; do not reopen it as an unanswered destination question.
+
+### Remaining physical and operational evidence
 
 - Capture the original PV quote or field nameplates; verify the exact Qcells
   model and string configuration.

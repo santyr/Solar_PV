@@ -191,10 +191,12 @@ state change, or physical action was used.
 
 ## Stable energy analytics UI boundary
 
-`Solar_PV` owns PostgreSQL analytics and publishes the closed
-`earthship-energy-ui/v3` payload every five minutes with explicit qualified
-power accounting. The v1/v2/v3 reader was deployed before the v3 publisher's
-September 20 activation. OpenHAB hosts one observational String
+`Solar_PV` owns PostgreSQL analytics and currently publishes the closed
+`earthship-energy-ui/v4` payload every five minutes, preserving v3 qualified
+power accounting and adding a separately dated AC observation. The v1/v2/v3
+reader preceded September 20 v3 activation; v4 reader support preceded the
+September 27 AC publisher release. All four versions remain accepted.
+OpenHAB hosts one observational String
 Item, `Energy_Analytics_JSON`. `earthship-ui` consumes that Item through its
 existing REST/SSE store, rejects payloads at or above 16 KiB and evidence older
 than 15 minutes, and exposes no control from the analytics surface. Unknown
@@ -236,7 +238,11 @@ full restart or protected-control recovery.
 This contract does not rename or reinterpret any feeder, greywater, night-load,
 forecast, thermal, AGM-history, BMS, inverter, or charge-controller interface.
 
-### Separate inverter-output evidence candidate (September 23)
+### Inverter-output evidence: historical candidate and live v4 boundary
+
+The September 23 candidate checkpoints below are historical, not current
+activation state. The live-release subsection supersedes their staging-only
+statements without changing the separate AC/DC accounting boundary.
 
 The operator reports that all current household AC loads are inverter-served,
 with no bypass or generator supplementation. This is a current topology report,
@@ -285,6 +291,38 @@ qualified. The partial September23 day is ineligible; the earliest candidate
 full day is September24 after its Denver-local end on September25 at06:00Z.
 This policy file is not wired into the scheduled job or v3 publisher, so its
 presence does not publish load or balance.
+
+### Live qualified AC publication — September 27–30
+
+The September 27 guarded release enabled the separate user-level
+`energy-ac-day.timer` (nominal 00:40 America/Denver) and the existing
+five-minute publisher's `--ac-evidence-policy` path. The AC writer appends
+completed, topology-qualified observations to `daily_ac_snapshots`; the
+restricted publisher selects validated latest revisions and emits v4.
+It is not an unscheduled or default-off candidate now.
+
+V4 retains every v3 field and adds one exact `acLoad` object with policy,
+cutover, topology interval, status and a separately dated latest observation.
+The observation includes original local-day bounds, observed kWh, coverage
+and immutable revision identity. It is not extrapolated to fill missing
+intervals. Zero coverage is unavailable, never zero load. The v3-compatible
+`energy.latest.loadKwh` stays null, and `accounting.loadStatus` remains
+`ac_load_evidence_unqualified`: a separate AC day must not become a DC/AC
+balance or silently inherit the latest power-snapshot date. Open-ended
+topology attestation remains valid only until the operator reports a change;
+each read is still bounded to an already completed local day.
+
+September 30 read-only verification matched the live v4 observation to the
+restricted stored revision for September 29: ID 9, SHA-256
+`8d854640a75fba586de9d75f93eb49a0d2b978f701c1cdafc3c5dccd47c97e37`,
+5.205524469722256 kWh and coverage 0.9999640625000095. The natural AC writer
+completed at 00:41:31 MDT and the 09:15 publisher exited zero. The strict
+stored-payload encoder, revision clock, window bounds and published values
+all agree; cross-domain balance remains withheld. This is current writer/
+publication continuity, not off-host recovery, new topology or a control grant.
+See earthship-ui `docs/operations/ac-load-ui-v4.md` for the contract and
+activation receipts. Roll back the publisher before removing reader support;
+never prune or relabel qualified revisions as part of a contract rollback.
 
 
 ## Forecast detail input boundary
