@@ -112,3 +112,26 @@ backup-check service now selects this manifest. The read-only checker found
 the archive fresh, readable and restore-verified, but still Actionable because
 storage is same-host only. Later AC revisions 3 and 4 were appended after
 this snapshot; they are not part of this recovery point.
+
+## September 30 full-database evidence-history refresh
+
+The September 30 point under
+`/home/sat/backups/earthship-energy/full-restore-volep77n/` covers all 522
+non-system tables, including seven newly added evidence histories
+(`public.item0655` through `public.item0661`) absent from September 27's point.
+Its read-only exported snapshot started at 11:36:48.574176Z; the isolated
+restore matched every table's source fingerprint at 12:31:17.290029Z.
+Archive SHA256:
+`031bb485f8a7d6f386ce3e146cf7793c84e95b3dfa934f710b8d7010ba8de065`.
+Archive size is 2,344,864,758 bytes, with directory/file modes 0700/0600.
+The identity-verified networkless one-CPU/one-GiB/no-additional-swap restore
+container was removed with its anonymous volume; independent Docker readback
+confirms the container is absent. Independent monitor assessment verifies
+freshness, readability, restore status and archive integrity.
+
+The versioned monitor now selects this manifest. Do not infer coverage of
+rows or model publications generated after the snapshot, and retain previous
+real recovery points. Same-host-only remains Actionable under the operator's
+off-host deferral. This data-only exercise does not newly qualify role/ACL,
+configuration, protected-control or whole-host recovery; no production
+restart, manual notification, control command or off-host copy was performed.
