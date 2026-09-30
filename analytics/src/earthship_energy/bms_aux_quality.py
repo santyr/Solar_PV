@@ -109,7 +109,8 @@ def read_current_bms_aux_health(connection, *, generated_at: datetime,
     A missing table grant or mapping raises, so an opted-in publisher cannot
     silently fall back to `BMS_DevicePresent`. Malformed evidence fails closed.
     """
-    from bms_aux_evidence import BmsAuxEvidenceRefused, parse_bms_aux_receipt
+    from bms_aux_evidence import (BmsAuxEvidenceRefused, parse_bms_aux_receipt,
+                                 validate_receipt_successor)
 
     from .power_evidence import utc
 
@@ -137,12 +138,10 @@ def read_current_bms_aux_health(connection, *, generated_at: datetime,
     try:
         previous, latest = [parse_bms_aux_receipt(raw, persisted)
                             for persisted, raw in reversed(rows)]
+        validate_receipt_successor(previous, latest)
     except BmsAuxEvidenceRefused:
         return unavailable
-    if (previous.persisted_at >= latest.persisted_at
-            or previous.recorded_at >= latest.recorded_at
-            or previous.epoch != latest.epoch
-            or previous.sequence + 1 != latest.sequence
+    if (previous.epoch != latest.epoch
             or latest.sequence <= 1):
         return unavailable
     return {canonical: (latest.fields[field].status == 'valid'

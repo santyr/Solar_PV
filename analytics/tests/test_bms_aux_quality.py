@@ -192,6 +192,27 @@ def test_current_aux_receipt_replaces_held_device_present_health():
         Connection([latest, previous]), generated_at=now + timedelta(seconds=119),
         cutover=cutover).values())
 
+    # Two native channels can legitimately publish in the same millisecond.
+    at = now - timedelta(seconds=2)
+    first = json.loads(receipt(10, at, valid=True))
+    first['fields']['battery.remaining_ah'].update(
+        value=296, observedAt=ms(at-timedelta(seconds=30)),
+        validUntil=ms(at+timedelta(seconds=90)))
+    second = json.loads(receipt(11, at, valid=True))
+    second['fields']['battery.remaining_ah']['value'] = 300
+    pair = [(at+timedelta(milliseconds=1), json.dumps(second)),
+            (at, json.dumps(first))]
+    assert all(bms_aux_quality.read_current_bms_aux_health(
+        Connection(pair), generated_at=now, cutover=cutover).values())
+    assert fetch_live_subsystem_health(Connection(pair), config, resolved,
+        generated_at=now, bms_aux_cutover=cutover)['bms'] == 'ok'
+    assert not any(bms_aux_quality.read_current_bms_aux_health(
+        Connection(pair), generated_at=at+timedelta(seconds=120), cutover=cutover).values())
+    second['fields']['battery.temperature_raw']['value'] += 100
+    conflict = [(pair[0][0], json.dumps(second)), pair[1]]
+    assert not any(bms_aux_quality.read_current_bms_aux_health(
+        Connection(conflict), generated_at=now, cutover=cutover).values())
+
 
 def test_current_aux_missing_grant_does_not_fall_back_to_device_present():
     now = datetime(2026, 9, 29, 6, 0, tzinfo=timezone.utc)

@@ -303,3 +303,24 @@ metadata, timestamps, and non-finite or nonnumeric recognized metric values
 before persistence. The evidence inventory above remains the historical
 2026-08-20 snapshot; this supported-input statement makes no deployment or
 fresh-history claim.
+
+## BMS auxiliary receipt ordering — September 30, 2026
+
+The default-off auxiliary daily-quality and current-health consumers use the
+Earthship `bms_aux_evidence.validate_receipt_successor` validator. Recording
+clock precision is one millisecond; two independently advancing native channels
+may share it. Admission requires strictly ordered durable timestamps, one
+epoch, contiguous sequence and a changed snapshot whose changed valid fields
+carry genuinely newer native observations at that clock time. Duplicate or
+conflicting observations, regressing clocks and same-clock epoch changes fail
+closed. No source timestamp or expiry is extended, and unavailable barriers
+remain unqualified. The JSON basis, schema, field names and UI contract are
+unchanged. Deploy the matching Earthship supporting library before opting in;
+missing support must not fall back to BMS device presence or held numeric data.
+
+The real September 29 assessment passes all 13 settled native-temperature
+changes against the derived Fahrenheit Item, but native coverage gaps still
+make its daily quality partial. Current health is separately assessed from two
+fresh original receipts; it is not evidence that a full day is complete. Eighty
+affected cross-repository tests pass, including actual restricted PostgreSQL
+and UI/sanity consumers. No production opt-in or control was activated.
