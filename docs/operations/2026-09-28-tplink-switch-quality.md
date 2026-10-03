@@ -99,3 +99,36 @@ then require the next natural aggregate and unchanged accounting/UI publication.
 This candidate affects daily supporting-quality rows only. It does not enable
 the publisher's separate BMS live-health policy, rewrite old snapshots, suppress
 partial coverage or change qualified AC/EFC totals.
+
+## October 2 actual transport and prepared receipt-backed handoff
+
+The Earthship repository now qualifies actual cached 5.2.1 HS103 and Modbus
+binding TCP fault/recovery in owned disconnected fixtures. The BMS test keeps
+the original 30-second poll and register/connection settings; held numeric
+Items correctly become unavailable source evidence when the actual poller goes
+OFFLINE. These tests do not induce or prove a physical household outage. The
+operator's decision on accepting them with production JVM recovery in place of
+that physical-outage gate is still pending; do not silently waive it.
+
+`earthship-ui/scripts/energy-quality-files.py` now supplies a default-off,
+receipt-bound adapter for this exact staged drop-in. It reuses the secure file
+engine, pins 135 live source/configuration inputs and privately preserves 18
+original configuration files. Actual user-systemd parsing passes temporary
+original/candidate/restored states, and journaled interrupted replacement
+recovers the absent target and unchanged baseline. All 53 affected file tests
+pass, with no skips. A fresh exact-flags, read-only September 30 aggregate
+again passes all 21 source-quality checks without rewriting data.
+
+The private receipt is
+`/home/sat/.local/state/earthship-energy/deploy-receipts/quality-20261003T043300Z-40b305ea`;
+its status is `rehearsal_passed`, not installed. The source release flag is
+false, the live target is absent, and no daily job/timer or publisher opt-in
+was activated. Apply requires explicit authority, the resolved qualification
+gate, unchanged inputs and an idle timer window. The exact live effective
+command must then pass readback/owned rollback, followed by the next natural
+aggregate and UI verification. Later partial days stay partial. Temporary
+test/parser storage was removed; the intentional private receipt is retained.
+See Earthship's canonical record at
+`docs/operations/2026-10-01-energy-supporting-source-qualification.md`, section
+"October 2 prepared daily-quality handoff and rollback", for exact hashes,
+verification command and activation boundaries.
