@@ -65,5 +65,35 @@ def test_staged_switch_quality_dropin_preserves_current_daily_sources():
     assert '--temperature-evidence-db-config /home/sat/.config/hex/weather-temperature-db.json' in body
     assert '--switch-evidence-policy /home/sat/Solar_PV/analytics/config/switch-evidence.json' in body
     assert '--switch-evidence-db-config /home/sat/.config/hex/energy-power-reader.jdbc' in body
+    assert '--bms-aux-evidence-policy /home/sat/Solar_PV/analytics/config/bms-aux-evidence.json' in body
+    assert '--bms-aux-evidence-db-config /home/sat/.config/hex/energy-power-reader.jdbc' in body
     assert 'PYTHONPATH=/home/sat/Solar_PV/analytics/src:/home/sat/earthship-ui/openhab/scripts' in body
     assert 'OPENHAB_TOKEN' not in body
+
+
+def test_staged_supporting_quality_command_preserves_all_paired_flags(monkeypatch):
+    import shlex
+    from datetime import datetime, timezone
+    import earthship_energy.scheduled as scheduled
+
+    body = (UNIT_DIR / 'energy-daily-aggregate.service.d' / 'zz-qualified-switch.conf').read_text()
+    commands = [line.removeprefix('ExecStart=') for line in body.splitlines()
+                if line.startswith('ExecStart=')]
+    assert len(commands) == 2 and commands[0] == ''
+    argv = shlex.split(commands[1])
+    assert argv[:6] == ['/usr/bin/flock', '--nonblock', '%t/energy-daily-aggregate.lock',
+                       '/usr/bin/python3', '-m', 'earthship_energy.scheduled']
+    assert argv[6] == 'daily-aggregate'
+    calls = []
+    monkeypatch.setattr(scheduled, 'utc_now', lambda: datetime(2026, 10, 3, 6, 30, tzinfo=timezone.utc))
+    monkeypatch.setattr(scheduled.energy_cli, 'main', lambda args: calls.append(args) or 0)
+    assert scheduled.main(argv[6:]) == 0
+    assert calls == [['aggregate', '--date', '2026-10-02', '--apply', *argv[7:]]]
+    pairs = dict(zip(argv[7::2], argv[8::2]))
+    assert set(pairs) == {'--jdbc-config', '--power-evidence-policy',
+        '--temperature-evidence-policy', '--temperature-evidence-db-config',
+        '--switch-evidence-policy', '--switch-evidence-db-config',
+        '--bms-aux-evidence-policy', '--bms-aux-evidence-db-config'}
+    assert pairs['--jdbc-config'].endswith('energy-power-writer.jdbc')
+    assert pairs['--switch-evidence-db-config'] == pairs['--bms-aux-evidence-db-config']
+    assert not {'--openhab-url', '--dry-run', '--ac-evidence-policy'} & pairs.keys()

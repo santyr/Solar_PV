@@ -61,3 +61,41 @@ unit/scheduled tests; the full analytics suite passed 880 tests against the
 candidate v2 reader. Install only after strict complete-day, source
 fault/restart and withdrawal/recovery checks, then verify the next natural
 daily aggregate and UI publisher. Historical days remain unchanged.
+
+## October 2 combined daily-quality candidate
+
+The still-uninstalled `zz-qualified-switch.conf` now also forwards the paired
+`--bms-aux-evidence-policy` and `--bms-aux-evidence-db-config` arguments. Both
+switch and BMS auxiliary evidence use the existing restricted
+`energy-power-reader.jdbc`; aggregate storage keeps the separate
+`energy-power-writer.jdbc`. Current power/temperature policies, the original
+nonblocking lock, previous-local-day selection and source search path remain
+unchanged. No new grant, credential, timer, database write or household control
+is introduced by this source candidate.
+
+Candidate SHA-256:
+`6a12658f41ba8e6b32e6543681cfd05676f5c4830a6e6f20f62b4f9b40d5a5e5`.
+The new regressions failed while the BMS flags were absent, then passed after
+the correction. They parse the exact unit command and verify all eight paired
+arguments reach the existing scheduled aggregate entrypoint unchanged. The
+affected unit/scheduled/CLI/switch/BMS-quality/reader slice passes 84 tests,
+with no skips. Two separate actual producer-to-restricted-PostgreSQL and
+grant-withdrawal tests also pass (5.56 seconds). Their events and failures are
+simulated in disposable data: they are not physical-source/network evidence.
+
+An isolated parser round trip copies the **actual** daily unit and its two
+existing power/temperature drop-ins into owned temporary storage. The user
+systemd parser accepts the original, combined candidate and restored-original
+states. Original bytes and actual production files remain unchanged; the
+candidate remains absent from live DropInPaths. This proves syntax and a
+temporary file removal, not attended production handoff/rollback or a natural
+aggregate. All test storage and owned database containers were removed.
+
+The Earthship completed-day record independently qualifies September 30 and
+preserves October 1's partial results. Actual October 2 JVM barrier/native
+recovery now passes. Independent physical-source fault qualification and an
+exact receipt-backed, reversible user-unit handoff remain before activation;
+then require the next natural aggregate and unchanged accounting/UI publication.
+This candidate affects daily supporting-quality rows only. It does not enable
+the publisher's separate BMS live-health policy, rewrite old snapshots, suppress
+partial coverage or change qualified AC/EFC totals.
