@@ -35,6 +35,33 @@ needs glazing, shades, ventilation and thermal mass response. Forecast and
 measured radiation remain distinct. The physical modeling sequence follows
 [pvlib's documented ModelChain](https://pvlib-python.readthedocs.io/en/stable/reference/modelchain.html).
 
+## Valley horizon and seasonal sunlight
+
+The operator reports mountain shadows that shift effective direct sunlight
+through the year. At the supplied site coordinates, an October 15 PVGIS 5.3
+terrain-horizon request estimates skyline elevations of 4.2 degrees due east,
+1.9 degrees southeast, 8.4 degrees southwest and 8.8 degrees west. These are
+provisional map estimates, not measured sunlight times. The original response
+is retained privately by `earthship-ui`, SHA-256
+`284643f993d60d48165cb01ea77475dcfd1bc5836ec4d119780e76806d900846`.
+
+[PVGIS terrain horizons](https://joint-research-centre.ec.europa.eu/photovoltaic-geographical-information-system-pvgis/using-pvgis-5/pvgis-5-tools/horizon-profile_en)
+use approximately 90 m terrain cells and do not resolve nearby trees or
+buildings. Use the map as an initial skyline profile; compare repeated
+irradiance observations by solar azimuth/elevation and validate corrections on
+later days. Twelve retained October days have been examined; seven pass full
+day receipt coverage checks. Coverage does not prove clear skies, calibrated
+irradiance or a validated annual horizon. Clouds, station obstructions and
+curtailed PV output must not become false mountain labels.
+
+Share the provisional terrain input between solar-dependent models while
+keeping window/panel/station obstructions distinct. Terrain blocks direct
+beam while diffuse light remains; do not zero all generation in mountain
+shade. Keep native Astro sunrise/sunset events and owner daylight rules
+unchanged. No terrain correction has been deployed. Evidence and integration
+boundaries are in
+`earthship-ui/docs/operations/2026-10-15-terrain-horizon-diagnosis.md`.
+
 ## Current implementation and remaining work
 
 `earthship-ui/openhab/household-pv-system.json` retains source-bound geometry
