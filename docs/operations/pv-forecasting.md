@@ -97,6 +97,30 @@ and the actual energy-meter scope can be compared correctly. Full PR #3,
 learned load profiles, calibration and action qualification remain incomplete.
 See `earthship-ui/docs/operations/2026-10-15-solar-storage-monitoring.md`.
 
+An approved follow-on in `earthship-ui` now implements a fourteen-completed-day
+hourly inverter-AC demand profile in its existing morning job. It retains strict
+original AC packets, coverage and excluded days, uses the median of independent
+daily clock-hour means, and preserves DST and missing observations. Historical
+training targets inverter AC output; it does not retrospectively apply the
+October 15 household-DC scope declaration to older measurements.
+
+A separately versioned read-only storage scenario uses that frozen profile while
+keeping the deployed constant-load PV/storage forecast and its pending outcomes
+unchanged. Matched AC-energy errors compare the qualified hour ending at each
+1/6/12/24-hour lead against current-load persistence. Matched SoC comparisons retain
+the learned-load scenario, original constant-load PV scenario, constant battery
+power and held SoC. Daily trained versions retain individual pins; rolling
+as-issued algorithm comparisons explicitly count versions and origin days.
+The load update is deployed from `earthship-ui` source `c71f14e` at
+18:51:34 UTC on October 15. The complete thermal model remains unchanged; owned
+service definitions, timers and the laptop/tablet collecting view pass readback.
+No production fit or forecast was manually triggered. The first load profile
+will be prepared by the normal October 16 06:50 MDT morning job; learned-load
+numerics and matched skill remain collecting until that scheduled work and
+subsequent outcomes mature. Each scoring opportunity retains bounded progress,
+and a new unavailable forecast does not revoke older eligible outcomes. See
+`earthship-ui/docs/operations/2026-10-15-hourly-ac-load-model.md`.
+
 The existing daily predictor still uses its original resource/demand formula;
 its gain is capped at 1.3 and qualified automatic PV calibration remains disabled.
 Do not compare the new next-24-hour potential with the existing whole-day
