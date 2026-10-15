@@ -87,8 +87,11 @@ curated 24-hour potential/capture/nominal-SoC chart beneath the existing
 Earthship content. Its normal 16:50:15Z original and exact staged replay match;
 laptop/tablet layouts and fixed GET transport are verified. It retains a
 separate matched SoC comparison against the original independently rederived
-net-power reference and hold-SoC at 1/6/12/24 hours. The first mature scheduled
-comparison is still pending at this checkpoint; no production skill is claimed.
+net-power reference and hold-SoC at 1/6/12/24 hours. The ordinary16:58:20Z opportunity produced its first one-hour comparison:98%
+measured versus98.1210% scenario,96.5020% original constant-power and87%
+hold-SoC. Original-document/exact-stage replay and the public matched table
+are verified. This is one original from one day; general production skill is
+not established and longer horizons remain collecting.
 PV energy accuracy stays unavailable until potential DC, accepted generation
 and the actual energy-meter scope can be compared correctly. Full PR #3,
 learned load profiles, calibration and action qualification remain incomplete.
