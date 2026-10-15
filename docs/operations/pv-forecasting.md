@@ -58,8 +58,9 @@ Share the provisional terrain input between solar-dependent models while
 keeping window/panel/station obstructions distinct. Terrain blocks direct
 beam while diffuse light remains; do not zero all generation in mountain
 shade. Keep native Astro sunrise/sunset events and owner daylight rules
-unchanged. No terrain correction has been deployed. Evidence and integration
-boundaries are in
+unchanged. A provisional terrain-aware observer is now deployed separately
+from the existing daily predictor; physical horizon validation remains open.
+Evidence and integration boundaries are in
 `earthship-ui/docs/operations/2026-10-15-terrain-horizon-diagnosis.md`.
 
 ## Current implementation and remaining work
@@ -67,9 +68,25 @@ boundaries are in
 `earthship-ui/openhab/household-pv-system.json` retains source-bound geometry
 configuration for the next model. The deployed power-flow observer separates
 consumption and storage alongside the unchanged original household plan.
-A new geometry-aware PV forecast has **not** been deployed by this documentation
-update. The daily predictor still uses its original resource/demand formula;
+A provisional geometry/terrain-aware PV observer was deployed from
+`earthship-ui` source `522241e` on October 15 at 15:46:45Z. Its first scheduled
+15:50:15Z receipt and exact deployed CLI replay match. It integrates the
+retained forecast/native geometry with the 4.2 kW, approximately 165-degree,
+57.4-degree array and the provisional map horizon; mountain masking preserves
+diffuse sky light. Missing/unusable horizon withholds only this new PV/storage
+projection. No service restart, refit or actuator change was performed.
+
+The new private receipt separates next-24-hour array potential from a
+conditional captured-energy/nominal-SoC scenario holding current AC load
+constant. It explicitly assumes efficiencies, zero system DC overhead and no
+charge-rate/taper limits. It is not calibrated usable energy, a learned load
+forecast or proven forecasting skill. Chronological PV outcomes and public UI
+integration remain incomplete.
+
+The existing daily predictor still uses its original resource/demand formula;
 its gain is capped at 1.3 and qualified automatic PV calibration remains disabled.
+Do not compare the new next-24-hour potential with the existing whole-day
+captured-energy prediction as if they were the same quantity and interval.
 
 The implementation diagnosis and primary-source research are in
 `earthship-ui/docs/operations/2026-10-15-pv-forecast-practice.md`; full PR #3
