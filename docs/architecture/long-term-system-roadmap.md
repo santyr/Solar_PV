@@ -76,7 +76,11 @@ This does **not** mean the Schneider equipment must be removed in 2035. If it re
 - **12 × Qcells 350 W modules, 4.2 kW DC**, from the original quote as
   transcribed by the operator
 - PV array, XW Pro, and MPPT installed **2021-08-06**
-- Array tilt is intentionally optimized for **winter solar gain**
+- Panel tilt is **57.4° above horizontal**, chosen for maximum **December
+  solar gain**; array azimuth is approximately **165°** (15° east of south).
+  Both are operator-reported on **2026-10-15**. The tilt converts a phone
+  inclinometer reading of 32.6° with horizontal at 90°; see the
+  [current-system geometry record](current-system.md#pv-array).
 - Snow is manually cleared promptly to preserve winter production
 - The array continues to produce useful energy under cloudy conditions, although at reduced power
 - The exact Qcells model and string configuration remain a field-verification item before any future array redesign

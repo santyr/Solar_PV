@@ -43,7 +43,12 @@ these values before firmware-dependent work.
 - Twelve Qcells 350 W modules: **4.2 kW DC**.
 - The array, XW Pro inverter, and MPPT charge controller were installed on
   **2021-08-06**.
-- Tilt is intentionally optimized for winter solar gain.
+- Panel tilt: **57.4° above horizontal**, from the operator's phone
+  inclinometer measurement on **2026-10-15**. The instrument read **32.6°**
+  with **90° representing horizontal**, so the conversion is `90 − 32.6`.
+- Array azimuth: **approximately 165° clockwise from north** — about
+  **15° east of south**, reported by the operator on **2026-10-15**.
+- The tilt was chosen to maximize **December solar gain**.
 - Snow is manually cleared promptly.
 
 The repository used 4.2 kW consistently from its first README through early
