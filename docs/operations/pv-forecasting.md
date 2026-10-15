@@ -121,6 +121,16 @@ subsequent outcomes mature. Each scoring opportunity retains bounded progress,
 and a new unavailable forecast does not revoke older eligible outcomes. See
 `earthship-ui/docs/operations/2026-10-15-hourly-ac-load-model.md`.
 
+A later read-only shadow-plan update from `earthship-ui` source `521762d`
+activated at 19:36:36 UTC. It consumes the same-issue nominal PV/storage trajectory,
+using a valid learned-load scenario when present and the original constant-load
+scenario otherwise. The normal 19:40:15 UTC receipt generated hypothetical
+surplus-greywater and low-SoC night-load OFF candidates. All original coordination
+and reserve gates remain unchanged; unknown effects keep the selected action set
+empty. Exact activated CLI replay and original v1 forecast replay match. This
+changes no forecast, outcome score, owner rule or actuator authority. Details are
+in `earthship-ui/docs/operations/2026-10-15-trajectory-shadow-plan.md`.
+
 The existing daily predictor still uses its original resource/demand formula;
 its gain is capped at 1.3 and qualified automatic PV calibration remains disabled.
 Do not compare the new next-24-hour potential with the existing whole-day
