@@ -66,7 +66,7 @@ Evidence and integration boundaries are in
 ## Current implementation and remaining work
 
 `earthship-ui/openhab/household-pv-system.json` retains source-bound geometry
-configuration for the next model. The deployed power-flow observer separates
+configuration for the deployed provisional observer. The power-flow observer separates
 consumption and storage alongside the unchanged original household plan.
 A provisional geometry/terrain-aware PV observer was deployed from
 `earthship-ui` source `522241e` on October 15 at 15:46:45Z. Its first scheduled
@@ -80,8 +80,19 @@ The new private receipt separates next-24-hour array potential from a
 conditional captured-energy/nominal-SoC scenario holding current AC load
 constant. It explicitly assumes efficiencies, zero system DC overhead and no
 charge-rate/taper limits. It is not calibrated usable energy, a learned load
-forecast or proven forecasting skill. Chronological PV outcomes and public UI
-integration remain incomplete.
+forecast or proven forecasting skill.
+
+An operational update from `earthship-ui` source `a539742` now publishes a
+curated 24-hour potential/capture/nominal-SoC chart beneath the existing
+Earthship content. Its normal 16:50:15Z original and exact staged replay match;
+laptop/tablet layouts and fixed GET transport are verified. It retains a
+separate matched SoC comparison against the original independently rederived
+net-power reference and hold-SoC at 1/6/12/24 hours. The first mature scheduled
+comparison is still pending at this checkpoint; no production skill is claimed.
+PV energy accuracy stays unavailable until potential DC, accepted generation
+and the actual energy-meter scope can be compared correctly. Full PR #3,
+learned load profiles, calibration and action qualification remain incomplete.
+See `earthship-ui/docs/operations/2026-10-15-solar-storage-monitoring.md`.
 
 The existing daily predictor still uses its original resource/demand formula;
 its gain is capped at 1.3 and qualified automatic PV calibration remains disabled.
