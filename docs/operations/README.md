@@ -2,6 +2,7 @@
 
 - [OpenHAB energy monitoring](openhab-energy-monitoring.md)
 - [Energy analysis runbook](energy-analysis-runbook.md)
+- [PV forecasting and measurement boundaries](pv-forecasting.md)
 - [Codex energy review workflows](codex-review-workflows.md)
 - [Scheduled energy jobs](scheduled-jobs.md)
 - [Stage 3 production validation](../audit/stage3-production-validation.md)

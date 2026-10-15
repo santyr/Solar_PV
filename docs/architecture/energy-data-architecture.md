@@ -37,6 +37,27 @@ avoid future-data leakage.
 The live OpenHAB database uses UTC while the house operates in
 America/Denver. Daily aggregates require explicit local-day and DST tests.
 
+## Solar forecast inputs and targets
+
+PV and thermal forecasts should reuse the same retained, as-issued weather
+and Astro geometry, while applying separate receiving-plane and response models.
+Calculated solar position is not measured irradiance; forecast horizontal
+irradiance is not irradiance measured on the tilted array.
+
+Keep potential array output, captured controller production, household AC
+consumption and battery charging/discharging as distinct targets. A full bank
+can constrain capture; lower starting SoC can permit more capture on a recovery
+day without increasing available sunlight. Unknown DC overhead, conversion
+losses and limitation status remain explicit. Curtailed captured production is
+not an uncensored measurement of potential array yield.
+
+Array geometry and its operator provenance live in the
+[current system](current-system.md#pv-array). Implementation and chronological
+forecast evaluation belong to `earthship-ui`; electrical-system meaning and
+quantitative history remain owned here. See
+[PV forecasting and measurement boundaries](../operations/pv-forecasting.md)
+for current implementation status and evaluation requirements.
+
 ## Current versus planned
 
 OpenHAB JDBC history, the focused `thermal_intel` schema, and version 1 of the

@@ -63,6 +63,11 @@ count, per-module quote rating, total rating, and installation date are
 operator-sourced original-quote facts; they have not been checked against a
 quote image or field nameplate in this repository.
 
+The azimuth is an approximate operator report; it is not a surveyed true-north
+measurement. This geometry supports a provisional plane-of-array forecast.
+See [PV forecasting and measurement boundaries](../operations/pv-forecasting.md)
+for how potential solar production differs from captured controller energy.
+
 ## Telemetry and automation
 
 OpenHAB consumes Discover/Schneider data through local interfaces including
@@ -78,6 +83,13 @@ topology change. Qualified AC accounting begins at the new evidence stream's
 September 23 20:55:12.284Z cutover, not an inferred earlier topology, and each
 read is bounded to one already completed local day. A reported change must end
 that confirmed period before later days are qualified.
+
+On **2026-10-15**, the operator also confirmed that the only current DC
+loads relate to the battery and solar-PV system. Household consumption can
+therefore use qualified inverter AC output within the existing topology
+attestation. Battery charging is storage, not household consumption. System DC
+overhead and conversion losses remain unmeasured and must not be set to zero.
+This report describes current topology, not a retroactive historical guarantee.
 
 OpenHAB may observe, alert, and execute bounded deterministic owner rules. It
 does not replace BMS/inverter protection. The current browser sends only its

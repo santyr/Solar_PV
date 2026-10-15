@@ -169,6 +169,16 @@ actual battery state. `modeled_storage_overflow_kwh` means energy above the
 scenario's storage ceiling. It is not an observed curtailment or lost-harvest
 estimate.
 
+## PV forecast interpretation
+
+Use the [current array geometry](../architecture/current-system.md#pv-array)
+and keep observed controller energy separate from potential array generation.
+Household AC load excludes battery charging; system overhead and losses are
+not assumed zero. Compare recovery days using original starting SoC, weather
+and captured-energy records rather than adding recharge demand onto a PV
+forecast. The [PV forecasting contract](pv-forecasting.md) describes shared
+thermal/PV weather inputs, source limitations and chronological evaluation.
+
 ## Current limitations
 
 - The available Discover four-module epoch begins 2026-07-19. A winter report

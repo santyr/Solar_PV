@@ -28,6 +28,7 @@ operations.
 - [Cross-repository contracts](docs/architecture/cross-repo-contracts.md)
 - [Long-term roadmap](docs/architecture/long-term-system-roadmap.md)
 - [Operations index](docs/operations/README.md)
+- [PV forecasting and array geometry](docs/operations/pv-forecasting.md)
 - [Completed projects](docs/projects/completed/README.md)
 - [AGM history](docs/history/agm/README.md)
 - [Stage 1 reorganization report](docs/audit/stage1-reorganization-report.md)
