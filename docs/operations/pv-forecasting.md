@@ -237,6 +237,18 @@ Details are in
 `earthship-ui/docs/operations/2026-10-16-retained-scoring-diagnosis.md`.
 No production fitting, forecast, query or scoring job was manually triggered.
 
+The normal2026-10-16T14:38:28UTC opportunity subsequently scored the first
+learned-load captured-PV hour, recovering the transient newest-reference pause
+without a producer change. Actual controllerDC energy0.132509252kWh compares
+with0.126115636kWh from both load scenarios and0kWh from current-PV
+persistence. The exact deployed file-only CLI reproduces the complete retained
+outcome identically with network forbidden and originals unchanged. Equal
+scenario predictions on one origin day do not demonstrate a load-model gain
+or general skill. The larger constant-AC one-hour cohort still underperforms
+persistence:23pairs,MAE0.120189 versus0.095397kWh,RMSEskill-0.262313.
+The full evidence and interval definitions remain in the Earthship captured-PV
+outcomes document. Qualification and physical action effects remain incomplete.
+
 The existing daily predictor still uses its original resource/demand formula;
 its gain is capped at 1.3 and qualified automatic PV calibration remains disabled.
 Do not compare the new next-24-hour potential with the existing whole-day
