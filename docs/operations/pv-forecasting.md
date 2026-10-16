@@ -189,6 +189,30 @@ Effective readback passes; the first automatic current slot completed in26s.
 The old legacy pressure monitor was retired from scheduling, not patched.
 See `earthship-ui/docs/operations/2026-10-16-native-scoring-cutover.md`.
 
+Earthship source `5e20b24` adds the approved read-only per-intent qualification
+assessment, deployed at 2026-10-16T14:01:48Z. Each greywater, feeder, night-load
+override and night-load device family has all twelve phase10 evidence criteria.
+Evidence observed in an original replay remains distinct from missing
+chronological, uncertainty, policy-baseline and physical-owner qualification.
+Every family stays unqualified; request translation stays disabled. This does
+not convert PV/load forecast accuracy into action benefit or release authority.
+The same fixed observer GET and32KiB transport bound apply, with v1/v2 cache
+compatibility and an explicit observation/v3 assessment. No forecast equation,
+model artifact, scorer, resource policy, timer or electrical setting changed.
+See `earthship-ui/docs/operations/2026-10-16-intent-qualification-assessment.md`.
+
+The first scheduled learned-load outcome report at14:08:33UTC now contains
+one one-hour AC-energy pair:0.000255kWh absolute error for the hourly profile
+versus0.022406kWh for current-load persistence. Learned-PV nominal SoC error
+is0.281384 percentage points, versus0.399484 for constant-AC-PV and0 for
+hold-SoC. This single origin day establishes a functioning feedback path,
+not general forecasting skill or physical calibration. Longer learned-load
+horizons and learned captured-PV pairs remain collecting. An08:06MDT retained
+native-history score separately hit its deadline; the08:05 forecast/assessment
+and08:08 independent outcomes succeeded. The per-intent report retains every
+family as unqualified. Exact deployed assessment replay and laptop/tablet
+rendering are verified in the linked Earthship document.
+
 The existing daily predictor still uses its original resource/demand formula;
 its gain is capped at 1.3 and qualified automatic PV calibration remains disabled.
 Do not compare the new next-24-hour potential with the existing whole-day
