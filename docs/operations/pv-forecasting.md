@@ -144,6 +144,17 @@ Exact activated CLI replay matches retained originals. One origin/day does not
 establish general skill or physical calibration; actuator requests remain
 disabled. See `earthship-ui/docs/operations/2026-10-15-captured-pv-outcomes.md`.
 
+The approved captured-PV accuracy table is now deployed in Earthship monitoring
+from UI source `032b12c`, at 2026-10-16T01:05:45Z. Its fixed read-only GET
+`/api/household-captured-pv-performance` serves the bounded curated report;
+private originals stay private. Laptop/tablet rendering is verified. Each lead
+and constant/learned AC scenario keeps its own paired model/persistence MAE,
+RMSE skill, coverage requirement, sample count and independent origin days.
+Freshness comes from the original report clock; empty and stale states remain
+explicit. This UI update changes no model, scoring, schedule, electrical setting,
+permission or actuator authority. See the Earthship captured-PV outcomes document
+for validation and deployment evidence.
+
 The existing daily predictor still uses its original resource/demand formula;
 its gain is capped at 1.3 and qualified automatic PV calibration remains disabled.
 Do not compare the new next-24-hour potential with the existing whole-day
