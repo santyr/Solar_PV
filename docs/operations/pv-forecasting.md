@@ -155,6 +155,17 @@ explicit. This UI update changes no model, scoring, schedule, electrical setting
 permission or actuator authority. See the Earthship captured-PV outcomes document
 for validation and deployment evidence.
 
+Earthship source `46a6543` adds an approved read-only comparison of the
+original greywater owner block with the same issued shadow plan. It activated
+at 2026-10-16T12:46:42Z; the first natural 12:50:27Z view and exact deployed
+CLI replay match. Laptop/tablet presentation is verified. An after-dark block
+is retained even when no greywater proposal exists; it does not imply solar
+surplus, action eligibility, policy performance or energy benefit. Original
+policy hashes and expiry remain visible. This changes no PV/load forecast,
+matched score, owner rule or actuator permission. Verification and remaining
+qualification are in
+`earthship-ui/docs/operations/2026-10-16-policy-block-comparison.md`.
+
 The existing daily predictor still uses its original resource/demand formula;
 its gain is capped at 1.3 and qualified automatic PV calibration remains disabled.
 Do not compare the new next-24-hour potential with the existing whole-day
