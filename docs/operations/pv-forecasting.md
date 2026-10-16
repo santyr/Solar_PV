@@ -178,6 +178,17 @@ calibrated capacity or prediction intervals. Native scoring deadline and
 retained legacy pressure refusals remain open. No fit or forecast was manually
 triggered; full household qualification and actuator release remain incomplete.
 
+At the operator's request, scheduled legacy v1 scoring was retired in
+Earthship source `a9ee9b2`, deployed at 2026-10-16T13:31:43Z. Its last forecast
+was issued October 14 at04:35:15UTC, so every future 24-hour outcome window had
+elapsed by October 15 at04:40:15UTC. Originals and historical reports remain for
+replay. Native current scoring keeps minutes1/11; native history now uses6/16,
+and independent battery/PV/load outcomes keep8/18 at second20. No additional
+jobs, model changes, relaxed limits or actuator permissions were introduced.
+Effective readback passes; the first automatic current slot completed in26s.
+The old legacy pressure monitor was retired from scheduling, not patched.
+See `earthship-ui/docs/operations/2026-10-16-native-scoring-cutover.md`.
+
 The existing daily predictor still uses its original resource/demand formula;
 its gain is capped at 1.3 and qualified automatic PV calibration remains disabled.
 Do not compare the new next-24-hour potential with the existing whole-day
