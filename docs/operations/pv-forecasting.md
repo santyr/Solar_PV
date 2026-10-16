@@ -166,6 +166,18 @@ matched score, owner rule or actuator permission. Verification and remaining
 qualification are in
 `earthship-ui/docs/operations/2026-10-16-policy-block-comparison.md`.
 
+The normal October 16 06:50 MDT morning job completed at 06:54:07 and
+activated thermal artifact `284139ee` and hourly AC profile `31bab20b`, both
+trained through local midnight. All 24 hourly bins have at least 11 supporting
+days from 14 retained local days. Following one busy-preparer rollover gap,
+the normal 06:58 preparer succeeded and the 07:00:15 issue published the first
+conditional learned-load PV/storage scenario; its retained original matches
+the learned artifact. Thermal publication recovered to provisional. Actual
+laptop/tablet rendering passes. This establishes live use, not forecast skill,
+calibrated capacity or prediction intervals. Native scoring deadline and
+retained legacy pressure refusals remain open. No fit or forecast was manually
+triggered; full household qualification and actuator release remain incomplete.
+
 The existing daily predictor still uses its original resource/demand formula;
 its gain is capped at 1.3 and qualified automatic PV calibration remains disabled.
 Do not compare the new next-24-hour potential with the existing whole-day
