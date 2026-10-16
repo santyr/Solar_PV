@@ -213,6 +213,30 @@ and08:08 independent outcomes succeeded. The per-intent report retains every
 family as unqualified. Exact deployed assessment replay and laptop/tablet
 rendering are verified in the linked Earthship document.
 
+The first learned-load AC/SoC outcome was independently replayed at
+2026-10-16T14:21:41Z through the exact deployed file-only CLI, with network
+forbidden. The complete saved score and all original profile, energy, plan and
+sample bytes match. Outcome receipt:
+`9f5ee0690e87ed2f80ca9616358a7253ef1ca4e433b2c9c9f5a6d95e1b9d80c9`.
+This verifies the retained observation, without adding independent samples or
+claiming general skill. At14:16UTC the learned captured-PV origin was separately queued
+behind an older horizon with the same maturity time. The14:28UTC opportunity
+then deferred PV scoring because the newest captured-PV scenario/reference
+was unavailable. Existing original forecasts remain retained; that later
+producer admission gap is separate from the thermal correction. The retained thermal
+worker has both outer and model-runtime50-second guards despite the current
+120-second operational budget; changing only the service timeout would not
+fix it. The approved outside-model historical coordinator now reproduces an
+actual archived source score exactly, with38 original inputs unchanged and
+network access forbidden. Source1a3d5d8 activated at2026-10-16T14:46:49UTC
+while preserving the complete284139ee model, resource limits and scoring
+schedule. All five owned definitions and all active timers read back correctly;
+the idle daily source advanced without starting training. The oldest retained
+archive's normal job is next18:06UTC, so its live backlog latency remains pending.
+Details are in
+`earthship-ui/docs/operations/2026-10-16-retained-scoring-diagnosis.md`.
+No production fitting, forecast, query or scoring job was manually triggered.
+
 The existing daily predictor still uses its original resource/demand formula;
 its gain is capped at 1.3 and qualified automatic PV calibration remains disabled.
 Do not compare the new next-24-hour potential with the existing whole-day
