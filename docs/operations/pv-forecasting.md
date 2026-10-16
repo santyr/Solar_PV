@@ -131,6 +131,19 @@ empty. Exact activated CLI replay and original v1 forecast replay match. This
 changes no forecast, outcome score, owner rule or actuator authority. Details are
 in `earthship-ui/docs/operations/2026-10-15-trajectory-shadow-plan.md`.
 
+A separately versioned captured-PV scorer from `earthship-ui` source
+`dd16b98` activated at 2026-10-15T23:51:39.876899+00:00. It compares the
+original constant-load and optional learned-load captured-DC scenarios with
+qualified controller-output history at the hour ending1/6/12/24h after issue.
+The actual cutover, raw packets, stream epoch, expiry and gaps remain explicit;
+99% coverage is required, and every prediction/reference uses the same measured
+duration. Potential array yield remains unscored. The first normal report at
+2026-10-15T23:58:26.424973+00:00 compares 2.511182kWh measured controller output
+with 2.846700kWh modeled capture and 2.474801kWh current-output persistence.
+Exact activated CLI replay matches retained originals. One origin/day does not
+establish general skill or physical calibration; actuator requests remain
+disabled. See `earthship-ui/docs/operations/2026-10-15-captured-pv-outcomes.md`.
+
 The existing daily predictor still uses its original resource/demand formula;
 its gain is capped at 1.3 and qualified automatic PV calibration remains disabled.
 Do not compare the new next-24-hour potential with the existing whole-day
