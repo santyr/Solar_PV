@@ -70,6 +70,25 @@ high-AIC branch protection system would be safer; this specific MEGA
 conversion is not cleared for fault-protection service.** See
 [Lynx M8 MEGA-fuse modification and engineering review](../operations/lynx-power-in-m8-mega-fuse-conversion.md).
 
+### Discover 950-0074 cable and factory fusing baseline (operator clarification)
+
+The operator confirms the four branch cable pairs are **Discover
+950-0074**, each one positive/negative **3 AWG 2.0 m Amphenol SurLok
+to M8 ring** set. They are cable assemblies intended for installs
+**without** Discover's combiner, not cables incorporating individual
+fuse links. The independent [Discover Combiner 950-0049 manual
+805-0055](https://discoverbattery.com/s4x_files/resources/805-0055-aes-rackmount-battery-module-combiner-manual.pdf)
+uses these same-size **3 AWG** branches with **100 A fast-acting,
+20 kAIC fuses** (service fuse **CHNBEL LET-200-100 A**). This is a
+manufacturer engineering reference for reassessing the current
+**125 A / 80 V MEGA** idea: the latter is **not equivalent** in DC
+fault interruption and should **not** be declared approved. A 100 A
+Class T 160 VDC / 20 kA fuse and separately rated 100 A holder is
+one possible engineered substitute, **not a drop-in Lynx M8 fuse**;
+maintaining the factory M8 cable terminals may require different
+listed holder/interconnect hardware. See [detailed comparison
+and procurement gates](../operations/lynx-power-in-m8-mega-fuse-conversion.md).
+
 ## Verified component inventory
 
 | Component | Current state | Evidence status |
