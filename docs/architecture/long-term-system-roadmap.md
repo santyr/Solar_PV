@@ -274,9 +274,30 @@ be evaluated separately, and this cannot be bounded by Schneider's normal
 high-interrupting **current-limiting protection** when aggregate fault
 contribution exceeds 10 kA at an installation with its 10 kA-rated PDP
 breaker. Whether that PDP/main protection exists here remains unverified.
-The Discover **3 AWG branch cable ampacity**, actual terminations, and
-coordination with the internal 100 A breakers must also be checked before
-approving a 125 A external fuse. **Do not assume that adding this specific
+**Operator photos obtained 2026-10-26** now demonstrate a Schneider-pattern
+**250 A inverter-side DC breaker**, front labeled `ALM 250` and
+`INV 1 DISCONNECT`, visually matching **Schneider 865DCBRK250**
+(250 A / 160 VDC). They also show 60 A PV-input, 80 A MPPT-output,
+and separate 60 A AC breakers and bypass interlock, indicating an XW
+PDP family configuration. The AC `10 kA 120/240V~` marks are **AC
+only**; Schneider's PDP manual is the source for the 10 kA **DC**
+rating of the inverter disconnect. A separate high-interrupting
+current-limiting fuse has **not** been located; its possible existence
+elsewhere in the installation remains open.
+
+The selected Victron `CIP138125020` 125 A / 80 V ceramic MEGA
+appears to correspond to Zeeman's **ANMH** series (OEM attribution
+comes from the Victron community), for which **Zeeman states 2 kA
+interrupt rating at 80 VDC**. This is **not yet a part-specific
+Victron certification**, and it is less than Discover's **3.8 kA
+(100 ms) one-module** fault figure. Thus the cost-effective
+mechanical modification remains **electrically unqualified** for
+high-current lithium faults. The Discover **3 AWG branch cable
+ampacity**, actual terminations, and coordination with the internal
+100 A breakers must also be checked before approving a 125 A
+external fuse. Do not mark a branch-protection decision closed
+on the strength of the mechanical modification or the installed
+250 A main breaker. **Do not assume that adding this specific
 unverified MEGA fuse is necessarily safer than keeping the present
 installation; properly rated and coordinated individual battery-branch
 fuses are the intended improvement.** A low price is not a reason to waive
