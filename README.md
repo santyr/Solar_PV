@@ -13,6 +13,7 @@ operations.
 | BMS gateway | Discover LYNK II |
 | Inverter | Schneider XW Pro 6848 |
 | MPPT | Schneider MPPT 60-150 |
+| DC distribution | Victron Lynx Power In **M8**; four MEGA-fuse branch modification **in progress**, not commissioned |
 | Automation | OpenHAB |
 | Data | PostgreSQL |
 | AI manager | Codex |
@@ -23,6 +24,7 @@ operations.
 ## Canonical documents
 
 - [Current system](docs/architecture/current-system.md)
+- [Lynx Power In M8 fuse-conversion record](docs/operations/lynx-power-in-m8-mega-fuse-conversion.md) — operator project, under-$8 fastener budget, outstanding fault-current checks
 - [Energy data architecture](docs/architecture/energy-data-architecture.md)
 - [Codex energy management](docs/architecture/codex-energy-management.md)
 - [Cross-repository contracts](docs/architecture/cross-repo-contracts.md)
