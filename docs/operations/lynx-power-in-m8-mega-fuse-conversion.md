@@ -130,7 +130,7 @@ transferred as certification, but justify concern.
 | XW Pro transient | Discover LYNK II example estimates **276 A** surge for 60s, which is not an independent sustained DC-current rating | Balanced **69 A/module**, assuming healthy equal branches |
 | AES module protections | **70 A continuous, 95 A for one hour, 218 A/3 seconds, internal 100 A 2-pole breaker** | Not a limit on all prospective instantaneous fault contributions |
 | AES published short-circuit contribution | **3.8 kA over 100 ms** for a *single module* | Evaluating fuse interrupt capacity requires **fault analysis**, not the XW Pro's normal rating |
-| Four parallel AES modules | Screening arithmetic **up to ~15.2 kA** on a common-bus fault if four 3.8 kA figures coincided; **up to ~11.4 kA** from three peers into a faulted branch | These numbers are **illustrative, not certified prospective fault-current or fuse duty**; real values depend on voltage, impedance, fault location and BMS/breaker behavior |
+| Four parallel AES modules | Screening arithmetic **4 × 3.8 = 15.2 kA** for a common-bus fault and **3 × 3.8 = 11.4 kA** for three peers feeding a faulted branch, *if* the 100 ms nominal contributions coincide | **Not an actual fault-current calculation, certified bound or interruption duty**: impedance, topology and protective clearing determine actual values |
 
 The Discover internal 100 A breaker and BMS may open in some faults. But a
 100 A **nominal breaker rating is not an interrupt-capacity rating** and
@@ -152,12 +152,17 @@ specifically distinguishes equipment current-limiting protection from ordinary
 wiring overcurrent protection; *do not* substitute a single 400 A fuse
 for a 250 A wire-protection device just because both appear in this guide.
 
-**As-built status unknown:** repository does not verify if this Earthship has
-the Schneider PDP, the DC main breaker model and its DC interrupt rating,
-or any high-interrupting current-limiting main fuse. The **10 kA** PDP rating
-must not be assumed for an unidentified main breaker. A separate high-AIC
-main device also **does not by itself establish selectivity or adequate
-breaking capacity of individual downstream battery-branch MEGA fuses**.
+**As-built evidence updated after the initial review:** the operator's
+photographs now show the **250 A inverter DC breaker** and the surrounding
+Schneider XW PDP-family layout. Its `ALM 250` face matches Schneider's
+official **865DCBRK250** photograph (250 A / 160 VDC); see the later
+photo-backed section. Exact PDP nameplate/hidden breaker model and presence
+of any **separate current-limiting high-AIC fuse** remain unverified.
+The 10 kA *DC* rating comes from Schneider's XW PDP manual, **not** the
+visible 10 kA *AC* markings on the lower Square D breakers.
+A separate high-AIC main device would **not** by itself demonstrate
+branch-fuse selectivity or safe interruption of individual-battery
+cross-feed faults.
 
 ### Cable ampacity is a second acceptance gate
 
@@ -198,9 +203,11 @@ separate from the safety design.
 
 ### Close-out information to obtain
 
-- Photo/model, placement and DC interrupt rating of the **existing main
-  battery/inverter breaker/fuse/disconnect**, including whether a Schneider
-  PDP is installed and any high-AIC current-limiting fuse.
+- **Partly resolved by October 26 photographs:** the existing inverter
+  disconnect is a **250 A Schneider-pattern DC breaker** matching
+  865DCBRK250; confirm the nameplate/interrupt rating and exact XW PDP
+  SKU if accessible without exposing live parts. Still locate and document
+  any separate high-AIC current-limiting device (not visible in photos).
 - An **exact primary manufacturer DC interrupt-rating sheet**
   explicitly applicable to **CIP138125020** at the system's maximum DC
   voltage, including any required upstream protection/series rating.
@@ -291,11 +298,12 @@ series-protection requirements.
 48-48-5120**. A common-bus fault can receive current from an individual
 module through its individual branch fuse; a faulted battery branch
 may receive current from **three healthy peer batteries**.
-The possible fault currents can exceed **2 kA**. The aggregate
-four-module source capability is arithmetically **4 × 3.8 kA = 15.2
-kA** before site-specific impedance and dynamics; this is a
-**screening ceiling, not a measured or validated prospective fault
-current at the panel**. Even **one** module's 3.8 kA specified
+The possible fault currents can exceed **2 kA**. The
+arithmetic sum of four modules' published 100 ms contributions is
+**4 × 3.8 kA = 15.2 kA**, but this is **not a validated upper
+bound, fault-current result, or measured duty at the panel**:
+site wiring, protection dynamics and differing fault-current time
+profiles must be modeled. Even **one** module's 3.8 kA specified
 contribution is larger than the likely 2 kA fuse-series AIC. Do
 **not** qualify this modified Power In as independently high-AIC
 branch protection without coordination design backed by component
@@ -315,7 +323,7 @@ nor does it protect **all cross-feed faults between battery branches**.
   breakers are present; Square D 60 A 120/240VAC breakers are present.
 - **STRONGLY SUPPORTED, NOT PROVEN:** installed main breaker is
   Schneider **865DCBRK250** in an XW-series PDP.
-- **SUPPORTED, NOT PROVEN FOR VIC­TRON SKU:** the 80 V 125 A ceramic
+- **SUPPORTED, NOT PROVEN FOR VICTRON SKU:** the 80 V 125 A ceramic
   MEGA family resembles Zeeman **ANMH**, **2 kA AIC**.
 - **STILL OPEN:** actual short-circuit duty at fuse positions and
   main disconnect; exact main-fuse existence and location;
