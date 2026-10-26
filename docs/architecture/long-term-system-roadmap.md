@@ -2,14 +2,15 @@
 
 **Status:** Living planning document  
 **Planning horizon:** 2026–2040+  
-**Last updated:** 2026-08-19  
-**Revision note:** Added Schneider product lifecycle / 2035 end-of-standard-service planning constraint.
+**Last updated:** 2026-10-26  
+**Revision note:** Preserved the 2035 Schneider support horizon; added the operator's low-cost Lynx Power In M8 MEGA-fuse conversion record and explicit Victron true off-grid split-phase qualification.
 
 **Companion documents:**
 - [Current system](current-system.md) — verified installed-system baseline
 - [Battery Upgrade Record](../projects/completed/discover-battery-upgrade.md) — Discover AES hardware design and installation record
 - [LYNK II Deployment Record](../projects/completed/lynk2-deployment.md) — Schneider/Discover closed-loop commissioning
 - [openHAB Cutover Record](../projects/completed/openhab-lithium-cutover.md) — monitoring and automation migration
+- [Lynx M8 MEGA-fuse conversion](../operations/lynx-power-in-m8-mega-fuse-conversion.md) — in-progress operator project and DC protection verification gates
 
 ---
 
@@ -157,6 +158,15 @@ The preferred strategy is therefore:
 
 ### Future expansion rule
 
+The current four battery branch positions on the installed Lynx Power In M8
+are occupied. The operator's October 2026 MEGA-fuse modification is a
+four-branch protection project, **not** a new distribution-capacity
+expansion. A fifth/sixth AES module requires a separately verified busbar,
+fusing, cabling, fault-current, and BMS design. Evaluate severe multi-day
+storm risk against the **10% SoC operational load-loss threshold** and
+forecast-aware load curtailment, rather than assuming sunny-day usage or a
+higher reserve cutoff. See [fuse-conversion status](../operations/lynx-power-in-m8-mega-fuse-conversion.md).
+
 If an additional 48-48-5120 module is considered while the current bank is still young, the age mismatch should remain small because the existing batteries are accumulating very little cycle wear. Expansion should still follow Discover's then-current requirements for model compatibility, firmware, SOC/voltage matching, cabling, and commissioning.
 
 Once the bank is materially older, expansion with a new module should be reconsidered against complete bank replacement with the best current technology.
@@ -213,6 +223,56 @@ At replacement time, compare the then-current products from Victron and competit
 ### Split-phase requirement
 
 The residence requires true **120/240 V split-phase** service. Any future inverter architecture must be evaluated specifically for battery-mode split-phase behavior rather than relying on product names that may imply 120/240 V pass-through without producing true split phase while islanded.
+
+**Victron disqualification / evaluation update (2026-10-26):** Victron's
+**MultiPlus-II 2x120V** is a *pass-through-capable* device, not a one-box
+48 V true split-phase substitute for the installed XW Pro. Its manual says
+that in battery-only inverter mode it joins L1 and L2 and produces **120 V
+on both legs with no 240 V between them**; moreover the published 2x120V
+models are 12/24 V rather than the installed bank's 48 V. Therefore do
+**not** shortlist a single 2x120V model as an off-grid 120/240 V replacement.
+[Official product description](https://www.victronenergy.com/media/pg/MultiPlus-II_2x120V/en/description.html)
+/[specifications](https://www.victronenergy.com/media/pg/MultiPlus-II_2x120V/en/technical-specifications-mp-ii-2x120v.html).
+
+A potential Victron *architecture*, not an approved purchase, is a
+**configured pair of compatible 48 V, 120 V MultiPlus-II units** producing
+true split phase (or another explicitly documented 48 V split-phase design,
+possibly using an approved autotransformer). Victron documents
+split-phase configurations and a **48/5000/70-95 120 V** MultiPlus-II;
+this is evidence for further system-level design rather than evidence
+that two units match the XW Pro in surge performance, well-pump starting,
+no-load consumption, whole-house 240 V load handling or DC protection.
+[MultiPlus-II 120 V specifications](https://www.victronenergy.com/media/pg/MultiPlus-II_120V/en/technical-specifications-mp-ii-120v.html)
+/[configuration](https://www.victronenergy.com/media/pg/MultiPlus-II_120V/en/configuration.html).
+
+**Migration acceptance tests** must document 240 V output in *battery-only*
+mode at the real house load, 120 V leg balance, inductive/transformer and
+well-pump startup requirements, BMS communications and loss-of-comms
+behavior (Discover LYNK II -> Victron GX/VE.Can; not Schneider Xanbus),
+local GX/Venus OS MQTT/Modbus integration with OpenHAB, idle and light-load
+efficiency, DC fuse interrupt rating and wiring, MPPT string-voltage
+compatibility, component serviceability, and total installed cost. Do not
+require cloud access for normal off-grid operation.
+
+### Near-term Lynx Power In M8 fusing — preserve existing equipment
+
+The operator reported on **2026-10-26** that the installed **Lynx Power In M8**
+is being adapted for **four Victron CIP138125020 125 A / 80 V MEGA branch
+fuses** using community-documented fastener additions. **Under US$8** is
+the stated **nuts/bolts/washers cost**, not a verified completed-project
+cost. This replaces an assumed near-term **Lynx Distributor purchase** with
+a targeted reuse effort; it does not change the inverter migration horizon.
+
+The modification is **in progress**, with no verified as-built or
+commissioning evidence. Required gates include exact fuse DC interrupt
+rating vs. prospective fault current from the four-battery bank, 125 A fuse
+coordination with integrated breakers and cables, existing main DC protection,
+contact/torque and enclosure fit, and any affected listing/warranty. A low
+price is not a reason to waive electrical protection requirements. See the
+[dedicated design/verification record](../operations/lynx-power-in-m8-mega-fuse-conversion.md),
+[Victron community precedents](https://communityarchive.victronenergy.com/questions/55125/converting-a-lynx-power-in-hold-mega-fuses-lynx-di.html),
+and [Victron Wiring Unlimited — lithium fuse interrupt ratings](https://www.victronenergy.com/media/pg/The_Wiring_Unlimited_book/en/dc-wiring.html).
+
 
 ---
 
