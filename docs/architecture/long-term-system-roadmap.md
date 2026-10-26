@@ -264,11 +264,23 @@ cost. This replaces an assumed near-term **Lynx Distributor purchase** with
 a targeted reuse effort; it does not change the inverter migration horizon.
 
 The modification is **in progress**, with no verified as-built or
-commissioning evidence. Required gates include exact fuse DC interrupt
-rating vs. prospective fault current from the four-battery bank, 125 A fuse
-coordination with integrated breakers and cables, existing main DC protection,
-contact/torque and enclosure fit, and any affected listing/warranty. A low
-price is not a reason to waive electrical protection requirements. See the
+commissioning evidence. The detailed 2026-10-26 engineering review confirms
+the **125 A / 80 V nominal ratings suit anticipated operating current and
+voltage**, but **DOES NOT establish the CIP138125020's DC breaking/interrupt
+capacity**. An individual Discover AES module publishes **3.8 kA (100 ms)**
+short-circuit capability; parallel peer backfeed and common-bus faults must
+be evaluated separately, and this cannot be bounded by Schneider's normal
+60 A MPPT or 180 A inverter current. Schneider's XW Pro guide requires
+high-interrupting **current-limiting protection** when aggregate fault
+contribution exceeds 10 kA at an installation with its 10 kA-rated PDP
+breaker. Whether that PDP/main protection exists here remains unverified.
+The Discover **3 AWG branch cable ampacity**, actual terminations, and
+coordination with the internal 100 A breakers must also be checked before
+approving a 125 A external fuse. **Do not assume that adding this specific
+unverified MEGA fuse is necessarily safer than keeping the present
+installation; properly rated and coordinated individual battery-branch
+fuses are the intended improvement.** A low price is not a reason to waive
+electrical protection requirements. See the
 [dedicated design/verification record](../operations/lynx-power-in-m8-mega-fuse-conversion.md),
 [Victron community precedents](https://communityarchive.victronenergy.com/questions/55125/converting-a-lynx-power-in-hold-mega-fuses-lynx-di.html),
 and [Victron Wiring Unlimited — lithium fuse interrupt ratings](https://www.victronenergy.com/media/pg/The_Wiring_Unlimited_book/en/dc-wiring.html).
