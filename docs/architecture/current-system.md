@@ -36,7 +36,21 @@ fault current, breaker/fuse coordination, terminal torque, modified enclosure
 and main DC fuse arrangement remain open safety checks. A 125 A / 80 V label
 alone does not establish adequate fault interruption for four LiFePO4 modules.
 Do not count this as completed protection until the commissioning evidence
-exists. See [Lynx M8 MEGA-fuse modification and verification gates](../operations/lynx-power-in-m8-mega-fuse-conversion.md).
+exists. The 2026-10-26 manufacturer-source engineering review found that
+**125 A / 80 V is compatible with the anticipated source/loading current and
+voltage, but safe short-circuit interruption by CIP138125020 is NOT VERIFIED**.
+Discover publishes **3.8 kA (100 ms)** fault contribution *per module*; a
+three-peer backfeed into one faulted branch or four-module bus fault may exceed
+the interrupt capability commonly associated with MEGA fuses. Schneider's
+XW Pro guide additionally requires **current-limiting protection where the
+aggregate contribution exceeds 10 kA for a PDP with its 10 kA DC breaker**.
+The presence/model of an existing main breaker or high-interrupting main
+fuse is not established here. Branch-cable 3 AWG ampacity (e.g. 100 A at
+75°C under conventional NEC Table 310.16 conditions) also needs review
+against the proposed 125 A fuse. **A correctly rated and coordinated
+high-AIC branch protection system would be safer; this specific MEGA
+conversion is not cleared for fault-protection service.** See
+[Lynx M8 MEGA-fuse modification and engineering review](../operations/lynx-power-in-m8-mega-fuse-conversion.md).
 
 ## Verified component inventory
 
