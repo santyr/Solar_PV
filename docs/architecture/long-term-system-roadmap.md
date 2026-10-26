@@ -254,6 +254,23 @@ efficiency, DC fuse interrupt rating and wiring, MPPT string-voltage
 compatibility, component serviceability, and total installed cost. Do not
 require cloud access for normal off-grid operation.
 
+**Manufacturer fusing reference update (2026-10-26):** the operator
+confirms four Discover **950-0074 3 AWG / 2.0 m / M8-ring** branch
+cable sets. Discover's factory **950-0049 combiner** uses **100 A
+fast-acting, 20 kAIC** fuses with identical-gauge battery cables;
+its service part is **CHNBEL LET-200-100 A**. This gives a materially
+better reference than rating fuses only from Schneider's normal
+charging output. Prefer a properly engineered 100 A high-AIC
+four-branch protection package over an unproven 125 A MEGA
+modification, subject to field wiring and protection coordination.
+Eaton **JJN-100** (100 A, 160 VDC, 20 kA DC) with
+**TM30100-1CR** 100 A 160 VDC fuse blocks illustrates a fully
+specified fuse/holder family; its **box-lug holder is not directly
+compatible with the factory M8 ring ends** and must not be called
+a drop-in solution or automatically safe in the available Lynx
+enclosure. Read the [engineering review](../operations/lynx-power-in-m8-mega-fuse-conversion.md)
+before procurement.
+
 ### Near-term Lynx Power In M8 fusing — preserve existing equipment
 
 The operator reported on **2026-10-26** that the installed **Lynx Power In M8**
