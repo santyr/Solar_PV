@@ -44,10 +44,28 @@ three-peer backfeed into one faulted branch or four-module bus fault may exceed
 the interrupt capability commonly associated with MEGA fuses. Schneider's
 XW Pro guide additionally requires **current-limiting protection where the
 aggregate contribution exceeds 10 kA for a PDP with its 10 kA DC breaker**.
-The presence/model of an existing main breaker or high-interrupting main
-fuse is not established here. Branch-cable 3 AWG ampacity (e.g. 100 A at
-75°C under conventional NEC Table 310.16 conditions) also needs review
-against the proposed 125 A fuse. **A correctly rated and coordinated
+**New October 26 operator photos establish an installed 250 A
+Schneider-pattern inverter DC breaker**, marked `ALM 250` and
+`INV 1 DISCONNECT`, visually matching the official **Schneider
+865DCBRK250 (250 A / 160 VDC)** product photo. The surrounding 60 A PV
+and 80 A MPPT DC breakers, 60 A Square D AC input/bypass/output
+breakers, and interlock strongly indicate an XW PDP-family enclosure.
+The lower AC breakers visibly say `10 kA 120/240V~`; **that label
+does not establish DC interruption**. Schneider's PDP DC breaker is
+separately stated as 10 kA DC by the XW Pro guide, but exact installed
+main-breaker part-number and PDP nameplate remain visually unconfirmed.
+No separate current-limiting main fuse can be identified in these
+photos, although one might be elsewhere.
+
+Additional October 26 evidence connects the Victron 80 V ceramic
+MEGA family with Zeeman's ANMH series, whose OEM datasheet states
+**2 kA at 80 VDC**. This remains a **provisional rather than a
+Victron-issued interrupt rating for exact SKU CIP138125020**. Given
+the Discover per-module 3.8 kA (100ms) published fault contribution
+and potential multi-module cross-feed, **do not treat this modification
+as verified high-fault-current branch protection**. Branch-cable 3 AWG
+ampacity (e.g. 100 A at 75°C under conventional NEC Table 310.16
+conditions) also needs review against the proposed 125 A fuse. **A correctly rated and coordinated
 high-AIC branch protection system would be safer; this specific MEGA
 conversion is not cleared for fault-protection service.** See
 [Lynx M8 MEGA-fuse modification and engineering review](../operations/lynx-power-in-m8-mega-fuse-conversion.md).
@@ -60,6 +78,7 @@ conversion is not cleared for fault-protection service.** See
 | Bank | 400 Ah / 20.48 kWh nominal | Model/count and live Schneider bank capacity |
 | BMS gateway | LYNK II, AEbus battery side, Xanbus Schneider side | Commissioning record and live telemetry |
 | Inverter | Schneider XW Pro 6848 NA, split phase | Live Thing/telemetry and repository record |
+| Inverter DC breaker | 250 A Schneider-pattern breaker (likely 865DCBRK250, 160 VDC) in XW PDP-family enclosure | Operator photo 2026-10-26; exact device ID and additional current-limiting protection not yet verified |
 | Charge controller | Schneider MPPT 60-150 | Live Thing/telemetry and repository record |
 | PV array | 12 × Qcells 350 W modules, 4.2 kW DC | Operator transcription from original quote, 2026-08-20 |
 | Gateway | InsightHome / InsightLocal | Live Schneider integration |
