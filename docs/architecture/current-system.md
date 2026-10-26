@@ -18,6 +18,26 @@ bank is 400 Ah / 20.48 kWh nominal. Discover BMS limits and protection are
 authoritative. Schneider devices provide inversion, charging, supervisory
 protection, and local telemetry.
 
+## DC distribution fuse conversion — operator project (2026-10-26)
+
+The installed DC bus is a **Victron Lynx Power In M8** (LYN020102000):
+four occupied front battery connections, with the Schneider inverter's
+existing 4/0 cables on a side bus connection as recorded in the completed
+Discover upgrade. The operator is **modifying that existing Power In** to
+hold four **Victron CIP138125020 125 A / 80 V MEGA fuses** on the individual
+positive battery branches using a published community conversion approach.
+The operator reports **under $8 for nuts, bolts and washers**. Fuse acquisition
+cost and final all-in cost have not been separately verified.
+
+**Evidence boundary:** modification is *in progress*, not yet verified
+installed/energized or signed off as adequate DC fault protection. Exact
+125 A / 80 V fuse breaking capacity, combined parallel-bank prospective
+fault current, breaker/fuse coordination, terminal torque, modified enclosure
+and main DC fuse arrangement remain open safety checks. A 125 A / 80 V label
+alone does not establish adequate fault interruption for four LiFePO4 modules.
+Do not count this as completed protection until the commissioning evidence
+exists. See [Lynx M8 MEGA-fuse modification and verification gates](../operations/lynx-power-in-m8-mega-fuse-conversion.md).
+
 ## Verified component inventory
 
 | Component | Current state | Evidence status |
