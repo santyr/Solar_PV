@@ -337,6 +337,69 @@ nor does it protect **all cross-feed faults between battery branches**.
   The inexpensive fastener modification is not a substitute for
   rated protection.
 
+
+## Manufacturer design reference — 950-0074 cables and 100 A high-AIC fuses (2026-10-26)
+
+The operator confirmed the exact factory-manufactured battery cables as
+**Discover 950-0074: one positive and one negative, 3 AWG, 2.0 m,
+Amphenol SurLok-to-M8 ring terminal set (UL)**. Discover/distributor
+documentation describes these as a cable set **for installations without
+Discover's combiner**; an unfused cable assembly is not itself a
+complete fused DC distribution system.
+
+**Key primary source:** [Discover AES Rackmount Combiner 950-0049 manual
+805-0055 REV B](https://discoverbattery.com/s4x_files/resources/805-0055-aes-rackmount-battery-module-combiner-manual.pdf):
+- Table 3-1 (p. 6) specifies **six 100 A fast, 20 kAIC branch fuses**
+  with **six 3 AWG battery cable pairs**; its two-pole combiner
+  disconnect is separately rated **2 × 250 A, 65 VDC, 25 kAIC**.
+- Table 12-1 (p. 21) names the exact service fuse **CHNBEL
+  LET-200-100 A, fast, 20 kAIC**. This fuse is mechanically specified
+  for the **Discover combiner only**, not as a drop-in part for Lynx
+  Power In.
+- This strongly supports using **100 A, high-DC-interrupt-capacity
+  per-branch** as the baseline for the same Discover battery and
+  3 AWG cable family, subject to installation-specific verification
+  of cable/terminal ampacity, device/fuse time-current curves, and
+  coordination.
+
+**Proposed independently specified equivalent electrical class (NOT a
+drop-in mechanical replacement or approved substitution):**
+[Eaton Bussmann JJN-100](https://www.eaton.com/mx/en-us/skuPage.JJN-100.html)
+is a **100 A fast-acting current-limiting Class T** fuse with
+**160 VDC, 20 kA DC** ratings. Eaton's
+[TM30100-1CR 1-pole holder](https://www.eaton.com/us/en-us/skuPage.TM30100-1CR.html)
+is listed as a **61-100 A, 160 VDC** Class T holder compatible with
+JJN-70 through JJN-100. The holder has **box-lug terminations**:
+the Discover 950-0074's **M8 ring** cannot simply be installed into
+these terminals. A qualified redesign of the protected positive
+branch with proper compatible ring-terminal or approved transition,
+adequate bus/holder enclosure and mechanical fit is required.
+Check the holder's actual listed 3 AWG accommodation and termination
+method; never cut a factory cable without confirming its listing,
+warranty, and a correct termination design.
+
+**Important exclusion:** Victron's own Lynx Class-T Power In is intended
+for **225–400 A Class T** fuses with an **M10** Lynx connection system.
+It cannot be treated as a four-way 100 A branch solution or directly
+mated to the installed **M8** Lynx Power In. Many Blue Sea Class T
+blocks likewise start at **110 A**, and do **not** fit a 100 A
+JJN-100; use a verified holder explicitly listed for the
+**70–100 A fuse size** instead.
+
+**Recommended design decision:** hold the CIP138125020 125 A/80 V
+low-cost MEGA modification as *unqualified for high-fault-current
+branch protection*. Prefer an application-engineered **100 A,
+at least 20 kA DC interrupter/holder package** (the Discover
+factory combiner or an equivalently rated, properly enclosed
+four-branch design), or a documented protection study supporting an
+alternative. Retain the existing Lynx only where protection layout
+and enclosure design are verified. Discover's manufactured cable
+has no inline fuse because its companion combiner provides
+**fuses at the busbar-end positive terminals**; standalone cable
+installs must supply suitable external fault protection separately.
+Do not classify the 100 A Class T example as approved for this
+installation before verifying current curves, hardware and cabling.
+
 ## Closure criteria
 
 Update the [current-system record](../architecture/current-system.md) only
