@@ -223,6 +223,112 @@ separate from the safety design.
 - [Eaton Bussmann JJN-125 manufacturer specifications — 20 kA DC at 160 V](https://www.eaton.com/us/en-us/skuPage.JJN-125.html).
 - [Victron community discussion: 80 V ceramic MEGA fuse data and questions](https://community.victronenergy.com/t/ceramic-mega-fuse-80v-125a-time-current-characteristic/19790).
 
+## Updated field evidence — Schneider panel photographs and identified MEGA OEM (2026-10-26)
+
+**New photo-backed observations supplied by the operator in the 2026-10-26
+conversation; images have not been copied into this repository:**
+
+- The upper/right-hand breaker is labeled **`INV 1 DISCONNECT`** and its
+  operator-facing label reads **`ALM 250`**. The handle, markings and
+  chassis visually match Schneider's **865DCBRK250**, listed by Schneider as
+  a **250 A, 160 VDC** panel-mount inverter/battery breaker. Identification
+  confidence is **high**, but the hidden actual part-number label remains
+  unphotographed. Schneider also identifies a comparable former part number
+  865-1065 for this function. **Nominal rating 250 A is not its DC
+  interrupting/breaking rating.**
+- The two other upper-panel breakers are labeled **`PV1 DISCONNECT` 60**
+  and **`CHARGE CONTROLLER 1` 80**. Their layout is consistent with
+  Schneider's XW PDP; exact PDP enclosure SKU and per-breaker DC voltage
+  and interrupt ratings remain unverified from the frontal photo.
+- The lower panel has **`INV1 IN (GRID)`**, **`GRID BYPASS`** and
+  **`INV1 OUT (AC LOADS)`**, with Square D 60 A breakers marked
+  **`10 kA 120/240V~`** and an output/bypass mechanical interlock.
+  These labels refer to the **AC breakers**: their printed 10 kA AIC
+  **must not** be treated as the DC main-breaker interrupt rating.
+- The pictures strongly support the **Schneider XW Power Distribution
+  Panel family** but do not confirm **865-1015-01 versus a similarly
+  equipped Mini PDP or exact factory configuration**. A panel interior
+  nameplate or invoice would resolve that.
+- The photograph includes `TRIPPED` printed beside the DC breaker
+  mechanism; its actual energized/trip state **cannot be established
+  reliably from the photograph**, so do not assert an active DC fault.
+- No separate high-interrupting **current-limiting main fuse is
+  established by these photos**. It may be elsewhere in the circuit.
+  Identifying one requires a physical as-built tracing or documentation,
+  not an assumption that it is absent.
+
+**Original primary-product cross-check:** Schneider's
+[865DCBRK250 page](https://www.se.com/us/en/product/865DCBRK250/250a-160vdc-panel-mount-dc-breaker/)
+links to an OEM front-view photograph matching the `ALM 250` sticker.
+Schneider's [XW PDP 865-1015-01 page](https://www.se.com/us/en/product/865-1015-01/xw-power-distribution-panel/)
+also explicitly lists a 250 A battery/inverter DC breaker and three AC breakers.
+
+### Fuse OEM identification materially narrows, but does not close, the interrupt question
+
+The operator clarified the exact proposed Victron fuse SKU as
+**`CIP138125020`**. Victron's price list confirms **125 A / 80 V
+ceramic MEGA fuse (five-pack)**. In [a January 2025 Victron Community
+discussion](https://community.victronenergy.com/t/ceramic-mega-fuse-80v-125a-time-current-characteristic/19790),
+a participant identifies **Zeeman** as the OEM for Victron's 80 V
+ceramic MEGA range and provides the OEM **ANMH** product sheet. In
+[a March 2025 discussion explicitly about the 125 A / 80 V Victron
+fuse](https://community.victronenergy.com/t/victron-mega-fuse-fake/23732/6),
+another comment repeats this Zeeman OEM identification.
+Zeeman's **[ANMH primary manufacturer specifications](https://www.zeeman.cn/en/cproduct/Bolt-onFuses/2021-06-18/641.html)**
+list **2,000 A at 80 VDC interrupting rating** for the ANMH series,
+including a 125 A entry. Zeeman also publishes a slow-blow time-current
+range, not instantaneous opening as soon as 125 A is exceeded.
+
+**Important evidence tier:** OEM attribution comes from community
+participants and a visually/physically matching product series, **not
+an explicit Victron-issued cross-reference from CIP138125020 to Zeeman
+ANMH 125**. Thus **2 kA is a strong provisional working figure, not a
+certified interrupt rating for this exact Victron SKU**. Ask Victron or
+its OEM for a written part-specific data sheet and any applicable
+series-protection requirements.
+
+**Safety consequence:** Discover specifies **3.8 kA (100 ms) for each
+48-48-5120**. A common-bus fault can receive current from an individual
+module through its individual branch fuse; a faulted battery branch
+may receive current from **three healthy peer batteries**.
+The possible fault currents can exceed **2 kA**. The aggregate
+four-module source capability is arithmetically **4 × 3.8 kA = 15.2
+kA** before site-specific impedance and dynamics; this is a
+**screening ceiling, not a measured or validated prospective fault
+current at the panel**. Even **one** module's 3.8 kA specified
+contribution is larger than the likely 2 kA fuse-series AIC. Do
+**not** qualify this modified Power In as independently high-AIC
+branch protection without coordination design backed by component
+manufacturer evidence.
+
+Schneider's 990-91228E-01 guide says that its XW **PDP DC breaker
+has 10 kA DC interruption**, unlike the lower AC devices' markings.
+If aggregate available fault current exceeds 10 kA, Schneider
+requires an independent current-limiting fuse protection arrangement
+for the inverter and DC breaker. The newly photographed 250 A
+breaker does **not** itself prove compliance with this requirement,
+nor does it protect **all cross-feed faults between battery branches**.
+
+**Updated engineering status:**
+- **CONFIRMED:** a Schneider-pattern **250 A, 160 VDC** inverter
+  breaker is present; 60 A PV-input and 80 A charge-controller
+  breakers are present; Square D 60 A 120/240VAC breakers are present.
+- **STRONGLY SUPPORTED, NOT PROVEN:** installed main breaker is
+  Schneider **865DCBRK250** in an XW-series PDP.
+- **SUPPORTED, NOT PROVEN FOR VIC­TRON SKU:** the 80 V 125 A ceramic
+  MEGA family resembles Zeeman **ANMH**, **2 kA AIC**.
+- **STILL OPEN:** actual short-circuit duty at fuse positions and
+  main disconnect; exact main-fuse existence and location;
+  exact CIP138125020 certified AIC; 3 AWG ampacity/terminal
+  coordination; installation/contact approvals.
+- **RECOMMENDATION:** retain the aim of individual battery fault
+  isolation, but **defer energizing the unqualified MEGA modification
+  as safety protection**. Compare appropriately DC-rated,
+  high-interrupting branch protection with compatible cables,
+  enclosures and placement after reviewing the actual DC single-line.
+  The inexpensive fastener modification is not a substitute for
+  rated protection.
+
 ## Closure criteria
 
 Update the [current-system record](../architecture/current-system.md) only
