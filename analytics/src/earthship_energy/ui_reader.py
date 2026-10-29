@@ -201,7 +201,7 @@ def fetch_ui_health_and_forecast(
             "status": "current" if current else "stale",
             "issuedAt": issued_at.isoformat(),
             "validFor": valid_for.isoformat(),
-            "pv24hKwh": float(value) if value is not None else None,
+            "pv24hKwh": float(value) if current and generated_at < valid_for and value is not None else None,
             "reason": None if current else "forecast_issue_older_than_6h",
         }
         forecast_health = "ok" if current else "stale"
@@ -313,3 +313,9 @@ def _qualified_snapshot(connection,epoch,settings,policy,generated_at,timezone_n
     return build_qualified_ui_payload(rows,epoch_id=epoch.epoch_id,cutover=policy.cutover,
         start_date=start,end_date=end,generated_at=generated_at,timezone_name=timezone_name,
         forecast=forecast,health=health,module_health=module_health_report(modules))
+
+
+def attach_current_forecasts(connection, v4, *, generated_at):
+    """Reader-first opt-in; observational v4 accounting/AC remain unchanged."""
+    from .current_forecasts import build_current_ui_payload, read_current_forecast
+    return build_current_ui_payload(v4, read_current_forecast(connection, now=generated_at))

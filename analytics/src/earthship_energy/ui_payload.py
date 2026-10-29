@@ -316,11 +316,11 @@ def validate_energy_ui_payload(
     payload: object, *, now: datetime | None = None
 ) -> dict[str, object]:
     qualified = isinstance(payload, dict) and payload.get('schema') in {
-        'earthship-energy-ui/v3', 'earthship-energy-ui/v4'}
-    ac_v4 = isinstance(payload, dict) and payload.get('schema') == 'earthship-energy-ui/v4'
+        'earthship-energy-ui/v3', 'earthship-energy-ui/v4', 'earthship-energy-ui/v5'}
+    ac_v4 = isinstance(payload, dict) and payload.get('schema') in {'earthship-energy-ui/v4', 'earthship-energy-ui/v5'}
     result = _exact(payload, TOP_LEVEL_FIELDS | ({'accounting'} if qualified else set())
                     | ({'acLoad'} if ac_v4 else set()), "payload")
-    if result["schema"] not in {SCHEMA, 'earthship-energy-ui/v3', 'earthship-energy-ui/v4'}:
+    if result["schema"] not in {SCHEMA, 'earthship-energy-ui/v3', 'earthship-energy-ui/v4', 'earthship-energy-ui/v5'}:
         raise ValueError("unsupported energy UI schema")
     generated = _aware(result["generatedAt"], "generatedAt")
     if now is not None:
@@ -400,21 +400,25 @@ def validate_energy_ui_payload(
     _number(module["latestCurrentSharingRangeA"], "lifecycle.moduleHealth.latestCurrentSharingRangeA")
     _number(module["maximumCellSpreadMv"], "lifecycle.moduleHealth.maximumCellSpreadMv")
 
-    forecast = _exact(result["forecast"], FORECAST_FIELDS, "forecast")
-    if forecast["status"] not in FORECAST_STATUSES:
-        raise ValueError("forecast status is outside the closed vocabulary")
-    issued = _aware(forecast["issuedAt"], "forecast.issuedAt") if forecast["issuedAt"] is not None else None
-    valid_for = _aware(forecast["validFor"], "forecast.validFor") if forecast["validFor"] is not None else None
-    if issued is not None and issued > generated:
-        raise ValueError("forecast.issuedAt cannot follow generatedAt")
-    if issued is not None and valid_for is not None and valid_for < issued:
-        raise ValueError("forecast.validFor cannot precede issuedAt")
-    for field in ("pv24hKwh", "nextMorningSocPct"):
-        _number(forecast[field], f"forecast.{field}")
-    for field in ("fullToday", "fullTomorrow"):
-        _boolean(forecast[field], f"forecast.{field}")
-    if forecast["reason"] is not None and not isinstance(forecast["reason"], str):
-        raise ValueError("forecast.reason must be a string or null")
+    if result['schema'] == 'earthship-energy-ui/v5':
+        from .current_forecasts import validate_forecast
+        validate_forecast(result['forecast'], generated=generated)
+    else:
+        forecast = _exact(result["forecast"], FORECAST_FIELDS, "forecast")
+        if forecast["status"] not in FORECAST_STATUSES:
+            raise ValueError("forecast status is outside the closed vocabulary")
+        issued = _aware(forecast["issuedAt"], "forecast.issuedAt") if forecast["issuedAt"] is not None else None
+        valid_for = _aware(forecast["validFor"], "forecast.validFor") if forecast["validFor"] is not None else None
+        if issued is not None and issued > generated:
+            raise ValueError("forecast.issuedAt cannot follow generatedAt")
+        if issued is not None and valid_for is not None and valid_for < issued:
+            raise ValueError("forecast.validFor cannot precede issuedAt")
+        for field in ("pv24hKwh", "nextMorningSocPct"):
+            _number(forecast[field], f"forecast.{field}")
+        for field in ("fullToday", "fullTomorrow"):
+            _boolean(forecast[field], f"forecast.{field}")
+        if forecast["reason"] is not None and not isinstance(forecast["reason"], str):
+            raise ValueError("forecast.reason must be a string or null")
 
     health = _exact(result["health"], HEALTH_FIELDS, "health")
     for field in HEALTH_FIELDS - {"reasons"}:

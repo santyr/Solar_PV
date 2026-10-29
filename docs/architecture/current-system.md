@@ -259,3 +259,22 @@ operator-deferred; do not reopen it as an unanswered destination question.
 - Keep deployed earthship-ui commits reconciled with its remote before shared
   contract work; both repositories were merged and pushed for the September 5 release.
 - Verify whether any external legacy Lightning Goats deployment remains.
+
+### Staged current forecast analytics repair (2026-10-24)
+
+A separately isolated source successor adds read-only current-product acquisition,
+append-only namespaced snapshots and reader-first UI v5 forecast support. It does
+not change deployed providers, scientific qualification, histories, electrical
+controls or the existing observational accounting/AC contract. Activation and
+natural scheduled observations remain separate gates; see
+`docs/operations/current-forecast-analytics-v5.md` and the repair workspace's
+Task4 report for verified deployment status rather than inferring it from source.
+
+### Deployed analytics reconciliation (2026-10-29)
+
+The staged current-product adapter described above has since been deployed and
+verified with the compatible Earthship UI. Its selected reader source and bounded
+acquisition service/timer are now reconciled for publication to remote main; see
+`docs/operations/deployed-analytics-reconciliation-20261029.md`. Current health
+and independent daily-source quality remain separate. This source publication
+does not change the running electrical system or activate new controls.

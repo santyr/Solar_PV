@@ -73,7 +73,7 @@ def build_quality_report(
     sources_ok: bool,
     live_sources_ok: bool = True,
     latest_aggregate: date | None,
-    latest_forecast_issued: datetime | None,
+    latest_forecast_issued: datetime | dict[str, object] | None,
     qualified_daily=None,
 ) -> dict[str, object]:
     yesterday = previous_local_date(now, timezone_name)
@@ -114,6 +114,15 @@ def build_quality_report(
             checks.append({'name':'qualified_daily_coverage','ok':complete,
                 'severity':'Routine' if complete else 'Interesting',
                 'reason':None if complete else 'qualified_day_has_partial_evidence'})
+    if isinstance(latest_forecast_issued, dict):
+        from .current_forecasts import forecast_health
+        forecast_state, forecast_reasons = forecast_health(latest_forecast_issued)
+        checks.append({"name": "forecast_snapshot", "severity": "Routine" if forecast_state == "ok" else "Actionable",
+                       "ok": forecast_state == "ok", "basis": "current_issued_product_set_v1",
+                       "products": {k: latest_forecast_issued[k]["status"] for k in ("weather", "dailyPv", "householdEnergy")},
+                       "reasons": forecast_reasons})
+        return {"schema": "earthship-energy-quality/v1", "generated_at": now.isoformat(),
+                "severity": highest_severity(checks), "checks": checks}
     if latest_forecast_issued is None:
         forecast_age = None
         forecast_severity = "Actionable"
@@ -122,7 +131,7 @@ def build_quality_report(
             raise ValueError("forecast issue timestamp must be timezone-aware")
         forecast_age = (now - latest_forecast_issued).total_seconds()
         forecast_severity = (
-            "Routine" if forecast_age <= 2 * 3600
+            "Actionable" if forecast_age < 0 else "Routine" if forecast_age <= 2 * 3600
             else "Interesting" if forecast_age <= 6 * 3600
             else "Actionable"
         )
@@ -330,7 +339,7 @@ def _live_sources_ok(connection, config, resolved, now: datetime, *, bms_aux_cut
 
 def read_quality_state(
     jdbc_config: str, now: datetime, *, bms_aux_cutover=None,
-) -> tuple[bool, bool, date | None, datetime | None]:
+) -> tuple[bool, bool, date | None, dict[str, object]]:
     settings = parse_openhab_jdbc_config(jdbc_config)
     connection = connect_read_only(settings)
     try:
@@ -350,8 +359,8 @@ def read_quality_state(
                      AND l.quality = 'ok' AND w.quality = 'ok'"""
             )
             latest_aggregate = cursor.fetchone()[0]
-            cursor.execute("SELECT max(issued_at) FROM energy_analytics.forecast_snapshots")
-            latest_forecast = cursor.fetchone()[0]
+        from .current_forecasts import read_current_forecast
+        latest_forecast = read_current_forecast(connection, now=now)
     finally:
         connection.close()
     return True, live_sources_ok, latest_aggregate, latest_forecast
@@ -378,9 +387,8 @@ def read_qualified_quality_state(jdbc_config,now,policy,timezone_name,*,bms_aux_
         resolved=resolve_sources(config,items,tables)
         live_ok=_live_sources_ok(connection,config,resolved,now,
             **({'bms_aux_cutover': bms_aux_cutover} if bms_aux_cutover is not None else {}))
-        with connection.cursor() as cursor:
-            cursor.execute('SELECT max(issued_at) FROM energy_analytics.forecast_snapshots WHERE issued_at<=%s',(now,))
-            forecast=cursor.fetchone()[0]
+        from .current_forecasts import read_current_forecast
+        forecast = read_current_forecast(connection, now=now)
     finally:
         connection.close()
     return (True,live_ok,latest['local_date'] if latest else None,forecast), {
@@ -444,6 +452,10 @@ def _exit_for_severity(severity: str) -> int:
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="energy-scheduled")
     commands = parser.add_subparsers(dest="command", required=True)
+    current = commands.add_parser("current-forecast-snapshot")
+    current.add_argument("--jdbc-config")
+    current.add_argument("--dry-run", action="store_true")
+    current.add_argument("--last-result", default="~/.local/state/earthship-energy/current-forecast-last-result.json")
     forecast = commands.add_parser("forecast-snapshot")
     forecast.add_argument("--jdbc-config", default=DEFAULT_JDBC_CONFIG)
     aggregate = commands.add_parser("daily-aggregate")
@@ -493,11 +505,35 @@ def _parser() -> argparse.ArgumentParser:
     ui_publish.add_argument("--ac-evidence-policy")
     ui_publish.add_argument("--bms-aux-evidence-policy")
     ui_publish.add_argument("--dry-run", action="store_true")
+    ui_publish.add_argument("--current-forecasts", action="store_true", help="emit v5 only after compatible readers are deployed")
     return parser
 
 
 def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
+    if args.command == "current-forecast-snapshot":
+        from .current_forecasts import acquire_current, persist_current_forecasts, verify_current_writer
+        rows, result = acquire_current(now=utc_now(), token=os.environ.get("OPENHAB_TOKEN", ""))
+        if args.dry_run:
+            result["dryRun"] = True
+        else:
+            if not args.jdbc_config:
+                raise ValueError("explicit reviewed forecast writer config required")
+            if rows:
+                connection = None
+                try:
+                    connection = connect_write(parse_openhab_jdbc_config(args.jdbc_config))
+                    verify_current_writer(connection)
+                    result["inserted"] = persist_current_forecasts(connection, rows, now=utc_now())
+                except Exception:
+                    # Driver/config errors must never print credentials or private data.
+                    result.update(status="degraded", writeStatus="refused_or_failed")
+                finally:
+                    if connection is not None:
+                        connection.close()
+            write_private_json(Path(args.last_result).expanduser(), result)
+        print(json.dumps(result, sort_keys=True, separators=(",", ":")))
+        return 0 if result["status"] == "ok" else 20
     if args.command == "forecast-snapshot":
         payload = fetch_openhab_forecast_detail()
         connection = connect_write(parse_openhab_jdbc_config(args.jdbc_config))
@@ -671,6 +707,9 @@ def main(argv: list[str] | None = None) -> int:
                 ac_rows = read_ac_snapshots(settings, policy=ac_policy,
                                             start_date=start, end_date=end, as_of=now)
                 payload = build_ac_ui_payload(payload, policy=ac_policy, ac_rows=ac_rows)
+            if args.current_forecasts:
+                from .ui_reader import attach_current_forecasts
+                payload = attach_current_forecasts(connection, payload, generated_at=now)
         finally:
             connection.close()
         if args.dry_run:

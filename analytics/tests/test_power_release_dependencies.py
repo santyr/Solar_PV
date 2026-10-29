@@ -58,8 +58,11 @@ def test_qualified_monitor_never_queries_legacy_tables(monkeypatch):
         def __exit__(self,*args):pass
         def execute(self,sql,params):
             assert 'daily_battery' not in sql
-            assert 'forecast_snapshots' in sql and params==(NOW,)
-        def fetchone(self):return (NOW,)
+            from earthship_energy.current_forecasts import SOURCES, MARKERS
+            assert 'forecast_snapshots' in sql and 'source = %s AND metric = %s' in sql
+            assert params[0] in SOURCES.values() and params[1] in MARKERS.values()
+            assert params[2:] == (NOW,NOW) and 'captured_at <= %s' in sql
+        def fetchone(self):return None
         def close(self):self.closed=True
     c=Connection();calls=[]
     monkeypatch.setattr(scheduled,'parse_openhab_jdbc_config',lambda _:object())
@@ -71,7 +74,7 @@ def test_qualified_monitor_never_queries_legacy_tables(monkeypatch):
     monkeypatch.setattr('earthship_energy.power_snapshot_reader.read_power_snapshots',read)
     values,quality=scheduled.read_qualified_quality_state('unused',NOW,
         SimpleNamespace(cutover=datetime(2026,9,20,tzinfo=timezone.utc)),'America/Denver')
-    assert values==(True,True,None,NOW)
+    assert values[:3]==(True,True,None) and values[3]["status"]=="unavailable"
     assert quality['coverage_ok'] is False and c.closed
     assert (calls[0]['end_date']-calls[0]['start_date']).days==7
 

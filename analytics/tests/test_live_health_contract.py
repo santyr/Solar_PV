@@ -25,8 +25,8 @@ def test_both_scheduled_consumers_resolve_the_explicit_live_contract(monkeypatch
     class Cursor:
         def __enter__(self): return self
         def __exit__(self, *_): pass
-        def execute(self, *_): pass
-        def fetchone(self): return (None,)
+        def execute(self, sql, *_): self.marker = "forecast_snapshots" in sql
+        def fetchone(self): return None if self.marker else (None,)
     connection = SimpleNamespace(cursor=Cursor, close=lambda: None)
     monkeypatch.setattr(scheduled, "parse_openhab_jdbc_config", lambda *_: None)
     monkeypatch.setattr(scheduled, "connect_read_only", lambda *_: connection)

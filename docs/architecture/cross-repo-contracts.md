@@ -362,3 +362,14 @@ make its daily quality partial. Current health is separately assessed from two
 fresh original receipts; it is not evidence that a full day is complete. Eighty
 affected cross-repository tests pass, including actual restricted PostgreSQL
 and UI/sanity consumers. No production opt-in or control was activated.
+
+### Source-only current forecast acquisition and UI v5 successor
+
+The2026-10-24 repair adds a read-only current-product adapter and distinct
+namespaced snapshot families for WeatherNext selected weather v3, component daily
+PV v4 and household energy potential v1. Existing forecast metrics, feature-export
+populations and all legacy accounting/AC/epoch semantics remain unchanged. The
+closed UI v5 forecast is an explicit opt-in after compatible readers deploy;
+publication defaults to v4. Source code alone is not activation evidence. See
+`docs/operations/current-forecast-analytics-v5.md` for original provenance,
+append-only writer, product-specific expiry, reader-first rollout and rollback.

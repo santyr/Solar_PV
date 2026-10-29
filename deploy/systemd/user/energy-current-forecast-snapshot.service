@@ -1,0 +1,20 @@
+[Unit]
+Description=Acquire current issued forecast products without running providers
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+Environment=PYTHONDONTWRITEBYTECODE=1
+EnvironmentFile=%h/.config/hex/openhab.env
+EnvironmentFile=%h/.config/hex/energy-current-forecast.env
+WorkingDirectory=/home/sat
+ExecStart=/usr/bin/flock --nonblock %t/energy-current-forecast-snapshot.lock /usr/bin/python3 -B /home/sat/earthship-ui/artifacts/decision-support-20261023.local/header-provisional-1f1dff8/native/final/sources/openhab/scripts/household_job_run.py --minimum-mib 512 --preferred-mib 1024 --tasks 64 --seconds 120 -- /usr/bin/taskset -c 4,5 /home/sat/earthship-ui/artifacts/weathernext3-capabilities.local/supported-environment-20261023T060710631462Z/bin/python3.12 -B -m earthship_energy.scheduled current-forecast-snapshot --jdbc-config %h/.config/hex/energy-current-forecast-writer.jdbc
+TimeoutStartSec=150
+TasksMax=128
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=%h/.local/state/earthship-energy
